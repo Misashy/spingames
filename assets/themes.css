@@ -1,0 +1,122 @@
+/* Identités visuelles distinctes – SpinGames */
+/* Chaque univers garde le même moteur de roue mais change sa typographie,
+   ses décors, ses surfaces et sa palette. */
+body[data-tone="minecraft"] {
+  --accent:#91e66d; --accent2:#61c897; --mist:rgba(89,188,97,.25);
+  background:#101b14;
+}
+body[data-tone="minecraft"] .backdrop {
+  background:linear-gradient(90deg,rgba(80,139,67,.08) 1px,transparent 1px),
+    linear-gradient(rgba(80,139,67,.08) 1px,transparent 1px),
+    radial-gradient(ellipse at 73% 12%,#265a35,#101b14 70%);
+  background-size:30px 30px,30px 30px,100% 100%;
+}
+body[data-tone="minecraft"] .g-panel,body[data-tone="minecraft"] .g-hero{
+  border-radius:5px;background:#18281ff2;
+  box-shadow:5px 5px 0 #0e100f,0 0 0 1px #52854e55;
+}
+body[data-tone="minecraft"] .g-hero {background:linear-gradient(120deg,#294929,#172719);}
+body[data-tone="minecraft"] .g-spin{border-radius:4px;text-transform:uppercase;box-shadow:6px 6px 0 #35502e;}
+body[data-tone="minecraft"] .art-disc{border-radius:15px;border-color:#254f2e;box-shadow:0 0 0 9px #92d35a38;transform:rotate(7deg);background:repeating-linear-gradient(45deg,#7ab852 0 19px,#34784d 19px 38px,#81cf72 38px 57px);}
+body[data-tone="minecraft"] .wheel-hub{border-radius:8px;transform:translate(-50%,-50%) rotate(45deg);}
+body[data-tone="minecraft"] .wheel-hub span{transform:rotate(-45deg);}
+
+body[data-tone="fortnite"]{
+  --accent:#ffce5d;--accent2:#9c87ff;--mist:rgba(138,85,245,.31);
+  background:#130e39;
+}
+body[data-tone="fortnite"] .backdrop {
+  background:radial-gradient(ellipse at 90% 8%,rgba(231,89,253,.39),transparent 52%),
+  radial-gradient(circle at 9% 25%,rgba(46,139,246,.35),transparent 48%),
+  linear-gradient(180deg,#251053,#11102b);
+}
+body[data-tone="fortnite"] .g-hero {
+  background:linear-gradient(125deg,#6c3ed3d9,#28147fe0);
+  border:1px solid #a387f8;box-shadow:0 12px 40px #512bc041;
+}
+body[data-tone="fortnite"] .g-panel {background:#221b53ee;border-color:#624ca6;border-radius:22px;}
+body[data-tone="fortnite"] .g-hero h1 {letter-spacing:1px;text-shadow:5px 5px 0 #ff78c2;}
+body[data-tone="fortnite"] .g-spin {background:linear-gradient(90deg,#ffd45d,#ff87bb);color:#1d1646;border-radius:18px;}
+body[data-tone="fortnite"] .art-disc {background:conic-gradient(#ffb6ee 0 90deg,#95dbff 90deg 180deg,#bca4ff 180deg 270deg,#ffdd6c 270deg);}
+
+body[data-tone="elden"] {
+  --accent:#ead08b;--accent2:#ad996a;--mist:rgba(189,133,51,.25);
+  --text:#f3ead4;background:#100f0c;
+}
+body[data-tone="elden"] .backdrop{
+  background:radial-gradient(ellipse at 75% 3%,rgba(163,130,59,.33),transparent 54%),
+  repeating-linear-gradient(102deg,rgba(177,144,64,.035) 0 2px,transparent 2px 120px),#11110f;
+}
+body[data-tone="elden"] .g-hero {border-color:#7b673d;background:linear-gradient(110deg,#1c1c15,#3f3320a6);}
+body[data-tone="elden"] .g-panel{background:#171810f0;border:1px solid #554b31;border-radius:3px;box-shadow:inset 0 0 0 1px #c1a96716;}
+body[data-tone="elden"] h1,body[data-tone="elden"] .g-panel h2{font-family:Georgia,serif;letter-spacing:-2px;}
+body[data-tone="elden"] .g-hero h1{text-transform:uppercase;letter-spacing:1px;font-size:clamp(47px,5vw,74px);}
+body[data-tone="elden"] .art-disc{border:4px double #ead08b;box-shadow:0 0 30px #daba4a50;background:radial-gradient(circle,#6e6136,#21261c 65%,#16140f);transform:none;}
+body[data-tone="elden"] .g-spin{background:linear-gradient(90deg,#ac8d43,#f1d793);color:#191914;border-radius:3px;letter-spacing:1.5px;}
+
+body[data-tone="mario"] {
+  --accent:#ffdd54;--accent2:#ff6969;--mist:rgba(255,120,86,.26);background:#1b233b;
+}
+body[data-tone="mario"] .backdrop {
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 28px,transparent 28px 56px),
+  radial-gradient(ellipse at 84% 15%,#b5353c92,transparent 55%),linear-gradient(135deg,#17274a,#25112a);
+}
+body[data-tone="mario"] .g-hero{background:linear-gradient(120deg,#d4383b,#6331a2);border-color:#ffc857;}
+body[data-tone="mario"] .g-panel{background:#202d4beb;border-color:#ffb0a1;border-radius:28px;box-shadow:0 12px 0 #060a19a8;}
+body[data-tone="mario"] .g-hero::before {
+  content:"🏁";position:absolute;right:80px;top:7px;font-size:165px;opacity:.1;transform:rotate(-22deg);
+}
+body[data-tone="mario"] .g-hero h1{text-shadow:4px 4px 0 #142949;}
+body[data-tone="mario"] .g-spin {background:linear-gradient(100deg,#ffd45b,#ff8353);border-radius:999px;box-shadow:0 7px 0 #9a3a30;}
+body[data-tone="mario"] .art-disc{background:repeating-conic-gradient(#ffdc5d 0 35deg,#ff5258 35deg 70deg,#4c9bff 70deg 105deg,#fff 105deg 140deg);}
+
+body[data-tone="ror2"] {
+  --accent:#80e5fb;--accent2:#ab96e9;--mist:rgba(88,135,235,.22);
+  background:#0b1122;
+}
+body[data-tone="ror2"] .backdrop{
+  background:radial-gradient(circle at 74% 12%,#5088ba70,transparent 28%),
+  radial-gradient(circle at 18% 60%,#5846ad57,transparent 29%),
+  repeating-linear-gradient(0deg,rgba(115,209,250,.045) 0 1px,transparent 1px 5px),#0b1425;
+}
+body[data-tone="ror2"] .g-hero {background:linear-gradient(110deg,#172e48,#20385e77);border-color:#5e9bcb;}
+body[data-tone="ror2"] .g-panel{background:#141b2bf0;border-color:#436382;border-radius:5px;box-shadow:inset 0 0 36px #2f6d9c17;}
+body[data-tone="ror2"] .g-tag,body[data-tone="ror2"] .overline{text-transform:uppercase;letter-spacing:2px;}
+body[data-tone="ror2"] .art-disc{border:2px solid #7ce9ff;background:radial-gradient(circle,#91f3ff,#32598d 38%,#10172f 67%);box-shadow:0 0 0 19px #70c8ff18,0 0 35px #6eceff88;}
+body[data-tone="ror2"] .g-spin{border:1px solid #b2f1ff;background:linear-gradient(90deg,#3d8cac,#98f6ff);border-radius:4px;text-transform:uppercase;}
+
+body[data-tone="fm"]{--accent:#a9eecb;--accent2:#8ebaf5;--mist:rgba(32,141,105,.24);background:#09271f;}
+body[data-tone="fm"] .backdrop{
+  background:repeating-linear-gradient(90deg,rgba(220,255,225,.035) 0 2px,transparent 2px 110px),
+  repeating-linear-gradient(0deg,rgba(220,255,225,.035) 0 2px,transparent 2px 110px),
+  radial-gradient(ellipse at 70% 10%,#266b5699,transparent 60%),#0d2b29;
+}
+body[data-tone="fm"] .g-hero{background:linear-gradient(110deg,#155d47,#143b46);border-color:#5cbb8e;}
+body[data-tone="fm"] .g-panel{background:#123c35ee;border-color:#4f967d;border-radius:12px;}
+body[data-tone="fm"] .g-hero::before{content:"↗  4–3–3   ◯   4–2–3–1";color:#a7eec72d;position:absolute;right:20px;top:25px;font:900 38px var(--head);letter-spacing:8px;transform:rotate(-17deg);}
+body[data-tone="fm"] .art-disc{background:radial-gradient(circle,#c6ffe4 0 10%,#3eaa7b 11% 58%,#0f5747 59%);border-color:#c5f1d6;}
+body[data-tone="fm"] .g-spin{background:#b3f6d2;color:#0d2b25;border-radius:8px;}
+
+body[data-tone="pubg"]{--accent:#f2d28f;--accent2:#b8ba9b;--mist:rgba(164,129,64,.25);background:#1a1a18;}
+body[data-tone="pubg"] .backdrop{
+  background:repeating-linear-gradient(30deg,rgba(205,165,95,.018) 0 3px,transparent 3px 23px),
+  radial-gradient(ellipse at 80% 9%,#7b644369,transparent 55%),#211e1a;
+}
+body[data-tone="pubg"] .g-hero{background:linear-gradient(105deg,#5c4633,#232729);border-color:#ae9164;border-radius:2px;}
+body[data-tone="pubg"] .g-panel{background:#292a24eb;border-color:#71604b;border-radius:2px;}
+body[data-tone="pubg"] .g-tag,body[data-tone="pubg"] .overline{letter-spacing:3px;}
+body[data-tone="pubg"] .g-spin{background:linear-gradient(90deg,#b1a17d,#f1d796);color:#272314;border-radius:2px;}
+body[data-tone="pubg"] .art-disc{background:repeating-conic-gradient(#c8b080 0 45deg,#5f634b 45deg 90deg,#a78a63 90deg 135deg,#383b30 135deg 180deg);border-color:#b8a98c;}
+
+body[data-tone="apex"]{--accent:#ff8b8b;--accent2:#ffc89f;--mist:rgba(197,52,67,.28);background:#1d1119;}
+body[data-tone="apex"] .backdrop{background:linear-gradient(128deg,transparent 0 42%,rgba(219,59,67,.08) 42% 49%,transparent 49% 100%),radial-gradient(ellipse at 80% 14%,#a1344270,transparent 52%),#1d111a;}
+body[data-tone="apex"] .g-hero{background:linear-gradient(110deg,#852b36,#21151e);border-color:#d96364;clip-path:polygon(2% 0,100% 0,100% 94%,98% 100%,0 100%,0 12%);}
+body[data-tone="apex"] .g-panel{background:#2b1a23eb;border-color:#71414a;border-radius:6px;}
+body[data-tone="apex"] .g-hero h1{text-transform:uppercase;letter-spacing:1px;}
+body[data-tone="apex"] .g-spin{background:linear-gradient(100deg,#ff7b7b,#ed4351);border-radius:2px;letter-spacing:2px;}
+body[data-tone="apex"] .art-disc{background:conic-gradient(from 180deg,#b82136 0 120deg,#fba6a8 120deg 210deg,#67202d 210deg 300deg,#e95f69 300deg);border:3px solid #f5a7a0;clip-path:polygon(50% 0,99% 93%,1% 93%);}
+@media(max-width:640px){
+ .g-hero{padding:20px!important;}
+ body[data-tone="elden"] .g-hero h1{font-size:42px;}
+ body[data-tone="mario"] .g-hero::before, body[data-tone="fm"] .g-hero::before{display:none;}
+}
