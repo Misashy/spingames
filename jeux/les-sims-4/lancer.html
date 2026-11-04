@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Les Sims 4 — SimSpin | SpinGames</title>
+<meta name="description" content="Ta roue SimSpin originale, tes catégories, tes histoires.">
+<link rel="icon" href="../../favicon.svg">
+<link rel="stylesheet" href="../../assets/platform.css">
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:#17102e;color:#fff;font-family:system-ui,sans-serif}
+.sg-sims-header{height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 18px;background:#17162c;border-bottom:1px solid #65559d}
+.sg-sims-header a{font-weight:800;text-decoration:none;color:#c5ff76;font-size:13px}
+.sg-sims-header .sg-account-btn{margin-left:auto}
+.sg-sims-frame{display:block;width:100%;height:calc(100vh - 58px);border:0;background:#20123c}
+@media(max-width:550px){.sg-sims-header{padding:0 8px}.sg-sims-header a{font-size:11px}}
+</style>
+<script src="../../assets/site-config.js" defer></script>
+<script src="../../assets/platform.js" defer></script>
+</head><body>
+<header class="sg-sims-header"><a href="../../index.html">← SpinGames · Tous les jeux</a></header>
+<iframe class="sg-sims-frame" id="sg-sims-frame" src="index.html" title="SimSpin, roue originale des Sims 4" loading="eager"></iframe>
+<script>
+(() => {
+  const HISTORY_KEY='simspin.history.v4';
+  let last=0;
+  try{const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');last=h[0]?.at||0}catch(_){}
+  window.addEventListener('storage',event=>{
+    if(event.key==='simspin.categories.v3') window.SpinGames?.queueSave('les-sims-4');
+    if(event.key!==HISTORY_KEY || !event.newValue)return;
+    window.SpinGames?.queueSave('les-sims-4');
+    try{
+      const h=JSON.parse(event.newValue);
+      const next=h[0]?.at||0;
+      if(next>last){last=next;window.SpinGames?.recordSpin('les-sims-4')}
+    }catch(_){}
+  });
+})();
+</script>
+</body></html>
