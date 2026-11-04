@@ -5,10 +5,11 @@
  const dataNode=$('game-data');
  if (!dataNode) return;
  const game=JSON.parse(dataNode.textContent);
- const platformScript=document.createElement('script');
- platformScript.src='../../assets/platform.js';platformScript.defer=true;
- const platformStyle=document.createElement('link');platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
- document.head.append(platformStyle,platformScript);
+ const platformStyle=document.createElement('link');
+ platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
+ const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js';platformScript.async=false;
+ document.head.append(platformStyle,siteConfig,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
  const HISTORY_KEY=`devwebgames.${game.slug}.history.v1`;
