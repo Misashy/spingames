@@ -39,24 +39,22 @@
     article.dataset.genre = game.genre;
     article.style.setProperty('--card-a', (PALETTES[game.tone] || ['#353a65','#191d36'])[0]);
     article.style.setProperty('--card-b', (PALETTES[game.tone] || ['#353a65','#191d36'])[1]);
+    article.style.setProperty('--game-art', 'url("assets/game-art/' + game.slug + '.webp")');
     const link = document.createElement('a');
     link.className = 'sg-card-link';
     link.href = urlFor(game);
     link.setAttribute('aria-label', 'Jouer à ' + game.title);
     const top = document.createElement('div');
     top.className='card-top';
-    const emoji = document.createElement('span');
-    emoji.className='card-emoji'; emoji.textContent=game.icon;
-    const arrow=document.createElement('span');
-    arrow.className='card-arrow'; arrow.textContent='↗';
-    top.append(emoji, arrow);
+    // La vignette utilise désormais l'image du jeu : plus d'icônes décoratives.
+    // Les étoiles des favoris, elles, restent accessibles.
     const footer=document.createElement('div');
     footer.className='card-bottom';
     const title=document.createElement('strong'); title.textContent=game.title;
     const genre=document.createElement('small'); genre.textContent=game.genre;
     const desc=document.createElement('p'); desc.textContent=game.one;
     footer.append(title,genre,desc);
-    link.append(top,footer);
+    link.append(footer);
     article.append(link);
     if(game.slug==='les-sims-4'){
       const badge=document.createElement('span');
