@@ -29,7 +29,8 @@ create table if not exists public.player_progress (
   updated_at timestamptz not null default now(),
   primary key (user_id, game_slug),
   constraint sg_allowed_game check(game_slug in (
-    'les-sims-4','minecraft','fortnite','roblox','stardew-valley','animal-crossing','gta-rp','valorant'
+    'les-sims-4','minecraft','fortnite','roblox','stardew-valley','animal-crossing','gta-rp','valorant',
+    'elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'
   ))
 );
 alter table public.player_progress enable row level security;
@@ -76,7 +77,8 @@ returns boolean language plpgsql security definer set search_path = ''
 as $$
 begin
   if p_visitor_id is null or p_game_slug not in (
-    'les-sims-4','minecraft','fortnite','roblox','stardew-valley','animal-crossing','gta-rp','valorant'
+    'les-sims-4','minecraft','fortnite','roblox','stardew-valley','animal-crossing','gta-rp','valorant',
+    'elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'
   ) then return false; end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(p_visitor_id::text));
   if exists (

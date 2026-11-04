@@ -21,7 +21,7 @@
   const localKeys = slug => slug === 'les-sims-4' ?
     ['simspin.categories.v3','simspin.history.v4'] :
     [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
-  const slugs = ['les-sims-4','minecraft','fortnite','roblox','stardew-valley','animal-crossing','gta-rp','valorant'];
+  const slugs = ['les-sims-4','minecraft','fortnite','elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'];
   const currentSlug = () => location.pathname.match(/\/jeux\/([^/]+)\//)?.[1] || null;
 
   const button = document.createElement('button');
