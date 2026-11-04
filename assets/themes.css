@@ -120,3 +120,42 @@ body[data-tone="apex"] .art-disc{background:conic-gradient(from 180deg,#b82136 0
  body[data-tone="elden"] .g-hero h1{font-size:42px;}
  body[data-tone="mario"] .g-hero::before, body[data-tone="fm"] .g-hero::before{display:none;}
 }
+
+/* Affiches en couverture des pages de jeux. Les roues et leurs données restent intactes. */
+body[data-tone="minecraft"] { --sg-page-art:url("game-art/minecraft.webp"); }
+body[data-tone="fortnite"] { --sg-page-art:url("game-art/fortnite.webp"); }
+body[data-tone="elden"] { --sg-page-art:url("game-art/elden-ring.webp"); }
+body[data-tone="mario"] { --sg-page-art:url("game-art/mario-kart.webp"); }
+body[data-tone="ror2"] { --sg-page-art:url("game-art/risk-of-rain-2.webp"); }
+body[data-tone="fm"] { --sg-page-art:url("game-art/football-manager.webp"); }
+body[data-tone="pubg"] { --sg-page-art:url("game-art/pubg.webp"); }
+body[data-tone="apex"] { --sg-page-art:url("game-art/apex.webp"); }
+.g-hero {
+  min-height:300px;
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  background:#11182a !important;
+  display:flex;
+  align-items:center;
+}
+.g-hero::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background-image:linear-gradient(90deg,rgba(7,9,18,.94) 0%,rgba(8,10,22,.72) 38%,rgba(8,10,22,.16) 78%,rgba(6,8,17,.1) 100%),var(--sg-page-art);
+  background-position:center center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  opacity:1;
+}
+.g-hero::after {opacity:.2;pointer-events:none;z-index:1;}
+.g-hero > * {position:relative;z-index:2;}
+.g-hero-copy {max-width:650px;}
+.g-hero .g-hero-art,.g-hero .g-hero-icon {display:none !important;}
+.g-hero h1,.g-hero p,.g-hero .g-meta {text-shadow:0 2px 13px #070914a6;}
+@media (max-width:700px){
+ .g-hero{min-height:275px;}
+ .g-hero::before{background-image:linear-gradient(90deg,rgba(7,9,18,.94),rgba(8,10,22,.52)),var(--sg-page-art);background-position:center;}
+}
