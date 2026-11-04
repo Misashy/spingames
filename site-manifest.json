@@ -1,0 +1,39 @@
+{
+  "site": "DevWebGames",
+  "home": "index.html",
+  "pages": [
+    {
+      "game": "Les Sims 4",
+      "path": "jeux/les-sims-4/index.html"
+    },
+    {
+      "game": "Minecraft",
+      "path": "jeux/minecraft/index.html"
+    },
+    {
+      "game": "Fortnite",
+      "path": "jeux/fortnite/index.html"
+    },
+    {
+      "game": "Roblox",
+      "path": "jeux/roblox/index.html"
+    },
+    {
+      "game": "Stardew Valley",
+      "path": "jeux/stardew-valley/index.html"
+    },
+    {
+      "game": "Animal Crossing",
+      "path": "jeux/animal-crossing/index.html"
+    },
+    {
+      "game": "GTA RP",
+      "path": "jeux/gta-rp/index.html"
+    },
+    {
+      "game": "Valorant",
+      "path": "jeux/valorant/index.html"
+    }
+  ],
+  "sims_category_count": 13
+}
