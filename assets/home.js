@@ -8,7 +8,7 @@
   sims:['#3a2c62','#1c163e'],minecraft:['#244d45','#132b31'],fortnite:['#443a86','#21254b'],roblox:['#543449','#291a40'],stardew:['#395645','#20362f'],animal:['#245d5b','#17383e'],gta:['#69433a','#332432'],valorant:['#602e44','#2b2339']
  };
  function card(game){
-  const a=document.createElement('a');a.className='game-card';a.href=`jeux/${game.slug}/index.html`;a.dataset.genre=game.genre;
+  const a=document.createElement('a');a.className='game-card';a.href=game.slug==='les-sims-4'?'jeux/les-sims-4/lancer.html':`jeux/${game.slug}/index.html`;a.dataset.genre=game.genre;
   const c=palettes[game.tone] || ['#353a65','#191d36'];a.style.setProperty('--card-a',c[0]);a.style.setProperty('--card-b',c[1]);
   const top=document.createElement('div');top.className='card-top';
   const icon=document.createElement('span');icon.className='card-emoji';icon.textContent=game.icon;
