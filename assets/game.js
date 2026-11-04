@@ -16,6 +16,8 @@
  const COLORS=['#b8fb6b','#a38aff','#73deec','#ffc175','#fc80bb','#68e2b7'];
  const canvas=$('wheel'), ctx=canvas.getContext('2d');
  if (!ctx) return;
+ // Dessin en haute résolution : la roue reste nette sur les grands écrans.
+ canvas.width=1440; canvas.height=1440;
  const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeColor=c=>/^#[\da-f]{6}$/i.test(c)?c:'#b8fb6b';
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`cat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -54,26 +56,62 @@
   $('category-list').innerHTML=categories.length?categories.map(c=>`<div class="cat-row ${c.active?'':'off'} ${wheelCategory()?.id===c.id?'wheel-visible':''}" style="--swatch:${safeColor(c.color)}"><input class="cat-check" data-check="${c.id}" type="checkbox" ${c.active?'checked':''} aria-label="Activer ${escapeHTML(c.name)}" ${spinning?'disabled':''}><span class="cat-symbol">${escapeHTML(c.icon)}</span><button type="button" class="cat-name cat-preview" data-preview="${c.id}" aria-label="Afficher les choix de ${escapeHTML(c.name)} sur la roue" ${spinning?'disabled':''}><strong>${escapeHTML(c.name)}</strong><small>${c.items.length} choix · ${c.drawCount} tirage${c.drawCount>1?'s':''}</small></button><button type="button" class="cat-edit" data-edit="${c.id}" ${spinning?'disabled':''}>✎ Modifier</button><div class="cat-options"><label>Tirages <select data-count="${c.id}" aria-label="Nombre de tirages pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}>${opts.map(x=>`<option value="${x}" ${c.drawCount===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Animation <select data-mode="${c.id}" aria-label="Mode d'animation pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}><option value="once" ${c.spinMode!=='each'?'selected':''}>1 tour</option><option value="each" ${c.spinMode==='each'?'selected':''}>Chaque choix</option></select></label></div></div>`).join(''):'<p class="panel-hint">Aucune catégorie. Ajoute-en une pour commencer.</p>';
   $('spin-btn').disabled=spinning||active().length===0;
  }
+ // Découpe les libellés en lignes sans écraser les lettres : le texte complet
+ // reste consultable dans la liste accessible sous la roue.
+ function wheelTextLines(value,maxWidth,maxLines){
+  const words=String(value).trim().split(/\s+/).filter(Boolean),all=[];
+  let line='';
+  for(const word of words){
+   if(ctx.measureText(line?`${line} ${word}`:word).width<=maxWidth){line=line?`${line} ${word}`:word;continue;}
+   if(line){all.push(line);line='';}
+   if(ctx.measureText(word).width<=maxWidth){line=word;continue;}
+   // Les mots sans espace doivent aussi tenir dans un secteur.
+   for(const ch of Array.from(word)){
+    if(ctx.measureText(line+ch).width<=maxWidth){line+=ch;}
+    else{if(line)all.push(line);line=ch;}
+   }
+  }
+  if(line)all.push(line);
+  if(all.length<=maxLines)return all;
+  const visible=all.slice(0,maxLines);
+  let last=visible[maxLines-1]||'';
+  while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1);
+  visible[maxLines-1]=last+'…';
+  return visible;
+ }
  function renderWheel(){
-  const cat=wheelCategory(),items=cat?.items||[],size=canvas.width,cx=size/2,cy=size/2,r=330;
-  $('wheel-label').textContent=cat?`Choix de « ${cat.name} » · ${items.length} possibilités${items.length>36?' (texte réduit)':''}`:'Active une catégorie contenant des choix.';
+  const cat=wheelCategory(),items=cat?.items||[],size=720,cx=size/2,cy=size/2,r=330;
+  const numberOnly=items.length>44;
+  $('wheel-label').textContent=cat?`Choix de « ${cat.name} » · ${items.length} possibilités${numberOnly?' · numéros sur la roue, noms complets ci-dessous':''}`:'Active une catégorie contenant des choix.';
   canvas.setAttribute('aria-label',cat?`Roue des choix de ${cat.name}. ${items.length} possibilités.`:'Roue vide : active une catégorie');
   $('wheel-choices-list').innerHTML=items.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
+  // Les coordonnées restent basées sur 720 px ; le dessin est rendu en 1440 px.
+  ctx.setTransform(2,0,0,2,0,0);
   ctx.clearRect(0,0,size,size);
   ctx.beginPath();ctx.arc(cx,cy,r+12,0,Math.PI*2);ctx.fillStyle='#e6f0ff';ctx.fill();
-  if(!items.length){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#31374b';ctx.fill();ctx.fillStyle='#b5bdcc';ctx.font='bold 24px system-ui';ctx.textAlign='center';ctx.fillText('ACTIVE UNE CATÉGORIE',cx,cy-78);return;}
+  if(!items.length){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#31374b';ctx.fill();ctx.fillStyle='#e7eeff';ctx.font='800 24px system-ui';ctx.textAlign='center';ctx.fillText('ACTIVE UNE CATÉGORIE',cx,cy-78);return;}
   const step=2*Math.PI/items.length;
+  const compact=window.matchMedia('(max-width:650px)').matches;
+  const fontSize=items.length<=5?(compact?30:26):items.length<=10?(compact?28:22):items.length<=14?(compact?24:20):items.length<=20?(compact?20:17):items.length<=30?14:12;
+  // Garder une marge entre les lignes et les bords des secteurs,
+  // y compris sur les téléphones où les textes occupent plus de place.
+  const maxLines=items.length<=10?3:items.length<=26?2:1;
+  const maxWidth=items.length<=6?216:items.length<=20?170:150;
   items.forEach((item,i)=>{
-   const start=-Math.PI/2-step/2+i*step;
+   const start=-Math.PI/2-step/2+i*step,angle=start+step/2;
    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+step);ctx.closePath();ctx.fillStyle=safeColor(cat.color);ctx.fill();
    if(i%2){ctx.fillStyle='rgba(255,255,255,.23)';ctx.fill();}
-   ctx.lineWidth=items.length>80?1:2;ctx.strokeStyle='#17202a';ctx.stroke();
-   ctx.save();ctx.translate(cx,cy);ctx.rotate(start+step/2+Math.PI/2);
+   ctx.lineWidth=items.length>80?0.8:1.8;ctx.strokeStyle='#17202a';ctx.stroke();
+   ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);
+   // Les textes suivent le rayon du secteur : ils disposent de sa profondeur,
+   // et non de la petite largeur de son arc, contrairement à l'ancienne roue.
+   ctx.translate(numberOnly?r*.76:items.length<=6?r*.60:r*.70,0);
+   if(Math.cos(angle)<-0.025)ctx.rotate(Math.PI);
    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#151b24';
-   ctx.font=`800 ${items.length>50?10:items.length>30?12:items.length>18?15:20}px system-ui`;
-   const title=item.length>24?item.slice(0,23)+'…':item;
-   const maxWidth=Math.min(210,Math.max(12,step*r*.70-6));
-   ctx.fillText(title,0,-r*.67,maxWidth);
+   ctx.font=`900 ${fontSize}px "DM Sans",system-ui,sans-serif`;
+   const lines=numberOnly?[String(i+1)]:wheelTextLines(item,maxWidth,maxLines);
+   const lineHeight=fontSize*1.12;
+   lines.forEach((line,j)=>ctx.fillText(line,0,(j-(lines.length-1)/2)*lineHeight));
    ctx.restore();
   });
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.lineWidth=10;ctx.strokeStyle='#e6f0ff';ctx.stroke();
@@ -216,5 +254,10 @@
    categories=imported;selected=categories[0]?.id??null;wheelActiveId=selected;save();renderAll();toast(`${imported.length} catégories importées !`);
   }catch(err){toast(err.message||'Impossible de lire ce fichier JSON.')}finally{e.target.value=''}
  });
+ // Sur téléphone, la liste développe les intitulés complets pour les choix longs.
+ const wheelDetails=document.querySelector('.wheel-choices');
+ if(wheelDetails&&window.matchMedia('(max-width:650px)').matches)wheelDetails.open=true;
+ let lastCompact=window.matchMedia('(max-width:650px)').matches;
+ window.addEventListener('resize',()=>{const compact=window.matchMedia('(max-width:650px)').matches;if(compact!==lastCompact){lastCompact=compact;if(!spinning)renderWheel();}},{passive:true});
  renderAll();
 })();

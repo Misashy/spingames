@@ -23,3 +23,52 @@
 .wheel-choices ul{max-height:165px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 16px;padding-left:24px;margin:12px 0 4px}
 .wheel-choices li{overflow-wrap:anywhere}
 @media(max-width:490px){.wheel-choices ul{grid-template-columns:1fr}}
+
+
+/* Roues plus grandes et libellés lisibles, communs aux huit jeux. */
+.g-main{width:min(1480px,calc(100% - 48px))}
+.g-header{padding-inline:max(24px,calc((100vw - 1480px)/2))}
+.game-columns{grid-template-columns:minmax(300px,350px) minmax(0,1fr);gap:24px}
+.game-columns > *,.middle-col,.spin-panel{min-width:0}
+.spin-panel{padding:clamp(18px,2.3vw,32px)}
+.wheel-zone{width:min(790px,100%);margin:22px auto 16px}
+.wheel-zone canvas{width:96%;height:96%}
+.wheel-pointer{top:calc(6% - 35px)}
+.wheel-label{font-size:clamp(13px,1.1vw,16px);line-height:1.5;margin:16px auto 4px;max-width:730px;overflow-wrap:anywhere}
+.wheel-help{max-width:680px;font-size:13px;line-height:1.6}
+.wheel-choices{font-size:14px;margin:8px 0 19px;padding-top:13px}
+.wheel-choices summary{font-size:13px;padding:6px 8px}
+.wheel-choices ul{max-height:260px;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:9px;column-gap:24px;padding-left:28px;line-height:1.5}
+.wheel-choices li{padding-left:3px}
+.g-spin{font-size:clamp(13px,1.1vw,16px);min-height:62px}
+.result-choice{font-size:13px}
+@media(max-width:1100px){
+ .game-columns{grid-template-columns:320px minmax(0,1fr);gap:16px}
+ .spin-panel{padding:20px}
+ .wheel-zone{width:min(740px,100%)}
+}
+@media(max-width:1000px){
+ .game-columns{grid-template-columns:1fr}
+ .category-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wheel-zone{width:min(790px,100%)}
+ .spin-panel{padding:24px}
+}
+@media(max-width:650px){
+ .g-main{width:calc(100% - 22px)}
+ .game-columns{gap:14px}
+ .category-list{grid-template-columns:1fr}
+ .spin-panel{padding:15px 12px}
+ .wheel-zone{width:100%;margin:15px auto 11px}
+ .wheel-label{font-size:13px;margin-top:14px}
+ .wheel-pointer{border-left-width:12px;border-right-width:12px;border-top-width:27px;left:calc(50% - 12px);top:calc(6% - 27px)}
+ .wheel-hub{width:clamp(49px,15vw,74px);height:clamp(49px,15vw,74px);font-size:27px;border-width:4px}
+ .wheel-choices ul{grid-template-columns:1fr;max-height:230px}
+ .g-spin{font-size:12px;min-height:56px}
+ .wheel-help{font-size:12px}
+}
+
+/* L'en-tête des catégories reste sur une ligne, même avec 5 catégories. */
+.categories .panel-top{gap:6px}
+.categories .panel-top h2{white-space:nowrap;font-size:clamp(25px,2vw,30px)}
+.categories .g-outline-small{padding:7px 9px}
+@media(max-width:650px){.wheel-zone{width:calc(100% + 20px);margin-left:-10px}.wheel-choices[open]{padding-bottom:7px}}
