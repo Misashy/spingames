@@ -87,3 +87,58 @@
   .sg-game-card .featured-pill {top:12px;left:10px;max-width:calc(100% - 55px);font-size:7px;}
   .sg-card-link {padding-top:14px;}
 }
+
+
+/* Accueil SpinGames : catalogue en haut et collage des univers en toile de fond. */
+body.sg-home-wallpaper {
+  background-color: #080b16;
+  isolation: isolate;
+}
+body.sg-home-wallpaper::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(7,9,21,.72) 0%, rgba(7,9,21,.80) 24%, rgba(7,9,21,.89) 58%, rgba(7,9,21,.94) 100%),
+    url("fond-spingames.svg");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: saturate(.92);
+}
+body.sg-home-wallpaper > main,
+body.sg-home-wallpaper > footer {
+  position: relative;
+  z-index: 1;
+}
+body.sg-home-wallpaper > .orb { opacity: .08; }
+body.sg-home-wallpaper > .noise { opacity: .12; }
+body.sg-home-wallpaper .catalogue {
+  position: relative;
+  padding-top: 66px;
+  padding-bottom: 62px;
+  scroll-margin-top: 104px;
+}
+body.sg-home-wallpaper .catalogue .section-head { margin-bottom: 23px; }
+body.sg-home-wallpaper .catalogue .section-head p {
+  max-width: 620px;
+  color: #d8e0f0;
+  text-shadow: 0 2px 14px #070916;
+}
+body.sg-home-wallpaper .catalogue .filters { margin-top: 27px; }
+body.sg-home-wallpaper .catalogue .section-head h2 {
+  text-shadow: 0 4px 22px rgba(0,0,0,.55);
+}
+body.sg-home-wallpaper .sg-library { position: relative; }
+body.sg-home-wallpaper .catalogue-note {
+  background: rgba(9,12,24,.55);
+  border-radius: 8px;
+  display: inline-block;
+  padding: 8px 12px;
+}
+@media (max-width: 780px) {
+  body.sg-home-wallpaper .catalogue { padding-top: 47px; }
+  body.sg-home-wallpaper .catalogue .filters { margin-top: 22px; }
+}
