@@ -22,3 +22,6 @@
 .sg-modal-panel .sg-ghost{background:transparent;color:#e5e5fa;border:1px solid #525b72}
 .sg-modal-panel .sg-note{min-height:20px;overflow-wrap:anywhere;color:#d8ecab}
 @media(max-width:620px){.sg-live .sg-live-grid{gap:5px}.sg-live-item strong{font-size:26px}.sg-live-item span{font-size:8px;letter-spacing:0}.sg-account-btn{padding:8px;font-size:10px}.header{gap:10px}.header nav{gap:10px}.header nav a{font-size:11px}.sg-modal-panel{padding:18px}}
+
+.sg-account-content button:disabled,.sg-account-content input:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:720px){.header nav{display:none}.header .nav-cta{display:none}.header .sg-account-btn{margin-left:auto}}
