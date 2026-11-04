@@ -102,7 +102,7 @@ body.sg-home-wallpaper::before {
   pointer-events: none;
   background-image:
     linear-gradient(180deg, rgba(7,9,21,.72) 0%, rgba(7,9,21,.80) 24%, rgba(7,9,21,.89) 58%, rgba(7,9,21,.94) 100%),
-    url("fond-spingames.svg");
+    url("home-art.webp");
   background-position: center top;
   background-size: cover;
   background-repeat: no-repeat;
