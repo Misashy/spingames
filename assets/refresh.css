@@ -77,7 +77,7 @@
 .sg-game-card .card-emoji,.sg-game-card .card-arrow {display:none !important;}
 .sg-card-link .card-top {display:none !important;}
 .sg-card-link {padding-top:22px;}
-.sg-game-card .card-bottom {position:relative; z-index:1; text-shadow:0 2px 8px rgba(0,0,0,.6);}
+.sg-game-card .card-bottom {position:relative; z-index:1; margin-top:auto; text-shadow:0 2px 8px rgba(0,0,0,.6);}
 .sg-game-card .card-bottom strong,.sg-game-card .card-bottom small {color:#fff;}
 .sg-game-card .card-bottom p {color:#f0f2fa;line-height:1.55;}
 .sg-game-card .featured-pill {top:19px;left:20px;}
