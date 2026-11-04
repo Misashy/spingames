@@ -56,3 +56,34 @@
  .sg-favorite {top:10px;right:10px;width:35px;height:35px;font-size:22px;}
  .sg-card-link .card-top {padding-right:34px;}
 }
+
+/* Cartes de jeu illustrées — images stockées dans le dépôt GitHub. */
+.sg-game-card[data-slug="les-sims-4"] { --sg-art:url("game-art/sims-4.webp"); }
+.sg-game-card[data-slug="minecraft"] { --sg-art:url("game-art/minecraft.webp"); }
+.sg-game-card[data-slug="fortnite"] { --sg-art:url("game-art/fortnite.webp"); }
+.sg-game-card[data-slug="elden-ring"] { --sg-art:url("game-art/elden-ring.webp"); }
+.sg-game-card[data-slug="mario-kart"] { --sg-art:url("game-art/mario-kart.webp"); }
+.sg-game-card[data-slug="risk-of-rain-2"] { --sg-art:url("game-art/risk-of-rain-2.webp"); }
+.sg-game-card[data-slug="football-manager"] { --sg-art:url("game-art/football-manager.webp"); }
+.sg-game-card[data-slug="pubg"] { --sg-art:url("game-art/pubg.webp"); }
+.sg-game-card[data-slug="apex"] { --sg-art:url("game-art/apex.webp"); }
+.sg-game-card {
+  background-image: linear-gradient(180deg,rgba(7,9,17,.08) 0%,rgba(7,9,17,.12) 42%,rgba(7,9,17,.80) 72%,rgba(5,8,15,.96) 100%),var(--sg-art) !important;
+  background-size:cover !important;
+  background-position:center center !important;
+  border-color:rgba(235,244,255,.2);
+}
+.sg-game-card::before, .sg-game-card::after {display:none !important;}
+.sg-game-card .card-emoji,.sg-game-card .card-arrow {display:none !important;}
+.sg-card-link .card-top {display:none !important;}
+.sg-card-link {padding-top:22px;}
+.sg-game-card .card-bottom {position:relative; z-index:1; margin-top:auto; text-shadow:0 2px 8px rgba(0,0,0,.6);}
+.sg-game-card .card-bottom strong,.sg-game-card .card-bottom small {color:#fff;}
+.sg-game-card .card-bottom p {color:#f0f2fa;line-height:1.55;}
+.sg-game-card .featured-pill {top:19px;left:20px;}
+.sg-favorite {background:rgba(10,13,24,.78);border-color:rgba(255,255,255,.68);}
+.sg-favorite.is-favorite {background:var(--acid);color:#171b25;}
+@media(max-width:500px) {
+  .sg-game-card .featured-pill {top:12px;left:10px;max-width:calc(100% - 55px);font-size:7px;}
+  .sg-card-link {padding-top:14px;}
+}
