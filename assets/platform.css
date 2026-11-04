@@ -1,0 +1,24 @@
+/* SpinGames: statistiques et compte */
+.sg-live{padding:0 24px;background:linear-gradient(110deg,#161b31,#1a2134);border-block:1px solid #324058}
+.sg-live .sg-live-grid{width:min(1050px,100%);margin:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px 0 7px}
+.sg-live-item{display:flex;flex-direction:column;align-items:center;gap:5px;border-right:1px solid #ffffff24}
+.sg-live-item:last-child{border-right:0}
+.sg-live-item strong{font:900 clamp(24px,4vw,40px)/1 'Barlow Condensed',Impact,sans-serif;color:#c5ff76}
+.sg-live-item span{font:800 11px/1.5 'DM Sans',sans-serif;color:#e0e6f3;letter-spacing:.6px;text-align:center}
+.sg-live-caption{text-align:center;font-size:11px!important;color:#9ca9be!important;margin:8px auto 14px!important}
+.sg-account-btn{border:1px solid #a9be8b;background:#1e2633;color:#dff0cc;border-radius:9px;padding:10px 15px;font:800 12px 'DM Sans',system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.sg-account-btn:hover{border-color:#c5ff76;background:#2b3547}
+.sg-modal{position:fixed;inset:0;z-index:99999;background:#050913dc;display:grid;place-items:center;padding:20px;font:500 14px 'DM Sans',system-ui,sans-serif}
+.sg-modal[hidden]{display:none}
+.sg-modal-panel{background:#171b2d;color:#f4f7ff;width:min(440px,100%);max-height:90vh;overflow:auto;border:1px solid #555b77;border-radius:18px;padding:27px;box-shadow:0 30px 75px #000a}
+.sg-modal-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sg-modal-panel h2{font:900 34px 'Barlow Condensed',Impact,sans-serif;margin:0 0 12px}
+.sg-modal-panel p{color:#b7bfd2;font-size:13px;line-height:1.65}
+.sg-modal-panel label{display:block;margin-top:12px;font-size:12px;font-weight:800}
+.sg-modal-panel input{box-sizing:border-box;width:100%;margin-top:5px;background:#0d1020;color:white;padding:13px;border:1px solid #4e5775;border-radius:9px;font:inherit}
+.sg-modal-panel .sg-action{width:100%;border:0;border-radius:9px;margin-top:15px;padding:13px 16px;background:#c5ff76;color:#161922;font-weight:900;cursor:pointer}
+.sg-modal-panel .sg-google{background:#f5f6fb}
+.sg-modal-panel .sg-close{background:none;border:0;color:#fff;font-size:25px;cursor:pointer}
+.sg-modal-panel .sg-ghost{background:transparent;color:#e5e5fa;border:1px solid #525b72}
+.sg-modal-panel .sg-note{min-height:20px;overflow-wrap:anywhere;color:#d8ecab}
+@media(max-width:620px){.sg-live .sg-live-grid{gap:5px}.sg-live-item strong{font-size:26px}.sg-live-item span{font-size:8px;letter-spacing:0}.sg-account-btn{padding:8px;font-size:10px}.header{gap:10px}.header nav{gap:10px}.header nav a{font-size:11px}.sg-modal-panel{padding:18px}}
