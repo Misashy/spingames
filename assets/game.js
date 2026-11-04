@@ -5,6 +5,11 @@
  const dataNode=$('game-data');
  if (!dataNode) return;
  const game=JSON.parse(dataNode.textContent);
+ const platformScript=document.createElement('script');
+ platformScript.src='../../assets/platform.js';platformScript.defer=true;
+ const platformStyle=document.createElement('link');platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
+ document.head.append(platformStyle,platformScript);
+
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
  const HISTORY_KEY=`devwebgames.${game.slug}.history.v1`;
  const COLORS=['#b8fb6b','#a38aff','#73deec','#ffc175','#fc80bb','#68e2b7'];
@@ -34,8 +39,8 @@
  let history=[];
  try{const h=JSON.parse(storageGet(HISTORY_KEY)||'[]');if(Array.isArray(h))history=h.filter(x=>x&&Array.isArray(x.results)).slice(0,10)}catch(_){/* ignore */}
  let selected=categories[0]?.id??null;
- function save(){try{localStorage.setItem(CAT_KEY,JSON.stringify(categories))}catch(_){toast('Stockage indisponible : exporte tes listes.')}}
- function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history))}catch(_){}}
+ function save(){try{localStorage.setItem(CAT_KEY,JSON.stringify(categories));window.SpinGames?.queueSave(game.slug)}catch(_){toast('Stockage indisponible : exporte tes listes.')}}
+ function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history));window.SpinGames?.queueSave(game.slug)}catch(_){}}
  function toast(msg){const n=$('toast');n.textContent=msg;n.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('visible'),3200)}
  const active=()=>categories.filter(c=>c.active&&c.items.length);
  function renderList(){
@@ -127,6 +132,7 @@
   const finish=()=>{
    if(finished)return;finished=true;spinning=false;
    history.unshift({at:Date.now(),results});history=history.slice(0,10);saveHistory();
+   window.SpinGames?.recordSpin(game.slug);
    renderResults(results);renderList();renderHistory();$('spin-btn').textContent='↻   FAIRE TOURNER LA ROUE';
    canvas.removeEventListener('transitionend',onEnd);
   };
