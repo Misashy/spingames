@@ -73,7 +73,10 @@
         <button class="sg-action sg-ghost" id="sg-signup" type="button">Créer mon compte</button></form>`;
       }
     }
-    if (!ready) note('Comptes et statistiques en attente de la connexion Supabase.');
+    if (!ready) {
+      note('Comptes et statistiques en attente de la connexion Supabase.');
+      document.querySelectorAll('.sg-account-content input,.sg-account-content button').forEach(el => { el.disabled = true; el.title = 'Disponible après activation de Supabase'; });
+    }
   };
   button.addEventListener('click', () => { modal.hidden = false; present(); });
   modal.querySelector('.sg-close').addEventListener('click', () => { modal.hidden = true; });
@@ -136,14 +139,23 @@
     for (const row of (data || [])) {
       if (!slugs.includes(row.game_slug)) continue;
       const [catKey, histKey] = localKeys(row.game_slug);
-      const local = localStorage.getItem(catKey);
-      if (local && row.categories && JSON.stringify(JSON.parse(local)) !== JSON.stringify(row.categories)) {
-        if (row.game_slug !== currentSlug()) continue; // Ne pas toucher en silence aux autres jeux.
+      const oldCategories = localStorage.getItem(catKey);
+      const oldHistory = localStorage.getItem(histKey);
+      const newCategories = row.categories === null ? null : JSON.stringify(row.categories);
+      const newHistory = row.history === null ? null : JSON.stringify(row.history);
+      const needsCategories = newCategories !== null && oldCategories !== newCategories;
+      const needsHistory = newHistory !== null && oldHistory !== newHistory;
+      if (!needsCategories && !needsHistory) continue;
+      if (oldCategories && needsCategories) {
+        if (row.game_slug !== currentSlug()) continue;
         if (!confirm('Une sauvegarde en ligne existe pour ce jeu. La charger sur cet appareil ?')) continue;
       }
-      if (row.categories !== null) localStorage.setItem(catKey, JSON.stringify(row.categories));
-      if (row.history !== null) localStorage.setItem(histKey, JSON.stringify(row.history));
-      if (row.game_slug === currentSlug()) location.reload();
+      if (newCategories !== null) localStorage.setItem(catKey, newCategories);
+      if (newHistory !== null) localStorage.setItem(histKey, newHistory);
+      if (row.game_slug === currentSlug()) {
+        location.reload();
+        return;
+      }
     }
   }
   const api = {
