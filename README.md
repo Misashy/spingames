@@ -27,3 +27,13 @@ Le site est publié depuis la branche `main` sur GitHub Pages. Les comptes, la s
 Les nouveaux univers sont désormais acceptés dans le schéma Supabase et dans l'enregistrement des lancers. Le document `supabase/INSTALLATION.md` décrit la configuration des comptes.
 
 Adresse du site : https://misashy.github.io/spingames/
+
+## Mise à jour : roues à choix et animations par catégorie
+
+Sur **Minecraft, Fortnite, Elden Ring, Mario Kart, Risk of Rain 2, Football Manager, PUBG et Apex**, la roue affiche maintenant les **choix d'une catégorie**, et non son seul nom. Lorsqu'il y a plusieurs catégories actives, un clic sur « Faire tourner la roue » lance chaque catégorie active successivement. Le pointeur s'arrête sur un choix réellement obtenu.
+
+Chaque catégorie possède, directement dans la liste et dans l'atelier de modification, un réglage de **1 à 5 choix** et un mode d'animation : **« 1 tour »** (tous les choix de la catégorie apparaissent après un seul tour) ou **« Chaque choix »** (la roue tourne une fois pour chaque choix tiré). Les réglages sont sauvegardés dans les mêmes données JSON qu'avant, avec la nouvelle propriété optionnelle `spinMode` (`once` par défaut, `each` pour chaque choix). L'import/export JSON et la sauvegarde Supabase existante continuent de fonctionner, sans migration SQL.
+
+Les illustrations des cartes et des bannières utilisent des copies **rééchantillonnées et légèrement accentuées** dans `assets/game-art/optimized/`, tout en conservant les sources d'origine dans `assets/game-art/`. **Attention :** les images sources mesurent seulement 570 × 320 pixels ; le rééchantillonnage ne remplace pas de vrais visuels haute résolution. Pour obtenir une netteté HD native, remplacer ces sources par des originaux d'au moins 1920 × 1080, puis réoptimiser en WebP.
+
+**Périmètre inchangé :** code de SimSpin pour Les Sims 4, authentification Google/Supabase, statistiques, favoris et structure SQL.
