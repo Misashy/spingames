@@ -1,30 +1,103 @@
+/* SpinGames – catalogue et favoris locaux. */
 (() => {
- 'use strict';
- const games = window.DEVWEB_CATALOGUE || [];
- const grid = document.getElementById('game-grid');
- const filters = document.getElementById('filters');
- if (!grid || !filters) return;
- const palettes = {
-  sims:['#3a2c62','#1c163e'],minecraft:['#244d45','#132b31'],fortnite:['#443a86','#21254b'],roblox:['#543449','#291a40'],stardew:['#395645','#20362f'],animal:['#245d5b','#17383e'],gta:['#69433a','#332432'],valorant:['#602e44','#2b2339']
- };
- function card(game){
-  const a=document.createElement('a');a.className='game-card';a.href=game.slug==='les-sims-4'?'jeux/les-sims-4/lancer.html':`jeux/${game.slug}/index.html`;a.dataset.genre=game.genre;
-  const c=palettes[game.tone] || ['#353a65','#191d36'];a.style.setProperty('--card-a',c[0]);a.style.setProperty('--card-b',c[1]);
-  const top=document.createElement('div');top.className='card-top';
-  const icon=document.createElement('span');icon.className='card-emoji';icon.textContent=game.icon;
-  const arrow=document.createElement('span');arrow.className='card-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent='↗';top.append(icon,arrow);a.append(top);
-  if(game.slug==='les-sims-4'){let badge=document.createElement('span');badge.className='featured-pill';badge.textContent='★ TA ROUE SIMSPIN ORIGINALE';a.append(badge);}
-  const foot=document.createElement('div');foot.className='card-bottom';
-  const t=document.createElement('strong');t.textContent=game.title;const sub=document.createElement('small');sub.textContent=game.genre;const text=document.createElement('p');text.textContent=game.one;
-  foot.append(t,sub,text);a.append(foot);
-  a.setAttribute('aria-label',`Ouvrir la page ${game.title}`);
-  return a;
- }
- games.forEach(game=>grid.append(card(game)));
- filters.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-filter]');if(!btn)return;
-  const genre=btn.dataset.filter;
-  filters.querySelectorAll('button[data-filter]').forEach(b=>{const yes=b===btn;b.classList.toggle('active',yes);b.setAttribute('aria-pressed',String(yes));});
-  grid.querySelectorAll('.game-card').forEach(card=>{card.hidden=genre!=='Tous'&&card.dataset.genre!==genre;});
- });
+  'use strict';
+  const games = window.SPINGAMES_CATALOGUE || window.DEVWEB_CATALOGUE || [];
+  const grid = document.getElementById('game-grid');
+  const favGrid = document.getElementById('sg-fav-grid');
+  const filters = document.getElementById('filters');
+  if (!grid || !favGrid || !filters) return;
+
+  const PALETTES = {
+    sims: ['#4c2968','#231037'], minecraft: ['#346043','#142d27'],
+    fortnite: ['#53319b','#181e4d'], elden: ['#51452d','#171b16'],
+    mario: ['#a32f3a','#3a1b33'], ror2: ['#345da4','#101b39'],
+    fm: ['#235c4b','#102b2d'], pubg: ['#6f5332','#272219'],
+    apex: ['#7d323f','#2e1a2d']
+  };
+  const FAV_KEY = 'spingames.favorites.v1';
+  let fallbackFav = [];
+  function favorites() {
+    try {
+      const value = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      return Array.isArray(value) ? value.filter(x => typeof x === 'string') : [];
+    } catch (_) { return fallbackFav; }
+  }
+  function saveFavorites(next) {
+    fallbackFav = Array.from(new Set(next));
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(fallbackFav)); } catch (_) {}
+    document.dispatchEvent(new CustomEvent('spingames:favorites-updated',{detail:{favorites:fallbackFav}}));
+    render();
+  }
+  const isFavorite = slug => favorites().includes(slug);
+  const urlFor = game => game.slug === 'les-sims-4'
+    ? 'jeux/les-sims-4/lancer.html'
+    : 'jeux/' + game.slug + '/index.html';
+
+  function card(game) {
+    const article = document.createElement('article');
+    article.className = 'game-card sg-game-card';
+    article.dataset.genre = game.genre;
+    article.style.setProperty('--card-a', (PALETTES[game.tone] || ['#353a65','#191d36'])[0]);
+    article.style.setProperty('--card-b', (PALETTES[game.tone] || ['#353a65','#191d36'])[1]);
+    const link = document.createElement('a');
+    link.className = 'sg-card-link';
+    link.href = urlFor(game);
+    link.setAttribute('aria-label', 'Jouer à ' + game.title);
+    const top = document.createElement('div');
+    top.className='card-top';
+    const emoji = document.createElement('span');
+    emoji.className='card-emoji'; emoji.textContent=game.icon;
+    const arrow=document.createElement('span');
+    arrow.className='card-arrow'; arrow.textContent='↗';
+    top.append(emoji, arrow);
+    const footer=document.createElement('div');
+    footer.className='card-bottom';
+    const title=document.createElement('strong'); title.textContent=game.title;
+    const genre=document.createElement('small'); genre.textContent=game.genre;
+    const desc=document.createElement('p'); desc.textContent=game.one;
+    footer.append(title,genre,desc);
+    link.append(top,footer);
+    article.append(link);
+    if(game.slug==='les-sims-4'){
+      const badge=document.createElement('span');
+      badge.className='featured-pill';badge.textContent='★ TA ROUE SIMSPIN ORIGINALE';article.append(badge);
+    }
+    const star=document.createElement('button');
+    star.type='button';star.className='sg-favorite' + (isFavorite(game.slug)?' is-favorite':'');
+    star.textContent=isFavorite(game.slug)?'★':'☆';
+    star.setAttribute('aria-pressed',String(isFavorite(game.slug)));
+    star.setAttribute('aria-label',(isFavorite(game.slug)?'Retirer des favoris : ':'Ajouter aux favoris : ')+game.title);
+    star.title=isFavorite(game.slug)?'Retirer de ma bibliothèque':'Ajouter à ma bibliothèque';
+    star.addEventListener('click', () => {
+      const current=favorites();
+      saveFavorites(current.includes(game.slug)?current.filter(x=>x!==game.slug):current.concat(game.slug));
+    });
+    article.append(star);
+    return article;
+  }
+  function render(){
+    const currentFilter = filters.querySelector('button.active')?.dataset.filter || 'Tous';
+    grid.replaceChildren(...games.filter(g=>currentFilter==='Tous'||g.genre===currentFilter).map(card));
+    const saved=favorites();
+    const mine=games.filter(g=>saved.includes(g.slug));
+    favGrid.replaceChildren(...mine.map(card));
+    const empty=document.getElementById('sg-library-empty');
+    if(empty) empty.hidden=mine.length!==0;
+    const count=document.getElementById('sg-favs-total');
+    if(count) count.textContent=String(mine.length);
+    const all=document.getElementById('sg-total-games');
+    if(all) all.textContent=String(games.length).padStart(2,'0');
+  }
+  filters.addEventListener('click',event=>{
+    const target=event.target.closest('button[data-filter]');
+    if(!target)return;
+    filters.querySelectorAll('button').forEach(button=>{
+      const selected=button===target;
+      button.classList.toggle('active',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+    render();
+  });
+  window.addEventListener('storage',event=>{if(event.key===FAV_KEY)render();});
+  render();
 })();
