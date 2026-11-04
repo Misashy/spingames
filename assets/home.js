@@ -39,7 +39,7 @@
     article.dataset.genre = game.genre;
     article.style.setProperty('--card-a', (PALETTES[game.tone] || ['#353a65','#191d36'])[0]);
     article.style.setProperty('--card-b', (PALETTES[game.tone] || ['#353a65','#191d36'])[1]);
-    article.style.setProperty('--game-art', 'url("assets/game-art/' + game.slug + '.webp")');
+    article.dataset.slug = game.slug;
     const link = document.createElement('a');
     link.className = 'sg-card-link';
     link.href = urlFor(game);
