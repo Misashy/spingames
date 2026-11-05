@@ -174,6 +174,7 @@
   }
   const api = {
     get user() { return user; },
+    get client() { return client; },
     queueSave,
     async recordSpin(slug) {
       if (!client || !slugs.includes(slug)) return;
@@ -183,6 +184,21 @@
     }
   };
   window.SpinGames = api;
+  // Un widget unique sur toutes les pages qui chargent SpinGames.
+  // Les clés Supabase restent publiques côté navigateur, aucun secret ici.
+  const platformSource = document.currentScript?.src;
+  if (platformSource && !document.getElementById('sg-chat-script')) {
+    const chatStyle = document.createElement('link');
+    chatStyle.rel = 'stylesheet';
+    chatStyle.id = 'sg-chat-style';
+    chatStyle.href = new URL('chat.css?v=20261105-1', platformSource).href;
+    document.head.append(chatStyle);
+    const chatScript = document.createElement('script');
+    chatScript.id = 'sg-chat-script';
+    chatScript.src = new URL('chat.js?v=20261105-1', platformSource).href;
+    chatScript.async = true;
+    document.head.append(chatScript);
+  }
   async function refreshStats() {
     if (!client) return;
     const { data, error } = await client.rpc('site_get_stats');

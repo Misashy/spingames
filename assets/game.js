@@ -8,7 +8,7 @@
  const platformStyle=document.createElement('link');
  platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
  const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
- const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js';platformScript.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261105-chat';platformScript.async=false;
  document.head.append(platformStyle,siteConfig,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
