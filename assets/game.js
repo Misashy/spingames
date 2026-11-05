@@ -8,8 +8,8 @@
  const platformStyle=document.createElement('link');
  platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
  const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
- const cloudScript=document.createElement('script');cloudScript.src='../../assets/cloud-sync.js?v=20261105';cloudScript.async=false;
- const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261105-chat';platformScript.async=false;
+ const cloudScript=document.createElement('script');cloudScript.src='../../assets/cloud-sync.js?v=20261105-private-v2';cloudScript.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261105-private-v2';platformScript.async=false;
  document.head.append(platformStyle,siteConfig,cloudScript,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
