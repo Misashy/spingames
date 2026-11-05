@@ -139,6 +139,7 @@
     const style=document.createElement('style');
     style.textContent=`
       #simspinWheelLabel{display:none!important}
+      .wheel-area{width:100%!important;max-width:none!important;padding:8px 2px!important}
       .ss-multi-wheels{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:clamp(12px,1.6vw,22px);width:100%;margin:10px auto 22px}
       .ss-multi-card{min-width:0;flex:0 1 760px;max-width:760px;text-align:center}
       .ss-multi-title{margin:7px 0 2px;font:900 clamp(16px,1.5vw,22px) 'Fredoka',system-ui,sans-serif;color:#ffe67b;overflow-wrap:anywhere}
