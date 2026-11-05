@@ -65,10 +65,6 @@
     footer.append(title,genre,desc);
     link.append(footer);
     article.append(link);
-    if(game.slug==='les-sims-4'){
-      const badge=document.createElement('span');
-      badge.className='featured-pill';badge.textContent='★ TA ROUE SIMSPIN ORIGINALE';article.append(badge);
-    }
     const star=document.createElement('button');
     star.type='button';star.className='sg-favorite' + (isFavorite(game.slug)?' is-favorite':'');
     star.textContent=isFavorite(game.slug)?'★':'☆';
