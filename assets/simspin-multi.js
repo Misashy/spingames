@@ -52,6 +52,7 @@
     const ctx=node.getContext('2d');if(!ctx)return;
     const items=cat.items,N=items.length,r=480,c=500,step=2*Math.PI/N;
     const img=imageFor(cat);
+    const scale=node.width/1000;ctx.setTransform(scale,0,0,scale,0,0);
     ctx.clearRect(0,0,1000,1000);
     items.forEach((item,i)=>{
       const start=-Math.PI/2-step/2+i*step,angle=start+step/2;
@@ -105,7 +106,7 @@
       const count=document.createElement('p');count.className='ss-multi-count';count.textContent=cat.items.length+' choix · '+(cat.drawCount||1)+' tirage(s)';
       const zone=document.createElement('div');zone.className='ss-multi-zone';
       const arrow=document.createElement('span');arrow.className='ss-multi-pointer';arrow.setAttribute('aria-hidden','true');
-      const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Roue '+cat.name+' avec '+cat.items.length+' choix');
+      const canvas=document.createElement('canvas');canvas.width=cats.length>=3?720:1000;canvas.height=canvas.width;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Roue '+cat.name+' avec '+cat.items.length+' choix');
       const hub=document.createElement('span');hub.className='ss-multi-hub';hub.textContent='◆';hub.setAttribute('aria-hidden','true');
       zone.append(arrow,canvas,hub);card.append(title,count,zone);root.append(card);
       nodes.set(norm(cat.name),canvas);draw(canvas,cat);
