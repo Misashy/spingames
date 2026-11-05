@@ -128,8 +128,8 @@
     if (!next) {
       for (const kind of kinds) {
         ready.add(kind);
-        const data = readLegacy(kind);
-        cache.set(kind, copy(data));
+        const data = null; // Session invitée : ne jamais lire une ancienne sauvegarde persistante.
+        cache.set(kind, null);
         announce(kind, data);
       }
       return;
