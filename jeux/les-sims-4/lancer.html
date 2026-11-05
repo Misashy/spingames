@@ -45,8 +45,8 @@
       loadedFor = owner;
     } catch (error) {
       console.warn('Impossible de préparer la session SimSpin', error);
-      // Afficher la roue malgré une panne de chargement, sans prétendre que le profil est isolé.
-      frame.src = source.href;
+      // Ne jamais retomber sur un stockage partagé si l'isolation a échoué.
+      frame.srcdoc = '<!doctype html><html lang="fr"><meta charset="utf-8"><body style="background:#17102e;color:white;font:16px system-ui;padding:32px"><h2>SimSpin momentanément indisponible</h2><p>Recharge cette page pour réessayer sans risquer tes sauvegardes.</p></body></html>';
     }
   }
   window.addEventListener('storage', event => {
