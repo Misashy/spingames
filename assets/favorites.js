@@ -8,7 +8,8 @@
   if (!host) return;
   const list = () => {
     try {
-      const items = JSON.parse(localStorage.getItem(KEY) || '[]');
+      const cloud=window.SpinGamesCloud;
+      const items=cloud?.userId() ? cloud.get('favorites')?.values : JSON.parse(sessionStorage.getItem(KEY) || '[]');
       return Array.isArray(items) ? items : [];
     } catch (_) { return []; }
   };
@@ -25,9 +26,14 @@
   button.addEventListener('click',() => {
     const current = list();
     const changed=current.includes(slug)?current.filter(v=>v!==slug):current.concat(slug);
-    try { localStorage.setItem(KEY,JSON.stringify([...new Set(changed)])); } catch (_) {}
+    try {
+      const items=[...new Set(changed)];
+      if(window.SpinGamesCloud?.userId())window.SpinGamesCloud.put('favorites',{values:items});
+      else sessionStorage.setItem(KEY,JSON.stringify(items));
+    } catch (_) {}
     paint();
   });
+  document.addEventListener('spingames:profile-ready',event=>{if(event.detail?.kind==='favorites')paint();});
   host.append(button);
   paint();
 })();
