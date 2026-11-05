@@ -60,27 +60,39 @@
  const active=()=>categories.filter(c=>c.active&&c.items.length);
  // Visuels de présentation uniquement : aucune donnée de catégorie n'est ajoutée
  // aux sauvegardes locales ou cloud. Les anciennes listes sont reconnues par nom.
- const minecraftArt=game.slug==='minecraft'?new Map([
+ const categoryArt=game.slug==='minecraft'?new Map([
   ['survie','minecraft-wheel-survie.webp'],
   ['construction','minecraft-wheel-construction.webp'],
   ['exploration','minecraft-wheel-exploration.webp'],
   ['vie du monde','minecraft-wheel-vie-du-monde.webp']
+ ]):game.slug==='fortnite'?new Map([
+  ['facile','fortnite-wheel-facile.webp'],
+  ['moyen','fortnite-wheel-moyen.webp'],
+  ['difficile','fortnite-wheel-difficile.webp'],
+  ['extreme','fortnite-wheel-extreme.webp'],
+  ['defi trool','fortnite-wheel-defi-trool.webp']
  ]):null;
  const wheelImages=new Map();
- function minecraftImage(cat){
-  if(!minecraftArt||!cat)return null;
+ function categoryImage(cat){
+  if(!categoryArt||!cat)return null;
   const name=cat.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr-FR').trim().replace(/\s+/g,' ');
-  const src=`../../assets/game-art/${minecraftArt.get(name)||'minecraft.webp'}`;
+  const fallback=game.slug==='fortnite'?'fortnite.webp':'minecraft.webp';
+  const src=`../../assets/game-art/${categoryArt.get(name)||fallback}`;
   if(!wheelImages.has(src)){
    const img=new Image();
    wheelImages.set(src,img);
    img.onload=()=>{if(!spinning)renderWheel();};
+   img.onerror=()=>{
+    // Ne pas casser les roues si une image personnalisée n'a pas encore été publiée.
+    img.onerror=null;
+    if(!src.endsWith('/'+fallback))img.src='../../assets/game-art/'+fallback;
+   };
    // En cas d'échec, le secteur conserve sa couleur et son texte contrasté.
    img.src=src;
   }
   return wheelImages.get(src);
  }
- function drawMinecraftSector(img,cx,cy,r,i){
+ function drawCategorySector(img,cx,cy,r,i){
   ctx.save();ctx.clip();
   if(img?.complete&&img.naturalWidth){
    // Même cadrage cover pour chaque part : l'illustration reste continue,
@@ -93,7 +105,7 @@
   ctx.fillRect(cx-r,cy-r,2*r,2*r);
   ctx.restore();
  }
- function drawMinecraftLabel(item,index,count,step,r,numberOnly,fontSize,maxWidth,maxLines){
+ function drawCategoryLabel(item,index,count,step,r,numberOnly,fontSize,maxWidth,maxLines){
   const padding=5,anchor=numberOnly?r*.76:count<=6?r*.60:r*.70;
   const minimumSize=Math.max(12,Math.ceil(fontSize*.85));
   let size=fontSize,lines,lineHeight;
@@ -148,7 +160,7 @@
  function paintWheel(cat,node){
   canvas=node;ctx=canvas.getContext('2d');
   const items=cat.items,size=720,cx=size/2,cy=size/2,r=330;
-  const illustration=minecraftImage(cat);
+  const illustration=categoryImage(cat);
   const numberOnly=items.length>44;
   canvas.setAttribute('aria-label',cat?`Roue des choix de ${cat.name}. ${items.length} possibilités.`:'Roue vide : active une catégorie');
   // Les coordonnées restent basées sur 720 px ; le dessin est rendu en 1440 px.
@@ -166,16 +178,16 @@
   items.forEach((item,i)=>{
    const start=-Math.PI/2-step/2+i*step,angle=start+step/2;
    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+step);ctx.closePath();ctx.fillStyle=safeColor(cat.color);ctx.fill();
-   if(minecraftArt)drawMinecraftSector(illustration,cx,cy,r,i);
+   if(categoryArt)drawCategorySector(illustration,cx,cy,r,i);
    else if(i%2){ctx.fillStyle='rgba(255,255,255,.23)';ctx.fill();}
-   ctx.lineWidth=items.length>80?0.8:1.8;ctx.strokeStyle=minecraftArt?'rgba(230,240,255,.8)':'#17202a';ctx.stroke();
-   ctx.save();if(minecraftArt)ctx.clip();ctx.translate(cx,cy);ctx.rotate(angle);
+   ctx.lineWidth=items.length>80?0.8:1.8;ctx.strokeStyle=categoryArt?'rgba(230,240,255,.8)':'#17202a';ctx.stroke();
+   ctx.save();if(categoryArt)ctx.clip();ctx.translate(cx,cy);ctx.rotate(angle);
    // Les textes suivent le rayon du secteur : ils disposent de sa profondeur,
    // et non de la petite largeur de son arc, contrairement à l'ancienne roue.
    ctx.translate(numberOnly?r*.76:items.length<=6?r*.60:r*.70,0);
    if(Math.cos(angle)<-0.025)ctx.rotate(Math.PI);
    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#151b24';
-   if(minecraftArt)drawMinecraftLabel(item,i,items.length,step,r,numberOnly,fontSize,maxWidth,maxLines);
+   if(categoryArt)drawCategoryLabel(item,i,items.length,step,r,numberOnly,fontSize,maxWidth,maxLines);
    else{
     ctx.font=`900 ${fontSize}px "DM Sans",system-ui,sans-serif`;
     const lines=numberOnly?[String(i+1)]:wheelTextLines(item,maxWidth,maxLines);
