@@ -18,9 +18,12 @@
     }
   } catch (_) { visitorId = crypto.randomUUID(); }
   let client = null, user = null, nextRefresh = 0;
-  const localKeys = slug => slug === 'les-sims-4' ?
-    ['simspin.categories.v3','simspin.history.v4'] :
-    [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
+  const localKeys = (slug, owner = user?.id) => {
+    const raw = slug === 'les-sims-4'
+      ? ['simspin.categories.v3','simspin.history.v4']
+      : [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
+    return owner ? raw.map(key => 'spingames.account.'+owner+'.'+key) : raw;
+  };
   const slugs = ['les-sims-4','minecraft','fortnite','elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'];
   const currentSlug = () => location.pathname.match(/\/jeux\/([^/]+)\//)?.[1] || null;
 
@@ -49,7 +52,7 @@
       </form>
     </div>
     <p class="sg-note" id="sg-auth-status" role="status"></p>
-    <p class="sg-footnote">Sans compte, les roues continuent de fonctionner et tes modifications restent sur cet appareil.</p>
+    <p class="sg-footnote">Sans compte, les modifications ne sont pas sauvegardées après la fermeture de l'onglet. Connecte-toi pour les conserver.</p>
   </section>`;
   document.body.append(modal);
   const $ = id => document.getElementById(id);
@@ -128,16 +131,50 @@
 
   const dispatch = () => document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
   const saveTimers = new Map();
+  const restored = new Set();
+  function mergeOfficial(saved, previousBase, currentBase) {
+    if (!Array.isArray(saved) || !Array.isArray(previousBase) || !Array.isArray(currentBase)) return saved;
+    const previous = new Map(previousBase.filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
+    const combined = saved.map(c => ({ ...c, items: Array.isArray(c.items) ? [...c.items] : [] }));
+    for (const official of currentBase) {
+      if (!official || typeof official.name !== 'string') continue;
+      const old = previous.get(official.name);
+      if (!old) {
+        if (!combined.some(c => c.name === official.name)) combined.push(official);
+        continue;
+      }
+      const own = combined.find(c => c.name === official.name);
+      if (!own || !Array.isArray(official.items)) continue;
+      const oldItems = new Set(Array.isArray(old.items) ? old.items : []);
+      const personalItems = new Set(own.items);
+      for (const item of official.items) {
+        if (!oldItems.has(item) && !personalItems.has(item)) { own.items.push(item); personalItems.add(item); }
+      }
+    }
+    return combined;
+  }
+  function officialCategories(slug) {
+    if (slug !== currentSlug()) return null;
+    try {
+      const node = document.getElementById('game-data');
+      const data = node ? JSON.parse(node.textContent) : null;
+      return Array.isArray(data?.categories) ? data.categories : null;
+    } catch (_) { return null; }
+  }
   async function saveProgress(slug) {
-    if (!client || !user || !slugs.includes(slug)) return;
-    const [categoriesKey, historyKey] = localKeys(slug);
+    if (!client || !user || !slugs.includes(slug) || !restored.has(user.id)) return;
+    const owner = user.id;
+    const [categoriesKey, historyKey] = localKeys(slug, owner);
     let categories = null, history = null;
     try {
       categories = JSON.parse(localStorage.getItem(categoriesKey) || 'null');
       history = JSON.parse(localStorage.getItem(historyKey) || 'null');
     } catch (_) { return; }
     if (categories === null && history === null) return;
-    const payload = { user_id: user.id, game_slug: slug, categories, history: Array.isArray(history) ? history.slice(0, 10) : [] };
+    const payload = { user_id: owner, game_slug: slug, categories, history: Array.isArray(history) ? history.slice(0, 10) : [] };
+    const baseline = officialCategories(slug);
+    if (baseline) payload.official_baseline = baseline;
+    if (owner !== user?.id) return;
     const { error } = await client.from('player_progress').upsert(payload, { onConflict: 'user_id,game_slug' });
     if (error) console.warn('Sauvegarde en ligne indisponible :', error.message);
   }
@@ -148,28 +185,33 @@
   }
   async function restoreProgress() {
     if (!client || !user) return;
-    const { data, error } = await client.from('player_progress').select('game_slug,categories,history').eq('user_id', user.id);
-    if (error) return console.warn('Lecture progression :', error.message);
+    const owner = user.id;
+    const { data, error } = await client.from('player_progress')
+      .select('game_slug,categories,history,official_baseline').eq('user_id', owner);
+    if (owner !== user?.id) return;
+    if (error) {
+      console.warn('Lecture progression :', error.message);
+      return;
+    }
     for (const row of (data || [])) {
       if (!slugs.includes(row.game_slug)) continue;
-      const [catKey, histKey] = localKeys(row.game_slug);
-      const oldCategories = localStorage.getItem(catKey);
-      const oldHistory = localStorage.getItem(histKey);
-      const newCategories = row.categories === null ? null : JSON.stringify(row.categories);
-      const newHistory = row.history === null ? null : JSON.stringify(row.history);
-      const needsCategories = newCategories !== null && oldCategories !== newCategories;
-      const needsHistory = newHistory !== null && oldHistory !== newHistory;
-      if (!needsCategories && !needsHistory) continue;
-      if (oldCategories && needsCategories) {
-        if (row.game_slug !== currentSlug()) continue;
-        if (!confirm('Une sauvegarde en ligne existe pour ce jeu. La charger sur cet appareil ?')) continue;
+      const [catKey, histKey] = localKeys(row.game_slug, owner);
+      let categories = row.categories;
+      const official = officialCategories(row.game_slug);
+      if (official && Array.isArray(categories)) {
+        categories = mergeOfficial(categories, row.official_baseline, official);
       }
-      if (newCategories !== null) localStorage.setItem(catKey, newCategories);
-      if (newHistory !== null) localStorage.setItem(histKey, newHistory);
+      if (categories !== null) localStorage.setItem(catKey, JSON.stringify(categories));
+      if (row.history !== null) localStorage.setItem(histKey, JSON.stringify(row.history));
       if (row.game_slug === currentSlug()) {
-        location.reload();
-        return;
+        document.dispatchEvent(new CustomEvent('spingames:progress-ready', { detail: { slug: row.game_slug } }));
       }
+    }
+    restored.add(owner);
+    const active = (data || []).find(row => row.game_slug === currentSlug());
+    if (active && Array.isArray(active.official_baseline) && officialCategories(currentSlug()) &&
+        JSON.stringify(active.official_baseline) !== JSON.stringify(officialCategories(currentSlug()))) {
+      queueSave(currentSlug());
     }
   }
   const api = {
@@ -243,6 +285,7 @@
       user = data?.user || null;
       present();
       void window.SpinGamesCloud?.setSession(client, user);
+      if (user && !restored.has(user.id)) void restoreProgress();
       heartbeat();
       setInterval(heartbeat, 20000);
       window.addEventListener('focus', heartbeat);

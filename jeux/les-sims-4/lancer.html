@@ -13,25 +13,64 @@
 @media(max-width:550px){.sg-sims-header{padding:0 8px}.sg-sims-header a{font-size:11px}}
 </style>
 <script src="../../assets/site-config.js" defer></script>
-<script src="../../assets/platform.js?v=20261105-chat" defer></script><script src="../../assets/favorites.js" defer></script>
+<script src="../../assets/cloud-sync.js?v=20261105" defer></script><script src="../../assets/platform.js?v=20261105-chat" defer></script><script src="../../assets/favorites.js" defer></script>
 </head><body>
 <header class="sg-sims-header"><a href="../../index.html">← SpinGames · Tous les jeux</a></header>
-<iframe class="sg-sims-frame" id="sg-sims-frame" src="index.html" title="SimSpin, roue originale des Sims 4" loading="eager"></iframe>
+<iframe class="sg-sims-frame" id="sg-sims-frame" src="about:blank" title="SimSpin, roue originale des Sims 4" loading="eager"></iframe>
 <script>
 (() => {
-  const HISTORY_KEY='simspin.history.v4';
-  let last=0;
-  try{const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');last=h[0]?.at||0}catch(_){}
-  window.addEventListener('storage',event=>{
-    if(event.key==='simspin.categories.v3') window.SpinGames?.queueSave('les-sims-4');
-    if(event.key!==HISTORY_KEY || !event.newValue)return;
+  'use strict';
+  const frame = document.getElementById('sg-sims-frame');
+  const source = new URL('index.html', location.href);
+  const shim = new URL('../../assets/simspin-storage.js?v=20261105', location.href);
+  let documentTemplate = null, loadedFor = undefined, serial = 0;
+  const account = () => window.SpinGames?.user?.id || '';
+  function storageKey(key, owner = account()) {
+    return owner ? 'spingames.account.' + owner + '.' + key : 'spingames.guest.' + key;
+  }
+  async function showGame(force = false) {
+    const owner = account();
+    if (!force && owner === loadedFor) return;
+    const current = ++serial;
+    try {
+      if (!documentTemplate) {
+        const response = await fetch(source.href, { cache: 'no-cache' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        documentTemplate = await response.text();
+      }
+      if (current !== serial) return;
+      frame.setAttribute('data-sg-uid', owner);
+      const bootstrap = '<base href="' + source.href + '"><script src="' + shim.href + '"><' + '/script>';
+      frame.srcdoc = documentTemplate.replace(/<head([^>]*)>/i, (_, attrs) => '<head' + attrs + '>' + bootstrap);
+      loadedFor = owner;
+    } catch (error) {
+      console.warn('Impossible de préparer la session SimSpin', error);
+      // Ne jamais retomber sur un stockage partagé si l'isolation a échoué.
+      frame.srcdoc = '<!doctype html><html lang="fr"><meta charset="utf-8"><body style="background:#17102e;color:white;font:16px system-ui;padding:32px"><h2>SimSpin momentanément indisponible</h2><p>Recharge cette page pour réessayer sans risquer tes sauvegardes.</p></body></html>';
+    }
+  }
+  window.addEventListener('storage', event => {
+    const owner = account();
+    const categories = storageKey('simspin.categories.v3', owner);
+    const history = storageKey('simspin.history.v4', owner);
+    if (!owner || (event.key !== categories && event.key !== history)) return;
     window.SpinGames?.queueSave('les-sims-4');
-    try{
-      const h=JSON.parse(event.newValue);
-      const next=h[0]?.at||0;
-      if(next>last){last=next;window.SpinGames?.recordSpin('les-sims-4')}
-    }catch(_){}
+    if (event.key === history && event.newValue) {
+      try {
+        const entries = JSON.parse(event.newValue);
+        const next = entries[0]?.at || 0;
+        if (next > (window.__sgSimsLastSpin || 0)) {
+          window.__sgSimsLastSpin = next;
+          window.SpinGames?.recordSpin('les-sims-4');
+        }
+      } catch (_) {}
+    }
   });
+  document.addEventListener('spingames:auth', () => void showGame());
+  document.addEventListener('spingames:progress-ready', event => {
+    if (event.detail?.slug === 'les-sims-4') void showGame(true);
+  });
+  void showGame();
 })();
 </script>
 </body></html>

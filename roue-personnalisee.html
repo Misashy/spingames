@@ -128,11 +128,11 @@
     return {version:1,wheels,activeWheelId,history};
   }
   let db;
-  try{const stored=localStorage.getItem(KEY);db=stored?normalize(JSON.parse(stored)):seed();}catch(e){db=seed();}
+  try{const stored=sessionStorage.getItem(KEY);db=stored?normalize(JSON.parse(stored)):seed();}catch(e){db=seed();}
   let active=()=>db.wheels.find(w=>w.id===db.activeWheelId)||db.wheels[0];
   let spinning=false, rotation=0, lastWinner=null, animationFrame=0, timerInterval=null, toastTimeout;
   let stopwatch={wheelId:db.activeWheelId,itemId:null,elapsedMs:0,startedAt:0,running:false};
-  try{const prev=JSON.parse(localStorage.getItem(TIMER_KEY)||'null');if(prev&&db.wheels.some(w=>w.id===prev.wheelId&&w.items.some(i=>i.id===prev.itemId))){stopwatch={wheelId:prev.wheelId,itemId:prev.itemId,elapsedMs:positive(prev.elapsedMs,1e12),startedAt:0,running:false};db.activeWheelId=prev.wheelId;}}catch(e){}
+  try{const prev=JSON.parse(sessionStorage.getItem(TIMER_KEY)||'null');if(prev&&db.wheels.some(w=>w.id===prev.wheelId&&w.items.some(i=>i.id===prev.itemId))){stopwatch={wheelId:prev.wheelId,itemId:prev.itemId,elapsedMs:positive(prev.elapsedMs,1e12),startedAt:0,running:false};db.activeWheelId=prev.wheelId;}}catch(e){}
   function toast(msg){clearTimeout(toastTimeout);$('toast').textContent=msg;$('toast').classList.add('show');toastTimeout=setTimeout(()=>$('toast').classList.remove('show'),3600);}
   function persist(){
     const service=cloud();
@@ -141,7 +141,7 @@
       $('saveStatus').textContent='☁ Sauvegarde liée à ton compte';
       return;
     }
-    try{localStorage.setItem(KEY,JSON.stringify(db));$('saveStatus').textContent='● Sauvegarde locale activée';}
+    try{sessionStorage.setItem(KEY,JSON.stringify(db));$('saveStatus').textContent='◌ Session temporaire · connecte-toi pour sauvegarder';}
     catch(e){$('saveStatus').textContent='⚠ Sauvegarde indisponible : exporte tes données';}
   }
   function persistTimer(){
@@ -153,7 +153,7 @@
         service.put('custom_wheels',{library:db,timer:snapshot});
       }
     }else{
-      try{localStorage.setItem(TIMER_KEY,JSON.stringify(snapshot));}catch(e){}
+      try{sessionStorage.setItem(TIMER_KEY,JSON.stringify(snapshot));}catch(e){}
     }
   }
   const hms=(seconds)=>{const s=Math.floor(seconds);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');};
@@ -234,7 +234,7 @@
     if(spinning){cancelAnimationFrame(animationFrame);spinning=false;}
     const saved=event.detail.data;
     try{db=saved?.library ? normalize(saved.library) : event.detail.uid ? seed() :
-      (JSON.parse(localStorage.getItem(KEY)||'null') ? normalize(JSON.parse(localStorage.getItem(KEY))) : seed());}
+      (JSON.parse(sessionStorage.getItem(KEY)||'null') ? normalize(JSON.parse(sessionStorage.getItem(KEY))) : seed());}
     catch(e){db=seed();}
     const timer=saved?.timer;
     let restored=timer;
@@ -255,7 +255,7 @@
     if(match)db.activeWheelId=restored.wheelId;
     lastCloudTimerWrite=Date.now();
     rotation=0;lastWinner=null;renderAll();
-    if(event.detail.uid && !saved)persist();
+    if(event.detail.uid && !saved && !event.detail.error)persist();
     if(event.detail.error)toast('Connexion sauvegarde : copie locale conservée.');
   });
   document.addEventListener('spingames:profile-status',event=>{

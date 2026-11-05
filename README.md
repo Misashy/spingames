@@ -18,7 +18,7 @@ Genres : Simulation · Battle Royale · Souls · Création & Survie · Action & 
 
 ## Bibliothèque
 
-Chaque jeu possède une étoile de favoris ; les jeux favoris apparaissent dans la bibliothèque de la page d'accueil. Pour le moment, les favoris sont sauvegardés dans le navigateur (`spingames.favorites.v1`) : pas encore synchronisés entre appareils.
+Chaque jeu possède une étoile de favoris ; les jeux favoris apparaissent dans la bibliothèque de la page d'accueil. Les favoris des membres connectés sont sauvegardés dans leur profil Supabase. Les favoris des visiteurs restent temporaires dans l'onglet.
 
 ## GitHub Pages + Supabase
 
@@ -37,3 +37,15 @@ Chaque catégorie possède, directement dans la liste et dans l'atelier de modif
 Les illustrations des cartes et des bannières utilisent des copies **rééchantillonnées et légèrement accentuées** dans `assets/game-art/optimized/`, tout en conservant les sources d'origine dans `assets/game-art/`. **Attention :** les images sources mesurent seulement 570 × 320 pixels ; le rééchantillonnage ne remplace pas de vrais visuels haute résolution. Pour obtenir une netteté HD native, remplacer ces sources par des originaux d'au moins 1920 × 1080, puis réoptimiser en WebP.
 
 **Périmètre inchangé :** code de SimSpin pour Les Sims 4, authentification Google/Supabase, statistiques, favoris et structure SQL.
+
+
+## Profils privés et contenu officiel (novembre 2026)
+
+- Les catégories et défis intégrés dans les pages des jeux sont le contenu officiel de départ pour tous les visiteurs.
+- Les visiteurs peuvent tester les modifications sans compte ; les données sont temporaires (`sessionStorage`) et disparaissent normalement après fermeture de l'onglet.
+- Les membres connectés disposent de sauvegardes personnelles dans `public.player_progress`, avec contrôle d'accès Supabase (RLS).
+- La dernière base officielle (`official_baseline`) permet de recevoir les nouveaux défis officiels sans restaurer les défis supprimés personnellement, pour les jeux qui utilisent `assets/game.js`.
+- Les favoris et la roue personnalisée sont synchronisés dans `public.player_profile_data` pour les membres ; les visiteurs utilisent une session temporaire.
+- SimSpin conserve son moteur original et charge ses données par l'isolateur `assets/simspin-storage.js` dans la page `lancer.html`.
+- Aucun changement de structure SQL n'est nécessaire pour ce déploiement : `official_baseline` existait déjà.
+- Avant une modification majeure du contenu officiel, tester les comptes, la déconnexion, les sessions invitées, et les imports/exports JSON sur navigateur.
