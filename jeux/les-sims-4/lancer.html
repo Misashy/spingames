@@ -22,7 +22,7 @@
   'use strict';
   const frame = document.getElementById('sg-sims-frame');
   const source = new URL('index.html', location.href);
-  const shim = new URL('../../assets/simspin-storage.js?v=20261105-private-v2', location.href);
+  const shim = new URL('../../assets/simspin-storage.js?v=20261105-official-import', location.href);
   let documentTemplate = null, officialCategories = null, loadedFor = undefined, serial = 0;
   const account = () => window.SpinGames?.user?.id || '';
   function storageKey(key, owner = account()) {
