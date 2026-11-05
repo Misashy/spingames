@@ -18,9 +18,12 @@
     }
   } catch (_) { visitorId = crypto.randomUUID(); }
   let client = null, user = null, nextRefresh = 0;
-  const localKeys = slug => slug === 'les-sims-4' ?
-    ['simspin.categories.v3','simspin.history.v4'] :
-    [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
+  const localKeys = (slug, owner = user?.id) => {
+    const raw = slug === 'les-sims-4'
+      ? ['simspin.categories.v3','simspin.history.v4']
+      : [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
+    return owner ? raw.map(key => 'spingames.account.'+owner+'.'+key) : raw;
+  };
   const slugs = ['les-sims-4','minecraft','fortnite','elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'];
   const currentSlug = () => location.pathname.match(/\/jeux\/([^/]+)\//)?.[1] || null;
 
@@ -49,7 +52,7 @@
       </form>
     </div>
     <p class="sg-note" id="sg-auth-status" role="status"></p>
-    <p class="sg-footnote">Sans compte, les roues continuent de fonctionner et tes modifications restent sur cet appareil.</p>
+    <p class="sg-footnote">Sans compte, les modifications ne sont pas sauvegardées après la fermeture de l'onglet. Connecte-toi pour les conserver.</p>
   </section>`;
   document.body.append(modal);
   const $ = id => document.getElementById(id);
@@ -167,8 +170,7 @@
       if (newCategories !== null) localStorage.setItem(catKey, newCategories);
       if (newHistory !== null) localStorage.setItem(histKey, newHistory);
       if (row.game_slug === currentSlug()) {
-        location.reload();
-        return;
+        document.dispatchEvent(new CustomEvent('spingames:progress-ready', { detail: { slug: row.game_slug } }));
       }
     }
   }
