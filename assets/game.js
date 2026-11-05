@@ -23,7 +23,13 @@
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`cat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
  const opts=[1,2,3,4,5];
  const safeCount=v=>opts.includes(Number(v))?Number(v):1;
- const storageGet=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
+ // Les invités utilisent l'espace temporaire de l'onglet ; les comptes ont des clés isolées.
+ const scopedKey=key=>window.SpinGames?.user?.id
+  ? 'spingames.account.'+window.SpinGames.user.id+'.'+key
+  : 'spingames.guest.'+key;
+ const storageArea=()=>window.SpinGames?.user?.id ? localStorage : sessionStorage;
+ const storageGet=key=>{try{return storageArea().getItem(scopedKey(key))}catch(_){return null}};
+ const storageSet=(key,value)=>storageArea().setItem(scopedKey(key),value);
  let toastTimer=0,spinning=false,rotation=0;
  const cleanCategories=value=>{
   const array=Array.isArray(value)?value:value?.categories;
@@ -43,8 +49,8 @@
  try{const h=JSON.parse(storageGet(HISTORY_KEY)||'[]');if(Array.isArray(h))history=h.filter(x=>x&&Array.isArray(x.results)).slice(0,10)}catch(_){/* ignore */}
  let selected=categories[0]?.id??null;
  let wheelActiveId=selected;
- function save(){try{localStorage.setItem(CAT_KEY,JSON.stringify(categories));window.SpinGames?.queueSave(game.slug)}catch(_){toast('Stockage indisponible : exporte tes listes.')}}
- function saveHistory(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history));window.SpinGames?.queueSave(game.slug)}catch(_){}}
+ function save(){try{storageSet(CAT_KEY,JSON.stringify(categories));window.SpinGames?.queueSave(game.slug)}catch(_){toast('Stockage indisponible : exporte tes listes.')}}
+ function saveHistory(){try{storageSet(HISTORY_KEY,JSON.stringify(history));window.SpinGames?.queueSave(game.slug)}catch(_){}}
  function toast(msg){const n=$('toast');n.textContent=msg;n.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('visible'),3200)}
  const active=()=>categories.filter(c=>c.active&&c.items.length);
  const wheelCategory=()=>active().find(c=>c.id===wheelActiveId)||active()[0]||null;
@@ -320,5 +326,18 @@
  if(wheelDetails&&window.matchMedia('(max-width:650px)').matches)wheelDetails.open=true;
  let lastCompact=window.matchMedia('(max-width:650px)').matches;
  window.addEventListener('resize',()=>{const compact=window.matchMedia('(max-width:650px)').matches;if(compact!==lastCompact){lastCompact=compact;if(!spinning)renderWheel();}},{passive:true});
+ // Changer de compte ne doit jamais afficher les modifications d'un autre joueur.
+ function reloadPersonalData(){
+  if(spinning)return;
+  categories=loadCategories();
+  try{const h=JSON.parse(storageGet(HISTORY_KEY)||'[]');history=Array.isArray(h)?h.filter(x=>x&&Array.isArray(x.results)).slice(0,10):[]}
+  catch(_){history=[]}
+  selected=categories[0]?.id??null;wheelActiveId=selected;rotation=0;
+  renderAll();
+ }
+ document.addEventListener('spingames:auth',reloadPersonalData);
+ document.addEventListener('spingames:progress-ready',event=>{
+  if(event.detail?.slug===game.slug)reloadPersonalData();
+ });
  renderAll();
 })();
