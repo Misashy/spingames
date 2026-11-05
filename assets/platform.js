@@ -28,7 +28,7 @@
   button.type = 'button';
   button.className = 'sg-account-btn';
   button.textContent = '👤 Connexion / Inscription';
-  const header = document.querySelector('.header, .g-header, .devweb-return');
+  const header = document.querySelector('.header, .g-header, .devweb-return, .sg-cloud-header');
   if (header) header.append(button);
   else { button.style.cssText = 'position:fixed;top:12px;right:12px;z-index:1000'; document.body.append(button); }
 
@@ -62,7 +62,12 @@
       const p = document.createElement('p'); p.textContent = `Connecté : ${displayName}`;
       const logout = document.createElement('button');
       logout.className = 'sg-action sg-ghost'; logout.type = 'button'; logout.textContent = 'Déconnexion';
-      logout.addEventListener('click', () => client?.auth.signOut());
+      logout.addEventListener('click', async () => {
+        logout.disabled = true;
+        note('Sauvegarde de tes données en cours…');
+        try { await window.SpinGamesCloud?.flushAll(); } catch (_) {}
+        await client?.auth.signOut();
+      });
       document.querySelector('.sg-account-content').append(p, logout);
     } else {
       button.textContent = '👤 Connexion / Inscription';
@@ -215,11 +220,13 @@
         user = session?.user || null;
         present();
         dispatch();
+        void window.SpinGamesCloud?.setSession(client, user);
         if (user && before !== user.id) setTimeout(() => restoreProgress(), 200);
       });
       const { data } = await client.auth.getUser();
       user = data?.user || null;
       present();
+      void window.SpinGamesCloud?.setSession(client, user);
       heartbeat();
       setInterval(heartbeat, 20000);
       window.addEventListener('focus', heartbeat);

@@ -17,6 +17,11 @@
   const FAV_KEY = 'spingames.favorites.v1';
   let fallbackFav = [];
   function favorites() {
+    const cloud = window.SpinGamesCloud;
+    if (cloud?.userId()) {
+      const current = cloud.get('favorites');
+      return current && Array.isArray(current.values) ? current.values.filter(x => typeof x === 'string') : [];
+    }
     try {
       const value = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
       return Array.isArray(value) ? value.filter(x => typeof x === 'string') : [];
@@ -24,7 +29,11 @@
   }
   function saveFavorites(next) {
     fallbackFav = Array.from(new Set(next));
-    try { localStorage.setItem(FAV_KEY, JSON.stringify(fallbackFav)); } catch (_) {}
+    const cloud = window.SpinGamesCloud;
+    if (cloud?.userId()) cloud.put('favorites', { values: fallbackFav });
+    else {
+      try { localStorage.setItem(FAV_KEY, JSON.stringify(fallbackFav)); } catch (_) {}
+    }
     document.dispatchEvent(new CustomEvent('spingames:favorites-updated',{detail:{favorites:fallbackFav}}));
     render();
   }
@@ -97,5 +106,8 @@
     render();
   });
   window.addEventListener('storage',event=>{if(event.key===FAV_KEY)render();});
+  document.addEventListener('spingames:profile-ready', event => {
+    if (event.detail?.kind === 'favorites') render();
+  });
   render();
 })();

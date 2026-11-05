@@ -259,3 +259,6 @@ body.sg-home-wallpaper > header.header nav .sg-nav-icon{
   body.sg-home-wallpaper > header.header nav .sg-nav-icon{font-size:14px}
   body.sg-home-wallpaper > header.header .sg-account-btn{font-size:10px}
 }
+
+/* Lien Discord dans le menu principal : style commun aux autres onglets. */
+body.sg-home-wallpaper > header.header nav a[target="_blank"]{gap:7px}

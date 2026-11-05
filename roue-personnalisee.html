@@ -24,8 +24,18 @@
     @media(max-width:410px){.item-row{grid-template-columns:1fr}.item-tools{justify-content:flex-end}.pane-header{align-items:flex-start}.item-add{grid-template-columns:minmax(0,1fr) 43px auto}.add-btn{padding:10px}.actions{max-width:125px}.main-head h1{font-size:25px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
   </style>
+<link rel="stylesheet" href="assets/platform.css?v=20261105-cloud">
+<script src="assets/site-config.js" defer></script>
+<script src="assets/cloud-sync.js?v=20261105" defer></script>
+<script src="assets/platform.js?v=20261105-cloud" defer></script>
+<style>
+.sg-cloud-header{display:flex;justify-content:flex-end;align-items:center;min-height:58px;padding:9px 22px;background:#170c2a;border-bottom:1px solid #493260;position:relative;z-index:8}
+.sg-cloud-header .sg-account-btn{min-height:40px}
+@media(max-width:720px){.sg-cloud-header{padding:8px 14px}}
+</style>
 </head>
 <body>
+<header class="sg-cloud-header" aria-label="Compte SpinGames"></header>
 <div class="app">
   <aside class="sidebar" aria-label="Bibliothèque de roues">
     <div class="brand"><div class="brand-symbol" aria-hidden="true"></div><div><div class="brand-name">La Roue Gaming</div><div class="brand-sub">Le hasard décide</div></div></div>
@@ -92,6 +102,13 @@
 <script>
 (function(){'use strict';
   const KEY='la-roue-gaming.v1', TIMER_KEY='la-roue-gaming.timer.v1';
+  const cloud=()=>window.SpinGamesCloud;
+  let lastCloudTimerWrite=0;
+  const timerSnapshot=()=>({
+    wheelId:stopwatch.wheelId,itemId:stopwatch.itemId,
+    elapsedMs:elapsedMs(),savedAt:Date.now()
+  });
+  const cloudPayload=()=>({library:db,timer:timerSnapshot()});
   const palette=['#ff5722','#3d83f9','#ff086d','#e83549','#f5a15f','#29a394','#4686ae','#efc86d','#8338ed','#06c99d','#d96cf3','#f48c42'];
   const $=id=>document.getElementById(id);
   const makeId=()=>globalThis.crypto?.randomUUID?.()||('id-'+Date.now()+'-'+Math.random().toString(36).slice(2));
@@ -117,8 +134,28 @@
   let stopwatch={wheelId:db.activeWheelId,itemId:null,elapsedMs:0,startedAt:0,running:false};
   try{const prev=JSON.parse(localStorage.getItem(TIMER_KEY)||'null');if(prev&&db.wheels.some(w=>w.id===prev.wheelId&&w.items.some(i=>i.id===prev.itemId))){stopwatch={wheelId:prev.wheelId,itemId:prev.itemId,elapsedMs:positive(prev.elapsedMs,1e12),startedAt:0,running:false};db.activeWheelId=prev.wheelId;}}catch(e){}
   function toast(msg){clearTimeout(toastTimeout);$('toast').textContent=msg;$('toast').classList.add('show');toastTimeout=setTimeout(()=>$('toast').classList.remove('show'),3600);}
-  function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));$('saveStatus').textContent='● Sauvegarde locale activée';}catch(e){$('saveStatus').textContent='⚠ Sauvegarde indisponible : exporte tes données';}}
-  function persistTimer(){try{localStorage.setItem(TIMER_KEY,JSON.stringify({wheelId:stopwatch.wheelId,itemId:stopwatch.itemId,elapsedMs:elapsedMs()}));}catch(e){}}
+  function persist(){
+    const service=cloud();
+    if(service?.userId()){
+      service.put('custom_wheels',cloudPayload());
+      $('saveStatus').textContent='☁ Sauvegarde liée à ton compte';
+      return;
+    }
+    try{localStorage.setItem(KEY,JSON.stringify(db));$('saveStatus').textContent='● Sauvegarde locale activée';}
+    catch(e){$('saveStatus').textContent='⚠ Sauvegarde indisponible : exporte tes données';}
+  }
+  function persistTimer(){
+    const snapshot=timerSnapshot(),service=cloud(),id=service?.userId();
+    if(id){
+      try{localStorage.setItem('spingames.profile.timer.'+id+'.v1',JSON.stringify(snapshot));}catch(e){}
+      if(Date.now()-lastCloudTimerWrite>=5000){
+        lastCloudTimerWrite=Date.now();
+        service.put('custom_wheels',{library:db,timer:snapshot});
+      }
+    }else{
+      try{localStorage.setItem(TIMER_KEY,JSON.stringify(snapshot));}catch(e){}
+    }
+  }
   const hms=(seconds)=>{const s=Math.floor(seconds);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');};
   function duration(seconds,short=false){seconds=Math.floor(positive(seconds));if(seconds<60)return `${seconds} s`;const hours=Math.floor(seconds/3600),mins=Math.floor(seconds%3600/60);if(hours)return `${hours} h${mins?` ${mins} min`:''}`;return `${mins} min${!short&&seconds%60?` ${seconds%60} s`:''}`;}
   function elapsedMs(){return stopwatch.elapsedMs+(stopwatch.running?performance.now()-stopwatch.startedAt:0);}
@@ -186,6 +223,45 @@
   function exportData(){const file=new Blob([JSON.stringify({...db,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download='la-roue-gaming-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast('Sauvegarde exportée au format JSON.');}
   $('exportBtn').addEventListener('click',exportData);$('mobileExportBtn').addEventListener('click',exportData);$('importBtn').addEventListener('click',()=>$('importFile').click());
   $('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>5e6){toast('Fichier trop volumineux (5 Mo maximum).');return;}try{const imported=normalize(JSON.parse(await f.text()));if(!confirm(`Importer ${imported.wheels.length} roue(s) ? La bibliothèque actuelle sera remplacée. Exporte-la d’abord si tu souhaites la conserver.`))return;pauseTimer();db=imported;stopwatch={wheelId:db.activeWheelId,itemId:null,elapsedMs:0,startedAt:0,running:false};lastWinner=null;rotation=0;persistTimer();persist();renderAll();toast('Bibliothèque importée avec succès.');}catch(err){toast('Import impossible : '+(err?.message||'fichier JSON invalide'));}});
+  document.addEventListener('spingames:profile-switching',()=>{
+    if(spinning){cancelAnimationFrame(animationFrame);spinning=false;}
+    pauseTimer();
+    persistTimer();
+    persist();
+  });
+  document.addEventListener('spingames:profile-ready',event=>{
+    if(event.detail?.kind!=='custom_wheels')return;
+    if(spinning){cancelAnimationFrame(animationFrame);spinning=false;}
+    const saved=event.detail.data;
+    try{db=saved?.library ? normalize(saved.library) : event.detail.uid ? seed() :
+      (JSON.parse(localStorage.getItem(KEY)||'null') ? normalize(JSON.parse(localStorage.getItem(KEY))) : seed());}
+    catch(e){db=seed();}
+    const timer=saved?.timer;
+    let restored=timer;
+    if(event.detail.uid){
+      try{
+        const localTimer=JSON.parse(localStorage.getItem('spingames.profile.timer.'+event.detail.uid+'.v1')||'null');
+        if(localTimer && Number(localTimer.savedAt)>Number(timer?.savedAt||0) && localTimer.wheelId===db.activeWheelId)
+          restored=localTimer;
+      }catch(e){}
+    }
+    const match=restored && db.wheels.some(q=>q.id===restored.wheelId && q.items.some(i=>i.id===restored.itemId));
+    stopwatch={
+      wheelId:match ? restored.wheelId : db.activeWheelId,
+      itemId:match ? restored.itemId : null,
+      elapsedMs:match ? positive(restored.elapsedMs,1e12) : 0,
+      startedAt:0,running:false
+    };
+    if(match)db.activeWheelId=restored.wheelId;
+    lastCloudTimerWrite=Date.now();
+    rotation=0;lastWinner=null;renderAll();
+    if(event.detail.uid && !saved)persist();
+    if(event.detail.error)toast('Connexion sauvegarde : copie locale conservée.');
+  });
+  document.addEventListener('spingames:profile-status',event=>{
+    if(event.detail?.kind==='custom_wheels' && cloud()?.userId())
+      $('saveStatus').textContent=event.detail.message;
+  });
   window.addEventListener('resize',()=>{if(!spinning)drawWheel();});
   window.addEventListener('pagehide',()=>{pauseTimer();persistTimer();persist();});
   timerInterval=setInterval(()=>{if(stopwatch.running){$('timerDisplay').textContent=hms(elapsedMs()/1000);persistTimer();$('saveTimerBtn').disabled=elapsedMs()<1000;$('resetTimerBtn').disabled=elapsedMs()<1000;}},250);
