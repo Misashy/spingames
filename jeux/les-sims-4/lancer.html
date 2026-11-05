@@ -54,7 +54,7 @@
       const spinHook = '    const total=results.reduce((sum,r)=>sum+r.items.length,0);';
       const multiAvailable = documentTemplate.includes(spinHook);
       const prepared = multiAvailable
-        ? documentTemplate.replace(spinHook, '    window.SimSpinMulti?.spin(included,results);\\n' + spinHook)
+        ? documentTemplate.replace(spinHook, '    window.SimSpinMulti?.spin(included,results);\n' + spinHook)
         : documentTemplate;
       const multiScript = multiAvailable
         ? '<script src="' + new URL('../../assets/simspin-multi.js?v=20261105-multi1', location.href).href + '"><' + '/script>'
