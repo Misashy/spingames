@@ -40,6 +40,7 @@
     <p class="sg-intro">Sauvegarde tes roues, catégories et derniers tirages pour les retrouver sur un autre appareil.</p>
     <div class="sg-account-content">
       <button class="sg-action sg-google" type="button" id="sg-google">Continuer avec Google</button>
+      <button class="sg-action sg-discord" type="button" id="sg-discord">🎮 Continuer avec Discord</button>
       <form id="sg-email-form">
         <label for="sg-email">Adresse e-mail</label><input id="sg-email" type="email" autocomplete="email" required placeholder="ton@email.fr">
         <label for="sg-pass">Mot de passe (6 caractères minimum)</label><input id="sg-pass" type="password" autocomplete="current-password" minlength="6" required>
@@ -67,6 +68,7 @@
       button.textContent = '👤 Connexion / Inscription';
       if (!$('sg-email-form')) {
         document.querySelector('.sg-account-content').innerHTML = `<button class="sg-action sg-google" type="button" id="sg-google">Continuer avec Google</button>
+      <button class="sg-action sg-discord" type="button" id="sg-discord">🎮 Continuer avec Discord</button>
         <form id="sg-email-form"><label for="sg-email">Adresse e-mail</label><input id="sg-email" type="email" autocomplete="email" required>
         <label for="sg-pass">Mot de passe</label><input id="sg-pass" type="password" autocomplete="current-password" minlength="6" required>
         <button class="sg-action" type="submit">Se connecter</button>
@@ -90,6 +92,13 @@
         provider: 'google', options: { redirectTo: location.origin + location.pathname }
       });
       if (error) note(error.message);
+    }
+    if (e.target.closest('#sg-discord')) {
+      note('Redirection vers Discord…');
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'discord', options: { redirectTo: location.origin + location.pathname }
+      });
+      if (error) note('Connexion Discord impossible : ' + error.message);
     }
     if (e.target.closest('#sg-signup')) {
       const form = $('sg-email-form');

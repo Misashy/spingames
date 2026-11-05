@@ -25,3 +25,14 @@
 
 .sg-account-content button:disabled,.sg-account-content input:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:720px){.header nav{display:none}.header .nav-cta{display:none}.header .sg-account-btn{margin-left:auto}}
+
+/* Second fournisseur OAuth SpinGames : Discord (Google est conservé). */
+.sg-modal-panel .sg-discord{
+  background:#5865f2;
+  color:#fff;
+  border:1px solid #7784ff;
+}
+.sg-modal-panel .sg-discord:hover,
+.sg-modal-panel .sg-discord:focus-visible{
+  background:#4752c4;
+}

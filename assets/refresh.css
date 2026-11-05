@@ -222,3 +222,40 @@ body.sg-home-wallpaper > .header .sg-account-btn{
     font-size:11px;
   }
 }
+
+/* Navigation homogène : même traitement visuel que Connexion / Inscription. */
+body.sg-home-wallpaper > header.header nav a,
+body.sg-home-wallpaper > header.header .sg-account-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:43px;
+  padding:0 15px;
+  background:#1e2633;
+  border:1px solid #a9be8b;
+  border-radius:9px;
+  color:#dff0cc;
+  font:800 12px/1.2 'DM Sans',system-ui,sans-serif;
+  text-decoration:none;
+  white-space:nowrap;
+}
+body.sg-home-wallpaper > header.header nav a:hover,
+body.sg-home-wallpaper > header.header .sg-account-btn:hover{
+  background:#2b3547;
+  border-color:#c5ff76;
+  color:#c5ff76;
+}
+body.sg-home-wallpaper > header.header nav .sg-nav-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  font-size:15px;
+  line-height:1;
+}
+@media(max-width:540px){
+  body.sg-home-wallpaper > header.header nav a{padding:0 11px;font-size:11px}
+  body.sg-home-wallpaper > header.header nav .sg-nav-icon{font-size:14px}
+  body.sg-home-wallpaper > header.header .sg-account-btn{font-size:10px}
+}
