@@ -12,8 +12,16 @@
   const isGameKey = key => typeof key === 'string' && key.startsWith('simspin.');
   const target = () => owner ? localStorage : sessionStorage;
   Storage.prototype.getItem = function(key) {
-    return this === localStorage && isGameKey(String(key))
-      ? nativeGet.call(target(), scope(String(key))) : nativeGet.call(this, key);
+    if (this === localStorage && isGameKey(String(key))) {
+      const saved = nativeGet.call(target(), scope(String(key)));
+      if (saved !== null) return saved;
+      // Les créations officielles sont la base, sans écraser une personnalisation existante.
+      if (String(key) === 'simspin.categories.v3') {
+        return document.getElementById('sg-official-categories')?.textContent || null;
+      }
+      return null;
+    }
+    return nativeGet.call(this, key);
   };
   Storage.prototype.setItem = function(key, value) {
     return this === localStorage && isGameKey(String(key))
