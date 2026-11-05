@@ -48,6 +48,62 @@
  function toast(msg){const n=$('toast');n.textContent=msg;n.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('visible'),3200)}
  const active=()=>categories.filter(c=>c.active&&c.items.length);
  const wheelCategory=()=>active().find(c=>c.id===wheelActiveId)||active()[0]||null;
+ // Visuels de présentation uniquement : aucune donnée de catégorie n'est ajoutée
+ // aux sauvegardes locales ou cloud. Les anciennes listes sont reconnues par nom.
+ const minecraftArt=game.slug==='minecraft'?new Map([
+  ['survie','minecraft-wheel-survie.webp'],
+  ['construction','minecraft-wheel-construction.webp'],
+  ['exploration','minecraft-wheel-exploration.webp'],
+  ['vie du monde','minecraft-wheel-vie-du-monde.webp']
+ ]):null;
+ const wheelImages=new Map();
+ function minecraftImage(cat){
+  if(!minecraftArt||!cat)return null;
+  const name=cat.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr-FR').trim().replace(/\s+/g,' ');
+  const src=`../../assets/game-art/${minecraftArt.get(name)||'minecraft.webp'}`;
+  if(!wheelImages.has(src)){
+   const img=new Image();
+   wheelImages.set(src,img);
+   img.onload=()=>{if(minecraftImage(wheelCategory())===img)renderWheel();};
+   // En cas d'échec, le secteur conserve sa couleur et son texte contrasté.
+   img.src=src;
+  }
+  return wheelImages.get(src);
+ }
+ function drawMinecraftSector(img,cx,cy,r,i){
+  ctx.save();ctx.clip();
+  if(img?.complete&&img.naturalWidth){
+   // Même cadrage cover pour chaque part : l'illustration reste continue,
+   // mais chaque secteur est réellement découpé par le chemin courant.
+   const scale=Math.max(2*r/img.naturalWidth,2*r/img.naturalHeight);
+   const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
+   ctx.drawImage(img,cx-w/2,cy-h/2,w,h);
+  }
+  ctx.fillStyle=i%2?'rgba(5,10,18,.32)':'rgba(5,10,18,.24)';
+  ctx.fillRect(cx-r,cy-r,2*r,2*r);
+  ctx.restore();
+ }
+ function drawMinecraftLabel(item,index,count,step,r,numberOnly,fontSize,maxWidth,maxLines){
+  const padding=5,anchor=numberOnly?r*.76:count<=6?r*.60:r*.70;
+  const minimumSize=Math.max(12,Math.ceil(fontSize*.85));
+  let size=fontSize,lines,lineHeight;
+  // La hauteur disponible dépend de l'angle réel du secteur à son bord intérieur.
+  const availableHeight=count<=2?2*r:2*(anchor-maxWidth/2-padding)*Math.tan(step/2);
+  do{
+   ctx.font=`900 ${size}px "DM Sans",system-ui,sans-serif`;
+   lineHeight=size*1.12;
+   const limit=Math.max(1,Math.min(maxLines,Math.floor((availableHeight-2*padding)/lineHeight)));
+   lines=numberOnly?[String(index+1)]:wheelTextLines(item,maxWidth,limit);
+   if(!lines.some(line=>line.endsWith('…'))||size<=minimumSize)break;
+   size-=1;
+  }while(size>=minimumSize);
+  const width=Math.max(...lines.map(line=>ctx.measureText(line).width))+2*padding;
+  const height=lines.length*lineHeight+2*padding;
+  ctx.fillStyle='rgba(7,12,22,.88)';
+  ctx.fillRect(-width/2,-height/2,width,height);
+  ctx.fillStyle='#fff';
+  lines.forEach((line,j)=>ctx.fillText(line,0,(j-(lines.length-1)/2)*lineHeight));
+ }
  function renderList(){
   const n=categories.filter(c=>c.active).length;
   $('cat-count').textContent=`(${categories.length})`;
@@ -81,6 +137,7 @@
  }
  function renderWheel(){
   const cat=wheelCategory(),items=cat?.items||[],size=720,cx=size/2,cy=size/2,r=330;
+  const illustration=minecraftImage(cat);
   const numberOnly=items.length>44;
   $('wheel-label').textContent=cat?`Choix de « ${cat.name} » · ${items.length} possibilités${numberOnly?' · numéros sur la roue, noms complets ci-dessous':''}`:'Active une catégorie contenant des choix.';
   canvas.setAttribute('aria-label',cat?`Roue des choix de ${cat.name}. ${items.length} possibilités.`:'Roue vide : active une catégorie');
@@ -100,18 +157,22 @@
   items.forEach((item,i)=>{
    const start=-Math.PI/2-step/2+i*step,angle=start+step/2;
    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+step);ctx.closePath();ctx.fillStyle=safeColor(cat.color);ctx.fill();
-   if(i%2){ctx.fillStyle='rgba(255,255,255,.23)';ctx.fill();}
-   ctx.lineWidth=items.length>80?0.8:1.8;ctx.strokeStyle='#17202a';ctx.stroke();
-   ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);
+   if(minecraftArt)drawMinecraftSector(illustration,cx,cy,r,i);
+   else if(i%2){ctx.fillStyle='rgba(255,255,255,.23)';ctx.fill();}
+   ctx.lineWidth=items.length>80?0.8:1.8;ctx.strokeStyle=minecraftArt?'rgba(230,240,255,.8)':'#17202a';ctx.stroke();
+   ctx.save();if(minecraftArt)ctx.clip();ctx.translate(cx,cy);ctx.rotate(angle);
    // Les textes suivent le rayon du secteur : ils disposent de sa profondeur,
    // et non de la petite largeur de son arc, contrairement à l'ancienne roue.
    ctx.translate(numberOnly?r*.76:items.length<=6?r*.60:r*.70,0);
    if(Math.cos(angle)<-0.025)ctx.rotate(Math.PI);
    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#151b24';
-   ctx.font=`900 ${fontSize}px "DM Sans",system-ui,sans-serif`;
-   const lines=numberOnly?[String(i+1)]:wheelTextLines(item,maxWidth,maxLines);
-   const lineHeight=fontSize*1.12;
-   lines.forEach((line,j)=>ctx.fillText(line,0,(j-(lines.length-1)/2)*lineHeight));
+   if(minecraftArt)drawMinecraftLabel(item,i,items.length,step,r,numberOnly,fontSize,maxWidth,maxLines);
+   else{
+    ctx.font=`900 ${fontSize}px "DM Sans",system-ui,sans-serif`;
+    const lines=numberOnly?[String(i+1)]:wheelTextLines(item,maxWidth,maxLines);
+    const lineHeight=fontSize*1.12;
+    lines.forEach((line,j)=>ctx.fillText(line,0,(j-(lines.length-1)/2)*lineHeight));
+   }
    ctx.restore();
   });
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.lineWidth=10;ctx.strokeStyle='#e6f0ff';ctx.stroke();
