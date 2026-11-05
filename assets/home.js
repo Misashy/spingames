@@ -23,7 +23,7 @@
       return current && Array.isArray(current.values) ? current.values.filter(x => typeof x === 'string') : [];
     }
     try {
-      const value = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      const value = JSON.parse(sessionStorage.getItem(FAV_KEY) || '[]');
       return Array.isArray(value) ? value.filter(x => typeof x === 'string') : [];
     } catch (_) { return fallbackFav; }
   }
@@ -32,7 +32,7 @@
     const cloud = window.SpinGamesCloud;
     if (cloud?.userId()) cloud.put('favorites', { values: fallbackFav });
     else {
-      try { localStorage.setItem(FAV_KEY, JSON.stringify(fallbackFav)); } catch (_) {}
+      try { sessionStorage.setItem(FAV_KEY, JSON.stringify(fallbackFav)); } catch (_) {}
     }
     document.dispatchEvent(new CustomEvent('spingames:favorites-updated',{detail:{favorites:fallbackFav}}));
     render();
