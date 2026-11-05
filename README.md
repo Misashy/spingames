@@ -49,3 +49,12 @@ Les illustrations des cartes et des bannières utilisent des copies **rééchant
 - SimSpin conserve son moteur original et charge ses données par l'isolateur `assets/simspin-storage.js` dans la page `lancer.html`.
 - Aucun changement de structure SQL n'est nécessaire pour ce déploiement : `official_baseline` existait déjà.
 - Avant une modification majeure du contenu officiel, tester les comptes, la déconnexion, les sessions invitées, et les imports/exports JSON sur navigateur.
+
+
+## Roues simultanées par catégorie
+
+Sur les neuf jeux du catalogue, chaque catégorie cochée avec des choix possède désormais sa propre roue. L'interface adapte la taille et la disposition de 1 à 5 roues (et continue de répartir les catégories supplémentaires en rangées). Au lancement, les roues tournent en parallèle et leur pointeur indique le choix réellement tiré.
+
+Sur les huit jeux partageant `assets/game.js`, les modes de tirage restent compatibles : `once` = un tour révélant plusieurs choix ; `each` = une succession de tours par choix, avec toutes les roues concernées synchronisées à chaque tour. SimSpin garde son moteur de tirage historique et expose les résultats au nouveau composant visuel `assets/simspin-multi.js` depuis `lancer.html`, sans changer ses catégories, ses statistiques ni les sauvegardes.
+
+Les listes de catégories, l'historique et l'isolation invité/compte restent au même format ; aucune migration Supabase n'est requise.

@@ -51,9 +51,17 @@
       const officialJSON = JSON.stringify(officialCategories).replace(/</g, '\\u003c');
       const defaults = '<script type="application/json" id="sg-official-categories">' + officialJSON + '<' + '/script>';
       const hideOldReturn = '<style>.devweb-return,.devweb-back{display:none!important}</style>';
+      const spinHook = '    const total=results.reduce((sum,r)=>sum+r.items.length,0);';
+      const multiAvailable = documentTemplate.includes(spinHook);
+      const prepared = multiAvailable
+        ? documentTemplate.replace(spinHook, '    window.SimSpinMulti?.spin(included,results);\n' + spinHook)
+        : documentTemplate;
+      const multiScript = multiAvailable
+        ? '<script src="' + new URL('../../assets/simspin-multi.js?v=20261105-multi1', location.href).href + '"><' + '/script>'
+        : '';
       const bootstrap = '<base href="' + source.href + '">' + defaults +
-        '<script src="' + shim.href + '"><' + '/script>' + hideOldReturn;
-      frame.srcdoc = documentTemplate.replace(/<head([^>]*)>/i, (_, attrs) => '<head' + attrs + '>' + bootstrap);
+        '<script src="' + shim.href + '"><' + '/script>' + multiScript + hideOldReturn;
+      frame.srcdoc = prepared.replace(/<head([^>]*)>/i, (_, attrs) => '<head' + attrs + '>' + bootstrap);
       loadedFor = owner;
     } catch (error) {
       console.warn('Impossible de préparer la session SimSpin', error);

@@ -72,3 +72,56 @@
 .categories .panel-top h2{white-space:nowrap;font-size:clamp(25px,2vw,30px)}
 .categories .g-outline-small{padding:7px 9px}
 @media(max-width:650px){.wheel-zone{width:calc(100% + 20px);margin-left:-10px}.wheel-choices[open]{padding-bottom:7px}}
+
+
+/* Une roue par catégorie cochée : 1 à 5 roues (et davantage si nécessaire).
+   Les disques gardent leur ratio, les deux derniers d'une rangée sont centrés. */
+.multi-wheels{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:clamp(10px,1.8vw,22px);margin:12px auto 24px;width:100%}
+.multi-wheel-card{flex:0 1 min(100%,760px);max-width:760px;min-width:0;text-align:center}
+.multi-wheel-title{font:900 clamp(16px,1.6vw,23px)/1.2 var(--head);color:var(--accent);margin:8px 0 2px;overflow-wrap:anywhere}
+.multi-wheel-count{font-size:clamp(10px,.95vw,13px);color:#c0cee2;margin:2px 0 7px}
+.multi-wheels .wheel-zone{aspect-ratio:1;width:100%;max-width:100%;margin:8px auto 16px}
+.multi-wheels .wheel-zone:before{inset:0}
+.multi-wheels .wheel-zone canvas{width:94%;height:94%}
+.multi-wheels .wheel-hub{width:clamp(37px,6vw,72px);height:clamp(37px,6vw,72px);border-width:clamp(3px,.38vw,6px);font-size:clamp(18px,2.6vw,32px)}
+.multi-wheels-empty{width:100%;text-align:center;color:#bdcbe0;padding:35px 12px}
+.multi-wheels[data-count="2"] .multi-wheel-card,
+.multi-wheels[data-count="4"] .multi-wheel-card{flex-basis:calc((100% - 22px)/2);max-width:500px}
+.multi-wheels[data-count="3"] .multi-wheel-card,
+.multi-wheels[data-count="5"] .multi-wheel-card{flex-basis:calc((100% - 44px)/3);max-width:360px}
+.multi-wheels[data-count="6"] .multi-wheel-card,
+.multi-wheels[data-count="7"] .multi-wheel-card,
+.multi-wheels[data-count="8"] .multi-wheel-card{flex-basis:calc((100% - 44px)/3);max-width:360px}
+.multi-wheels[data-count="1"] .multi-wheel-card{max-width:790px}
+.multi-wheels[data-count="1"] .wheel-hub{width:75px;height:75px;font-size:36px}
+.multi-wheels[data-count="2"] .wheel-hub,
+.multi-wheels[data-count="4"] .wheel-hub{width:60px;height:60px;font-size:28px}
+.multi-wheels[data-count="3"] .wheel-pointer,
+.multi-wheels[data-count="5"] .wheel-pointer{border-left-width:11px;border-right-width:11px;border-top-width:25px;left:calc(50% - 11px);top:calc(6% - 25px)}
+@media(max-width:800px){
+ .multi-wheels[data-count="3"] .multi-wheel-card,
+ .multi-wheels[data-count="5"] .multi-wheel-card,
+ .multi-wheels[data-count="6"] .multi-wheel-card,
+ .multi-wheels[data-count="7"] .multi-wheel-card,
+ .multi-wheels[data-count="8"] .multi-wheel-card{flex-basis:calc((100% - 14px)/2);max-width:430px}
+}
+@media(max-width:560px){
+ .multi-wheels{gap:12px;margin:10px auto 16px}
+ .multi-wheels .multi-wheel-card,
+ .multi-wheels[data-count="2"] .multi-wheel-card,
+ .multi-wheels[data-count="3"] .multi-wheel-card,
+ .multi-wheels[data-count="4"] .multi-wheel-card,
+ .multi-wheels[data-count="5"] .multi-wheel-card,
+ .multi-wheels[data-count="6"] .multi-wheel-card,
+ .multi-wheels[data-count="7"] .multi-wheel-card,
+ .multi-wheels[data-count="8"] .multi-wheel-card{flex-basis:100%;max-width:440px}
+ .multi-wheels .wheel-zone{width:100%;margin:7px auto 12px}
+ .multi-wheels .wheel-hub{width:55px;height:55px;font-size:24px}
+ .multi-wheels .wheel-pointer{border-left-width:12px;border-right-width:12px;border-top-width:27px;left:calc(50% - 12px);top:calc(6% - 27px)}
+ .multi-wheel-title{font-size:20px}
+}
+
+/* 6 catégories ou plus : garder plusieurs roues sur chaque ligne. */
+.multi-wheels:not([data-count="1"]):not([data-count="2"]):not([data-count="3"]):not([data-count="4"]):not([data-count="5"]) .multi-wheel-card{flex-basis:calc((100% - 44px)/3);max-width:360px}
+@media(max-width:800px){.multi-wheels:not([data-count="1"]):not([data-count="2"]):not([data-count="3"]):not([data-count="4"]):not([data-count="5"]) .multi-wheel-card{flex-basis:calc((100% - 14px)/2);max-width:430px}}
+@media(max-width:560px){.multi-wheels:not([data-count="1"]):not([data-count="2"]):not([data-count="3"]):not([data-count="4"]):not([data-count="5"]) .multi-wheel-card{flex-basis:100%;max-width:440px}}

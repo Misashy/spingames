@@ -15,10 +15,14 @@
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
  const HISTORY_KEY=`devwebgames.${game.slug}.history.v1`;
  const COLORS=['#b8fb6b','#a38aff','#73deec','#ffc175','#fc80bb','#68e2b7'];
- const canvas=$('wheel'), ctx=canvas.getContext('2d');
- if (!ctx) return;
- // Dessin en haute résolution : la roue reste nette sur les grands écrans.
- canvas.width=1440; canvas.height=1440;
+ const firstCanvas=$('wheel');
+ if (!firstCanvas || !firstCanvas.getContext('2d')) return;
+ const wheelGrid=document.createElement('div');
+ wheelGrid.id='multi-wheels';
+ wheelGrid.className='multi-wheels';
+ firstCanvas.closest('.wheel-zone').replaceWith(wheelGrid);
+ const wheelNodes=new Map();
+ let canvas=firstCanvas,ctx=canvas.getContext('2d');
  const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeColor=c=>/^#[\da-f]{6}$/i.test(c)?c:'#b8fb6b';
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`cat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -54,7 +58,6 @@
  function saveHistory(){try{storageSet(HISTORY_KEY,JSON.stringify(history));window.SpinGames?.queueSave(game.slug)}catch(_){}}
  function toast(msg){const n=$('toast');n.textContent=msg;n.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('visible'),3200)}
  const active=()=>categories.filter(c=>c.active&&c.items.length);
- const wheelCategory=()=>active().find(c=>c.id===wheelActiveId)||active()[0]||null;
  // Visuels de présentation uniquement : aucune donnée de catégorie n'est ajoutée
  // aux sauvegardes locales ou cloud. Les anciennes listes sont reconnues par nom.
  const minecraftArt=game.slug==='minecraft'?new Map([
@@ -71,7 +74,7 @@
   if(!wheelImages.has(src)){
    const img=new Image();
    wheelImages.set(src,img);
-   img.onload=()=>{if(minecraftImage(wheelCategory())===img)renderWheel();};
+   img.onload=()=>{if(!spinning)renderWheel();};
    // En cas d'échec, le secteur conserve sa couleur et son texte contrasté.
    img.src=src;
   }
@@ -116,7 +119,7 @@
   $('cat-count').textContent=`(${categories.length})`;
   $('active-counter').textContent=`${n} active${n>1?'s':''}`;
   $('toggle-all').textContent=categories.every(c=>c.active)?'Tout désactiver':'Tout activer';
-  $('category-list').innerHTML=categories.length?categories.map(c=>`<div class="cat-row ${c.active?'':'off'} ${wheelCategory()?.id===c.id?'wheel-visible':''}" style="--swatch:${safeColor(c.color)}"><input class="cat-check" data-check="${c.id}" type="checkbox" ${c.active?'checked':''} aria-label="Activer ${escapeHTML(c.name)}" ${spinning?'disabled':''}><span class="cat-symbol">${escapeHTML(c.icon)}</span><button type="button" class="cat-name cat-preview" data-preview="${c.id}" aria-label="Afficher les choix de ${escapeHTML(c.name)} sur la roue" ${spinning?'disabled':''}><strong>${escapeHTML(c.name)}</strong><small>${c.items.length} choix · ${c.drawCount} tirage${c.drawCount>1?'s':''}</small></button><button type="button" class="cat-edit" data-edit="${c.id}" ${spinning?'disabled':''}>✎ Modifier</button><div class="cat-options"><label>Tirages <select data-count="${c.id}" aria-label="Nombre de tirages pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}>${opts.map(x=>`<option value="${x}" ${c.drawCount===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Animation <select data-mode="${c.id}" aria-label="Mode d'animation pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}><option value="once" ${c.spinMode!=='each'?'selected':''}>1 tour</option><option value="each" ${c.spinMode==='each'?'selected':''}>Chaque choix</option></select></label></div></div>`).join(''):'<p class="panel-hint">Aucune catégorie. Ajoute-en une pour commencer.</p>';
+  $('category-list').innerHTML=categories.length?categories.map(c=>`<div class="cat-row ${c.active?'':'off'} ${c.active&&c.items.length?'wheel-visible':''}" style="--swatch:${safeColor(c.color)}"><input class="cat-check" data-check="${c.id}" type="checkbox" ${c.active?'checked':''} aria-label="Activer ${escapeHTML(c.name)}" ${spinning?'disabled':''}><span class="cat-symbol">${escapeHTML(c.icon)}</span><button type="button" class="cat-name cat-preview" data-preview="${c.id}" aria-label="Sélectionner ${escapeHTML(c.name)} pour modifier ses choix" ${spinning?'disabled':''}><strong>${escapeHTML(c.name)}</strong><small>${c.items.length} choix · ${c.drawCount} tirage${c.drawCount>1?'s':''}</small></button><button type="button" class="cat-edit" data-edit="${c.id}" ${spinning?'disabled':''}>✎ Modifier</button><div class="cat-options"><label>Tirages <select data-count="${c.id}" aria-label="Nombre de tirages pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}>${opts.map(x=>`<option value="${x}" ${c.drawCount===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Animation <select data-mode="${c.id}" aria-label="Mode d'animation pour ${escapeHTML(c.name)}" ${spinning?'disabled':''}><option value="once" ${c.spinMode!=='each'?'selected':''}>1 tour</option><option value="each" ${c.spinMode==='each'?'selected':''}>Chaque choix</option></select></label></div></div>`).join(''):'<p class="panel-hint">Aucune catégorie. Ajoute-en une pour commencer.</p>';
   $('spin-btn').disabled=spinning||active().length===0;
  }
  // Découpe les libellés en lignes sans écraser les lettres : le texte complet
@@ -142,15 +145,14 @@
   visible[maxLines-1]=last+'…';
   return visible;
  }
- function renderWheel(){
-  const cat=wheelCategory(),items=cat?.items||[],size=720,cx=size/2,cy=size/2,r=330;
+ function paintWheel(cat,node){
+  canvas=node;ctx=canvas.getContext('2d');
+  const items=cat.items,size=720,cx=size/2,cy=size/2,r=330;
   const illustration=minecraftImage(cat);
   const numberOnly=items.length>44;
-  $('wheel-label').textContent=cat?`Choix de « ${cat.name} » · ${items.length} possibilités${numberOnly?' · numéros sur la roue, noms complets ci-dessous':''}`:'Active une catégorie contenant des choix.';
   canvas.setAttribute('aria-label',cat?`Roue des choix de ${cat.name}. ${items.length} possibilités.`:'Roue vide : active une catégorie');
-  $('wheel-choices-list').innerHTML=items.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
   // Les coordonnées restent basées sur 720 px ; le dessin est rendu en 1440 px.
-  ctx.setTransform(2,0,0,2,0,0);
+  const pixelScale=canvas.width/720;ctx.setTransform(pixelScale,0,0,pixelScale,0,0);
   ctx.clearRect(0,0,size,size);
   ctx.beginPath();ctx.arc(cx,cy,r+12,0,Math.PI*2);ctx.fillStyle='#e6f0ff';ctx.fill();
   if(!items.length){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#31374b';ctx.fill();ctx.fillStyle='#e7eeff';ctx.font='800 24px system-ui';ctx.textAlign='center';ctx.fillText('ACTIVE UNE CATÉGORIE',cx,cy-78);return;}
@@ -184,6 +186,39 @@
   });
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.lineWidth=10;ctx.strokeStyle='#e6f0ff';ctx.stroke();
   for(let i=0;i<28;i++){const a=i*Math.PI/14;ctx.beginPath();ctx.arc(cx+Math.cos(a)*(r+5),cy+Math.sin(a)*(r+5),2.4,0,Math.PI*2);ctx.fillStyle='#131a28';ctx.fill();}
+ }
+ function renderWheel(){
+  const visible=active();
+  wheelGrid.dataset.count=String(visible.length);
+  wheelNodes.clear();
+  if(!visible.length){
+   wheelGrid.innerHTML='<p class="multi-wheels-empty">Active au moins une catégorie avec des choix pour afficher sa roue.</p>';
+   $('wheel-label').textContent='Aucune catégorie active.';
+   $('wheel-choices-list').innerHTML='';
+   return;
+  }
+  $('wheel-label').textContent=visible.length===1
+   ? 'Une catégorie active : une roue.'
+   : visible.length+' catégories actives : '+visible.length+' roues, un seul lancement simultané.';
+  const fragment=document.createDocumentFragment();
+  for(const cat of visible){
+   const tile=document.createElement('section');
+   tile.className='multi-wheel-card';
+   tile.setAttribute('aria-label','Roue de '+cat.name);
+   tile.innerHTML=`<h3 class="multi-wheel-title">${escapeHTML(cat.icon)} ${escapeHTML(cat.name)}</h3>
+    <p class="multi-wheel-count">${cat.items.length} choix · ${cat.drawCount} tirage${cat.drawCount>1?'s':''}</p>
+    <div class="wheel-zone"><span class="wheel-pointer" aria-hidden="true"></span>
+    <canvas width="1440" height="1440" role="img"></canvas>
+    <div class="wheel-hub" aria-hidden="true">✳</div></div>`;
+   const node=tile.querySelector('canvas');
+   node.width=visible.length>=3?960:1440;node.height=node.width;
+   wheelNodes.set(cat.id,node);
+   fragment.append(tile);
+  }
+  wheelGrid.replaceChildren(fragment);
+  for(const cat of visible)paintWheel(cat,wheelNodes.get(cat.id));
+  $('wheel-choices-list').innerHTML=visible.map(cat=>
+   `<li><strong>${escapeHTML(cat.name)}</strong> — ${cat.items.map(escapeHTML).join(' · ')}</li>`).join('');
  }
  function renderEditor(){
   const c=categories.find(x=>x.id===selected);
@@ -249,25 +284,24 @@
   $('results').className='result-grid';
   $('results').innerHTML=results.map(r=>`<div class="result-tile" style="--swatch:${safeColor(r.color)}"><strong>${escapeHTML(r.icon)} ${escapeHTML(r.name)}</strong><div class="result-choices">${r.items.map(x=>`<span class="result-choice">${escapeHTML(x)}</span>`).join('')}</div></div>`).join('');
  }
- // Le repère en haut doit indiquer le choix réellement tiré, et non un angle aléatoire.
+ // Une animation indépendante par roue ; le pointeur sélectionne le vrai résultat.
  async function animatePick(category,choice,reduced){
-  wheelActiveId=category.id;
-  canvas.style.transition='none';canvas.style.transform='rotate(0deg)';rotation=0;
-  renderWheel();renderList();
-  // Forcer la prise en compte de la position initiale avant de lancer l'animation.
-  void canvas.offsetWidth;
+  const node=wheelNodes.get(category.id);
+  if(!node||!category.items.length)return;
+  node.style.transition='none';
+  node.style.transform='rotate(0deg)';
+  void node.offsetWidth;
   const index=Math.max(0,category.items.indexOf(choice));
   const desired=((360-index*360/category.items.length)%360+360)%360;
-  rotation=360*4+desired;
-  if(reduced){canvas.style.transform=`rotate(${desired}deg)`;return;}
-  const duration=1800;
+  if(reduced){node.style.transform=`rotate(${desired}deg)`;return;}
+  const finishAngle=360*4+desired,duration=1800;
   await new Promise(resolve=>{
-   let done=false;let timer;
-   const finish=()=>{if(done)return;done=true;clearTimeout(timer);canvas.removeEventListener('transitionend',onEnd);resolve();};
-   const onEnd=e=>{if(e.target===canvas&&e.propertyName==='transform')finish();};
-   canvas.addEventListener('transitionend',onEnd);
-   canvas.style.transition=`transform ${duration}ms cubic-bezier(.12,.73,.12,1)`;
-   requestAnimationFrame(()=>requestAnimationFrame(()=>{canvas.style.transform=`rotate(${rotation}deg)`;}));
+   let done=false,timer;
+   const finish=()=>{if(done)return;done=true;clearTimeout(timer);node.removeEventListener('transitionend',onEnd);node.style.transition='none';node.style.transform=`rotate(${desired}deg)`;resolve();};
+   const onEnd=e=>{if(e.target===node&&e.propertyName==='transform')finish();};
+   node.addEventListener('transitionend',onEnd);
+   node.style.transition=`transform ${duration}ms cubic-bezier(.12,.73,.12,1)`;
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{node.style.transform=`rotate(${finishAngle}deg)`;}));
    timer=setTimeout(finish,duration+350);
   });
  }
@@ -276,34 +310,38 @@
   spinning=true;
   const results=used.map(c=>({id:c.id,name:c.name,icon:c.icon,color:c.color,items:pick(c)}));
   const shown=new Map(used.map(c=>[c.id,[]]));
-  const steps=[];
+  const roundsByCategory=new Map();
   for(const c of used){
    const drawn=results.find(r=>r.id===c.id)?.items||[];
-   if(!drawn.length)continue;
-   if(c.spinMode==='each'){
-    for(const choice of drawn)steps.push({cat:c,choice,reveal:[{id:c.id,items:[choice]}]});
-   }else{
-    // Un seul tour affiche les 1 à 5 choix de cette catégorie.
-    steps.push({cat:c,choice:drawn[0],reveal:[{id:c.id,items:drawn}]});
-   }
+   const rounds=c.spinMode==='each'
+    ? drawn.map(choice=>({choice,reveal:[choice]}))
+    : drawn.length?[{choice:drawn[0],reveal:drawn}]:[];
+   roundsByCategory.set(c.id,rounds);
   }
-  $('results').className='result-placeholder';$('results').textContent='La roue tourne… ✨';$('result-status').textContent='Tirage en cours';
-  renderList();renderHistory();$('spin-btn').textContent='↻  ÇA TOURNE…';
+  const totalRounds=Math.max(0,...[...roundsByCategory.values()].map(a=>a.length));
+  $('results').className='result-placeholder';
+  $('results').textContent='Toutes les roues tournent… ✨';
+  $('result-status').textContent='Tirage en cours';
+  renderList();renderHistory();$('spin-btn').disabled=true;
+  $('spin-btn').textContent='↻  LES ROUES TOURNENT…';
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   try{
-   for(let i=0;i<steps.length;i++){
-    const step=steps[i];
-    $('result-status').textContent=`Tour ${i+1} / ${steps.length} · ${step.cat.name}`;
-    await animatePick(step.cat,step.choice,reduced);
-    for(const reveal of step.reveal)shown.get(reveal.id).push(...reveal.items);
+   for(let round=0;round<totalRounds;round++){
+    $('result-status').textContent=`Tour ${round+1} / ${totalRounds} · roues simultanées`;
+    const steps=used.map(c=>({cat:c,step:roundsByCategory.get(c.id)[round]})).filter(x=>x.step);
+    await Promise.all(steps.map(x=>animatePick(x.cat,x.step.choice,reduced)));
+    for(const {cat,step} of steps)shown.get(cat.id).push(...step.reveal);
     renderResults(results.filter(r=>shown.get(r.id).length).map(r=>({...r,items:shown.get(r.id)})));
    }
-  } finally {
+  }finally{
    spinning=false;
-   history.unshift({at:Date.now(),results:results.map(({id,...rest})=>rest)});history=history.slice(0,10);saveHistory();
+   history.unshift({at:Date.now(),results:results.map(({id,...rest})=>rest)});
+   history=history.slice(0,10);
+   saveHistory();
    window.SpinGames?.recordSpin(game.slug);
-   renderResults(results);$('result-status').textContent=`${results.length} catégorie${results.length>1?'s':''} · ${steps.length} tour${steps.length>1?'s':''}`;
-   renderList();renderHistory();$('spin-btn').textContent='↻   FAIRE TOURNER LA ROUE';
+   renderResults(results);
+   $('result-status').textContent=`${results.length} catégorie${results.length>1?'s':''} · ${totalRounds} tour${totalRounds>1?'s':''}`;
+   renderList();renderHistory();$('spin-btn').textContent='↻   FAIRE TOURNER LES ROUES';
   }
  });
  $('clear-history').addEventListener('click',()=>{if(spinning)return;history=[];saveHistory();renderHistory();toast('Historique effacé.');});
