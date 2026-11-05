@@ -13,7 +13,7 @@
 @media(max-width:550px){.sg-sims-header{padding:0 8px}.sg-sims-header a{font-size:11px}}
 </style>
 <script src="../../assets/site-config.js" defer></script>
-<script src="../../assets/cloud-sync.js?v=20261105-private-v2" defer></script><script src="../../assets/platform.js?v=20261105-private-v2" defer></script><script src="../../assets/favorites.js?v=20261105-private-v2" defer></script>
+<script src="../../assets/cloud-sync.js?v=20261105-private-v2" defer></script><script src="../../assets/platform.js?v=20261105-private-v2" defer></script>
 </head><body>
 <header class="sg-sims-header"><a href="../../index.html">← SpinGames · Tous les jeux</a></header>
 <iframe class="sg-sims-frame" id="sg-sims-frame" src="about:blank" title="SimSpin, roue originale des Sims 4" loading="eager"></iframe>
@@ -23,7 +23,7 @@
   const frame = document.getElementById('sg-sims-frame');
   const source = new URL('index.html', location.href);
   const shim = new URL('../../assets/simspin-storage.js?v=20261105-private-v2', location.href);
-  let documentTemplate = null, loadedFor = undefined, serial = 0;
+  let documentTemplate = null, officialCategories = null, loadedFor = undefined, serial = 0;
   const account = () => window.SpinGames?.user?.id || '';
   function storageKey(key, owner = account()) {
     return owner ? 'spingames.account.' + owner + '.' + key : 'spingames.guest.' + key;
@@ -38,9 +38,21 @@
         if (!response.ok) throw new Error('HTTP ' + response.status);
         documentTemplate = await response.text();
       }
+      if (!officialCategories) {
+        const urls = [1, 2, 3, 4].map(n => new URL('categories-officielles-' + n + '.json', location.href));
+        const responses = await Promise.all(urls.map(url => fetch(url, {cache:'no-cache'})));
+        if (responses.some(response => !response.ok)) throw new Error('Catégories officielles indisponibles');
+        const groups = await Promise.all(responses.map(response => response.json()));
+        if (groups.some(group => !Array.isArray(group))) throw new Error('Catégories officielles invalides');
+        officialCategories = groups.flat();
+      }
       if (current !== serial) return;
       frame.setAttribute('data-sg-uid', owner);
-      const bootstrap = '<base href="' + source.href + '"><script src="' + shim.href + '"><' + '/script>';
+      const officialJSON = JSON.stringify(officialCategories).replace(/</g, '\\u003c');
+      const defaults = '<script type="application/json" id="sg-official-categories">' + officialJSON + '<' + '/script>';
+      const hideOldReturn = '<style>.devweb-return,.devweb-back{display:none!important}</style>';
+      const bootstrap = '<base href="' + source.href + '">' + defaults +
+        '<script src="' + shim.href + '"><' + '/script>' + hideOldReturn;
       frame.srcdoc = documentTemplate.replace(/<head([^>]*)>/i, (_, attrs) => '<head' + attrs + '>' + bootstrap);
       loadedFor = owner;
     } catch (error) {
@@ -65,6 +77,13 @@
         }
       } catch (_) {}
     }
+  });
+  frame.addEventListener('load', () => {
+    try {
+      frame.contentDocument?.querySelectorAll('a,button').forEach(node => {
+        if (/retour\\s+[àa]\\s+devwebgames/i.test(node.textContent || '')) node.remove();
+      });
+    } catch (_) {}
   });
   document.addEventListener('spingames:auth', () => void showGame());
   document.addEventListener('spingames:progress-ready', event => {
