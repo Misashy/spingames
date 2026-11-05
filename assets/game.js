@@ -152,7 +152,7 @@
   const numberOnly=items.length>44;
   canvas.setAttribute('aria-label',cat?`Roue des choix de ${cat.name}. ${items.length} possibilités.`:'Roue vide : active une catégorie');
   // Les coordonnées restent basées sur 720 px ; le dessin est rendu en 1440 px.
-  ctx.setTransform(2,0,0,2,0,0);
+  const pixelScale=canvas.width/720;ctx.setTransform(pixelScale,0,0,pixelScale,0,0);
   ctx.clearRect(0,0,size,size);
   ctx.beginPath();ctx.arc(cx,cy,r+12,0,Math.PI*2);ctx.fillStyle='#e6f0ff';ctx.fill();
   if(!items.length){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#31374b';ctx.fill();ctx.fillStyle='#e7eeff';ctx.font='800 24px system-ui';ctx.textAlign='center';ctx.fillText('ACTIVE UNE CATÉGORIE',cx,cy-78);return;}
@@ -211,6 +211,7 @@
     <canvas width="1440" height="1440" role="img"></canvas>
     <div class="wheel-hub" aria-hidden="true">✳</div></div>`;
    const node=tile.querySelector('canvas');
+   node.width=visible.length>=3?960:1440;node.height=node.width;
    wheelNodes.set(cat.id,node);
    fragment.append(tile);
   }
