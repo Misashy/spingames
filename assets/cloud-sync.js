@@ -91,7 +91,7 @@
     let data = null, needsUpload = false;
     const localValid = local && valid(kind, local.data);
     if (remote && valid(kind, remote.data)) {
-      const newerLocal = localValid && Number(local.savedAt) > Date.parse(remote.updated_at || '') + 2000;
+      const newerLocal = localValid && Number(local.savedAt) > Date.parse(remote.updated_at || '');
       if (newerLocal) { data = local.data; needsUpload = true; }
       else {
         data = remote.data;
