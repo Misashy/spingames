@@ -142,3 +142,83 @@ body.sg-home-wallpaper .catalogue-note {
   body.sg-home-wallpaper .catalogue { padding-top: 47px; }
   body.sg-home-wallpaper .catalogue .filters { margin-top: 22px; }
 }
+
+/* Navigation de l'accueil SpinGames — boutons cohérents sur tous les écrans. */
+body.sg-home-wallpaper > .header{
+  height:auto;
+  min-height:82px;
+  padding-block:16px;
+  gap:12px;
+  flex-wrap:nowrap;
+}
+body.sg-home-wallpaper > .header nav{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-left:auto;
+}
+body.sg-home-wallpaper > .header nav a,
+body.sg-home-wallpaper > .header .sg-account-btn{
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:43px;
+  padding:0 16px;
+  border:1px solid #465471;
+  border-radius:11px;
+  background:#1b2437;
+  color:#e3ebfa;
+  font:800 12px/1.2 'DM Sans',system-ui,sans-serif;
+  letter-spacing:0;
+  text-decoration:none;
+  white-space:nowrap;
+  box-shadow:inset 0 1px 0 #ffffff0a;
+  transition:background .18s,border-color .18s,color .18s;
+}
+body.sg-home-wallpaper > .header nav a:hover,
+body.sg-home-wallpaper > .header .sg-account-btn:hover{
+  background:#26344a;
+  border-color:#c5ff76;
+  color:#c5ff76;
+}
+body.sg-home-wallpaper > .header nav a:focus-visible,
+body.sg-home-wallpaper > .header .sg-account-btn:focus-visible{
+  outline:2px solid #c5ff76;
+  outline-offset:3px;
+}
+body.sg-home-wallpaper > .header .sg-account-btn{
+  flex-shrink:0;
+  margin-left:0;
+  cursor:pointer;
+}
+@media(max-width:1000px){
+  body.sg-home-wallpaper > .header{
+    flex-wrap:wrap;
+    gap:11px;
+    padding:12px 20px;
+  }
+  body.sg-home-wallpaper > .header .brand{order:1}
+  body.sg-home-wallpaper > .header .sg-account-btn{order:2;margin-left:auto}
+  body.sg-home-wallpaper > .header nav{
+    order:3;
+    width:100%;
+    margin:0;
+    justify-content:center;
+    gap:9px;
+  }
+}
+@media(max-width:540px){
+  body.sg-home-wallpaper > .header{padding:12px 14px;gap:10px}
+  body.sg-home-wallpaper > .header .brand{font-size:20px}
+  body.sg-home-wallpaper > .header .sg-account-btn{font-size:10px;padding-inline:11px;min-height:40px}
+  body.sg-home-wallpaper > .header nav{gap:7px}
+  body.sg-home-wallpaper > .header nav a{
+    flex:1 1 auto;
+    min-height:40px;
+    padding:0 10px;
+    font-size:11px;
+  }
+}
