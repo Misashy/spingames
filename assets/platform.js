@@ -229,15 +229,22 @@
   // Un widget unique sur toutes les pages qui chargent SpinGames.
   // Les clés Supabase restent publiques côté navigateur, aucun secret ici.
   const platformSource = document.currentScript?.src;
+  if (platformSource && !document.getElementById('sg-profile-script')) {
+    const profileScript = document.createElement('script');
+    profileScript.id = 'sg-profile-script';
+    profileScript.src = new URL('profiles.js?v=20261106-1', platformSource).href;
+    profileScript.async = true;
+    document.head.append(profileScript);
+  }
   if (platformSource && !document.getElementById('sg-chat-script')) {
     const chatStyle = document.createElement('link');
     chatStyle.rel = 'stylesheet';
     chatStyle.id = 'sg-chat-style';
-    chatStyle.href = new URL('chat.css?v=20261105-1', platformSource).href;
+    chatStyle.href = new URL('chat.css?v=20261106-1', platformSource).href;
     document.head.append(chatStyle);
     const chatScript = document.createElement('script');
     chatScript.id = 'sg-chat-script';
-    chatScript.src = new URL('chat.js?v=20261105-1', platformSource).href;
+    chatScript.src = new URL('chat.js?v=20261106-1', platformSource).href;
     chatScript.async = true;
     document.head.append(chatScript);
   }
@@ -284,6 +291,7 @@
       const { data } = await client.auth.getUser();
       user = data?.user || null;
       present();
+      dispatch();
       void window.SpinGamesCloud?.setSession(client, user);
       if (user && !restored.has(user.id)) void restoreProgress();
       heartbeat();

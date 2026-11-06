@@ -55,44 +55,49 @@
     if (signedIn) state('Connecté · les messages sont visibles par tous.');
     else state('Lecture libre · écriture réservée aux membres.');
   }
-  function shortName() {
-    const u = getUser();
-    const m = u?.user_metadata || {};
-    const name = m.global_name || m.username || m.user_name || m.name || m.full_name || 'Joueur';
-    return String(name).replace(/\s+/g, ' ').trim().slice(0, 28) || 'Joueur';
-  }
-  function newMessage(entry) {
+  function newMessage(entry, profile) {
     const item = document.createElement('article');
     item.className = 'sg-chat-message' + (entry.user_id === getUser()?.id ? ' sg-chat-mine' : '');
     const avatar = document.createElement('span');
     avatar.className = 'sg-chat-avatar';
-    avatar.textContent = String(entry.display_name || '?').slice(0, 1).toUpperCase();
+    if (profile?.avatar_path && window.SpinGamesProfiles?.imgUrl(profile.avatar_path)) {
+      const photo = document.createElement('img');
+      photo.src = window.SpinGamesProfiles.imgUrl(profile.avatar_path);
+      photo.alt = '';
+      photo.loading = 'lazy';
+      avatar.append(photo);
+    } else avatar.textContent = '👤';
     const content = document.createElement('div');
     content.className = 'sg-chat-message-content';
     const meta = document.createElement('div');
     meta.className = 'sg-chat-meta';
     const author = document.createElement('strong');
-    author.textContent = (entry.display_name || 'Joueur') + ' #' + String(entry.user_id || '').slice(0, 4);
+    author.textContent = profile?.username || entry.display_name || 'Joueur';
+    if (profile?.is_admin) {
+      const admin = document.createElement('span');
+      admin.className = 'sg-chat-admin-badge';
+      admin.textContent = 'ADMIN';
+      meta.append(admin);
+    }
     const time = document.createElement('time');
     const date = new Date(entry.created_at);
     time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     time.dateTime = entry.created_at;
-    meta.append(author, time);
+    meta.prepend(author); meta.append(time);
     const body = document.createElement('p');
     body.textContent = entry.body || '';
     content.append(meta, body); item.append(avatar, content);
     return item;
   }
-  function paint(rows, first = false) {
+  function paint(rows, first = false, profiles = new Map()) {
     const nearBottom = first || messages.scrollHeight - messages.scrollTop - messages.clientHeight < 85;
     const identity = rows.map(x => x.id).join('|');
-    if (identity === latest && !first) return;
     latest = identity;
     const frag = document.createDocumentFragment();
     messageSet.clear();
     for (const row of rows) {
       messageSet.add(row.id);
-      frag.append(newMessage(row));
+      frag.append(newMessage(row, profiles.get(row.user_id)));
     }
     if (!rows.length) {
       const empty = document.createElement('p');
@@ -117,7 +122,12 @@
         .order('created_at', { ascending:false }).limit(60);
       if (error) throw error;
       if (!open) return;
-      paint((data || []).slice().reverse(), first);
+      const rows = (data || []).slice().reverse();
+      const profiles = window.SpinGamesProfiles
+        ? await window.SpinGamesProfiles.lookup(rows.map(row => row.user_id))
+        : new Map();
+      if (!open) return;
+      paint(rows, first, profiles);
       if (!getUser()) state('Lecture libre · connecte-toi pour écrire.');
       else state('Salon Général · messages publics');
     } catch (err) {
@@ -180,9 +190,16 @@
     if (Date.now() - lastSend < 4200) { state('Attends quelques secondes entre deux messages.', true); return; }
     sending = true; send.disabled = true; state('Envoi…');
     try {
+      if (!window.SpinGamesProfiles) throw new Error('Profils en cours de chargement. Réessaie.');
+      const profile = await window.SpinGamesProfiles.ensureName();
+      if (!profile?.username) {
+        state('Choisis un pseudo pour envoyer ton premier message.', true);
+        return;
+      }
+      if (user.id !== getUser()?.id) throw new Error('Session modifiée. Réessaie.');
       const { error } = await client.from(table).insert({
         user_id: user.id,
-        display_name: shortName(),
+        display_name: profile.username,
         body
       });
       if (error) throw error;
@@ -201,6 +218,7 @@
     if (!open) return;
     updateComposer(); subscribe(); void refresh();
   });
+  document.addEventListener('spingames:profile-updated', () => { if (open) void refresh(true); });
   document.addEventListener('visibilitychange', () => {
     if (open && !document.hidden) void refresh();
   });
