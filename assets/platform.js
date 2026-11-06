@@ -132,101 +132,240 @@
   const dispatch = () => document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
   const saveTimers = new Map();
   const restored = new Set();
-  function mergeOfficial(saved, previousBase, currentBase, slug) {
-    if (!Array.isArray(saved) || !Array.isArray(previousBase) || !Array.isArray(currentBase)) return saved;
-    const previous = new Map(previousBase.filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
-    const combined = saved.map(c => ({ ...c, items: Array.isArray(c.items) ? [...c.items] : [] }));
+  // Base officielle historique du premier catalogue Valorant. Utilisée une seule fois
+  // pour identifier les listes des comptes créés avant l'arrivée des 100 défis.
+  // Les listes inconnues/personnalisées ne sont jamais assimilées aux défauts.
+  const legacyOfficial = { valorant: [{"name":"Facile","items":["Annonce une information utile après chaque duel","Pose ton viseur à hauteur de tête avant chaque angle","Achète un équipement cohérent avec ton équipe","Utilise ton utilitaire avant de prendre une zone","Propose une stratégie simple au début de la manche","Assure une position de soutien sur un site","Joue une manche en restant proche d'un allié","Fais au moins un échange de duel (trade) avec un allié"]},{"name":"Moyen","items":["Gagne un duel en jouant patiemment un angle","Réussis une entrée coordonnée avec ton équipe","Fais une élimination après une flash alliée","Protège un poseur ou un désamorceur jusqu'au bout","Ne change pas d'arme pendant trois manches","Utilise tes compétences pour retarder une attaque","Réalise une bonne reprise de site à deux","Gagne une manche en utilisant une fausse rotation"]},{"name":"Difficile","items":["Remporte un duel sans te faire toucher","Réalise deux éliminations dans une même manche","Gagne une manche en ne prenant que les duels avec un allié prêt au trade","Désamorce le spike après avoir sécurisé toutes les positions proches","Réussis une élimination avec une arme secondaire","Gagne un round d'éco sans forcer l'achat","Prends un site sans subir de perte de ton équipe","Remporte un clutch en infériorité numérique"]},{"name":"Extrême","items":["Termine une manche avec trois éliminations ou plus","Remporte un clutch 1 contre 3","Gagne une manche sans utiliser d'armure (en partie personnalisée)","Réalise un tir décisif au dernier moment","Gagne un duel contre un adversaire mieux équipé","Remporte deux manches d'affilée en utilisant seulement un pistolet (partie privée)","Réussis un ace en partie personnalisée ou publique","Remporte un round avec uniquement des achats coordonnés"]},{"name":"Défi Trool","items":["Joue un round avec une voix d'espion (entre amis)","Donne un nom improbable à chaque stratégie sans gêner l'équipe","Échange les rôles habituels de ton groupe pendant une partie privée","Utilise uniquement les noms de lieux en français pendant une manche","Fais choisir ton agent par ton groupe en partie non classée","Nomme chaque duel remporté comme un épisode de série","Fais un briefing tactique en dix mots maximum entre amis","Célèbre un clutch avec un slogan inventé"]},{"name":"Défi Spéciaux","items":["Gagne trois manches avec trois stratégies d'entrée différentes","Joue une partie en changeant de rôle par rapport à ton habitude","Réalise un désamorçage sous couverture de fumée","Protège un allié jusqu'à la fin d'une manche","Gagne un round en économisant tes crédits au début","Réussis une reprise de site après une rotation adverse","Remporte une manche sans perdre le spike","Fais une partie en ne donnant que des communications utiles"]}] };
+  const baselineKey = (slug, owner) => 'spingames.account.'+owner+'.devwebgames.'+slug+'.official-baseline.v1';
+  const dirtyKey = (slug, owner) => 'spingames.account.'+owner+'.devwebgames.'+slug+'.dirty.v1';
+  const readLocal = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+  const writeLocal = (key, value) => { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } };
+  const removeLocal = key => { try { localStorage.removeItem(key); } catch (_) {} };
+  function asCategories(value) {
+    const list = Array.isArray(value) ? value : value?.categories;
+    return Array.isArray(list) ? list : null;
+  }
+  function parseArray(raw) {
+    if (!raw) return null;
+    try { return asCategories(JSON.parse(raw)); }
+    catch (_) { return null; }
+  }
+  function knownLegacy(slug, categories) {
+    const old = legacyOfficial[slug];
+    if (!Array.isArray(categories) || !old) return null;
+    // Un défi identique prouve que la liste contient encore du contenu d'origine.
+    // En l'absence de preuve, on conserve les modifications telles quelles.
+    const match = categories.some(cat => {
+      const origin = old.find(previous => previous.name === cat?.name);
+      return origin && Array.isArray(cat.items) &&
+        cat.items.some(item => origin.items.includes(item));
+    });
+    return match ? old : null;
+  }
+  function mergeOfficial(saved, previousBase, currentBase) {
+    if (!Array.isArray(saved) || !Array.isArray(currentBase)) return saved;
+    const previous = new Map((Array.isArray(previousBase) ? previousBase : [])
+      .filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
+    const combined = saved.map(c => ({
+      ...c, items: Array.isArray(c?.items) ? [...c.items] : []
+    }));
     for (const official of currentBase) {
       if (!official || typeof official.name !== 'string') continue;
       const old = previous.get(official.name);
+      const own = combined.find(c => c?.name === official.name);
       if (!old) {
-        if (!combined.some(c => c.name === official.name)) combined.push(official);
+        // Nouvelle catégorie : la rendre disponible sans changer les roues cochées.
+        if (!own) combined.push({ ...official,
+          items: Array.isArray(official.items) ? [...official.items] : [],
+          active: false
+        });
         continue;
       }
-      const own = combined.find(c => c.name === official.name);
-      if (!own || !Array.isArray(official.items)) continue;
-      // Valorant : si la liste n'avait pas été personnalisée, remplacer l'ancien
-      // lot officiel de 8 défis par le nouveau (20/15/10). Les réglages de la
-      // catégorie sont conservés. Ne jamais écraser une liste personnalisée.
-      if (slug === 'valorant' && Array.isArray(old.items) &&
-          own.items.length === old.items.length &&
-          own.items.every((item, index) => item === old.items[index])) {
+      // Catégorie supprimée/renommée personnellement : ne pas la recréer.
+      if (!own || !Array.isArray(official.items) || !Array.isArray(old.items)) continue;
+      const oldItems = old.items;
+      if (own.items.length === oldItems.length &&
+          own.items.every((item, index) => item === oldItems[index])) {
+        // Liste intacte : remplacer l'ancien contenu officiel (sans toucher aux
+        // options personnelles : activation, nombre de tirages, style, etc.).
         own.items = [...official.items];
-        continue;
-      }
-      const oldItems = new Set(Array.isArray(old.items) ? old.items : []);
-      const personalItems = new Set(own.items);
-      for (const item of official.items) {
-        if (!oldItems.has(item) && !personalItems.has(item)) { own.items.push(item); personalItems.add(item); }
+      } else {
+        // Liste personnalisée : conserver modifications et suppressions de l'ancien
+        // contenu ; n'ajouter que les défis réellement nouveaux depuis la base.
+        const previousItems = new Set(oldItems);
+        const personalItems = new Set(own.items);
+        for (const item of official.items) {
+          if (!previousItems.has(item) && !personalItems.has(item)) {
+            own.items.push(item);
+            personalItems.add(item);
+          }
+        }
       }
     }
     return combined;
   }
+  const registeredOfficial = new Map();
   function officialCategories(slug) {
     if (slug !== currentSlug()) return null;
+    if (registeredOfficial.has(slug)) return registeredOfficial.get(slug);
     try {
       const node = document.getElementById('game-data');
       const data = node ? JSON.parse(node.textContent) : null;
       return Array.isArray(data?.categories) ? data.categories : null;
     } catch (_) { return null; }
   }
-  async function saveProgress(slug) {
-    if (!client || !user || !slugs.includes(slug) || !restored.has(user.id)) return;
-    const owner = user.id;
+  const restoreJobs = new Map();
+  async function saveProgress(slug, owner) {
+    if (!client || !owner || owner !== user?.id || !slugs.includes(slug) ||
+        !restored.has(owner)) return;
     const [categoriesKey, historyKey] = localKeys(slug, owner);
     let categories = null, history = null;
     try {
-      categories = JSON.parse(localStorage.getItem(categoriesKey) || 'null');
-      history = JSON.parse(localStorage.getItem(historyKey) || 'null');
+      categories = JSON.parse(readLocal(categoriesKey) || 'null');
+      history = JSON.parse(readLocal(historyKey) || 'null');
     } catch (_) { return; }
     if (categories === null && history === null) return;
-    const payload = { user_id: owner, game_slug: slug, categories, history: Array.isArray(history) ? history.slice(0, 10) : [] };
-    const baseline = officialCategories(slug);
-    if (baseline) payload.official_baseline = baseline;
+    const marker = readLocal(dirtyKey(slug, owner));
+    const payload = {
+      user_id: owner, game_slug: slug, categories,
+      history: Array.isArray(history) ? history.slice(0, 10) : []
+    };
+    const official = officialCategories(slug) ||
+      parseArray(readLocal(baselineKey(slug, owner)));
+    if (official) payload.official_baseline = official;
     if (owner !== user?.id) return;
-    const { error } = await client.from('player_progress').upsert(payload, { onConflict: 'user_id,game_slug' });
-    if (error) console.warn('Sauvegarde en ligne indisponible :', error.message);
+    const { error } = await client.from('player_progress')
+      .upsert(payload, { onConflict: 'user_id,game_slug' });
+    if (error) {
+      console.warn('Sauvegarde en ligne indisponible :', error.message);
+    } else if (owner === user?.id && marker &&
+               marker === readLocal(dirtyKey(slug, owner))) {
+      removeLocal(dirtyKey(slug, owner));
+    }
   }
-  function queueSave(slug) {
+  function queueSave(slug, officialUpdate = false) {
     if (!slugs.includes(slug) || !user) return;
+    const owner = user.id;
+    // Un changement personnel non envoyé doit gagner sur une ancienne sauvegarde
+    // distante. Une fusion officielle n'est pas une modification utilisateur.
+    if (!officialUpdate) writeLocal(dirtyKey(slug, owner), String(Date.now()));
     clearTimeout(saveTimers.get(slug));
-    saveTimers.set(slug, setTimeout(() => saveProgress(slug), 1200));
+    saveTimers.set(slug, setTimeout(() => saveProgress(slug, owner), 1200));
   }
   async function restoreProgress() {
     if (!client || !user) return;
     const owner = user.id;
-    const { data, error } = await client.from('player_progress')
-      .select('game_slug,categories,history,official_baseline').eq('user_id', owner);
-    if (owner !== user?.id) return;
-    if (error) {
-      console.warn('Lecture progression :', error.message);
-      return;
-    }
-    for (const row of (data || [])) {
-      if (!slugs.includes(row.game_slug)) continue;
-      const [catKey, histKey] = localKeys(row.game_slug, owner);
-      let categories = row.categories;
-      const official = officialCategories(row.game_slug);
-      if (official && Array.isArray(categories)) {
-        categories = mergeOfficial(categories, row.official_baseline, official, row.game_slug);
+    if (restoreJobs.has(owner)) return restoreJobs.get(owner);
+    const task = (async () => {
+      const here = currentSlug();
+      const atStart = here ? readLocal(localKeys(here, owner)[0]) : null;
+      const { data, error } = await client.from('player_progress')
+        .select('game_slug,categories,history,official_baseline')
+        .eq('user_id', owner);
+      if (owner !== user?.id) return;
+      if (error) {
+        // Une panne réseau ne doit jamais écraser les données d'un compte.
+        console.warn('Lecture progression :', error.message);
+        return;
       }
-      if (categories !== null) localStorage.setItem(catKey, JSON.stringify(categories));
-      if (row.history !== null) localStorage.setItem(histKey, JSON.stringify(row.history));
-      if (row.game_slug === currentSlug()) {
-        document.dispatchEvent(new CustomEvent('spingames:progress-ready', { detail: { slug: row.game_slug } }));
+      const rows = new Map((data || [])
+        .filter(row => slugs.includes(row.game_slug))
+        .map(row => [row.game_slug, row]));
+      const toCheck = new Set([...rows.keys(), ...(here && slugs.includes(here) ? [here] : [])]);
+      const uploads = [];
+      for (const slug of toCheck) {
+        const row = rows.get(slug);
+        const [catKey, histKey] = localKeys(slug, owner);
+        const localRaw = readLocal(catKey);
+        const localCategories = parseArray(localRaw);
+        const hasLocalEdit = Boolean(readLocal(dirtyKey(slug, owner))) ||
+          (slug === here && localRaw !== atStart);
+        const localWins = hasLocalEdit && Array.isArray(localCategories);
+        const categories = localWins
+          ? localCategories
+          : (asCategories(row?.categories) || localCategories);
+        const baseline = localWins
+          ? (parseArray(readLocal(baselineKey(slug, owner))) ||
+             (asCategories(row?.official_baseline)))
+          : (asCategories(row?.official_baseline)
+             || parseArray(readLocal(baselineKey(slug, owner))));
+        const official = officialCategories(slug);
+        const legacy = knownLegacy(slug, categories);
+        // Une base locale plus récente ne doit pas masquer un ancien contenu
+        // officiel encore présent dans une sauvegarde distante.
+        const baselineFits = Array.isArray(baseline) && Array.isArray(categories) &&
+          categories.some(cat => {
+            const before = baseline.find(b => b?.name === cat?.name);
+            return before && Array.isArray(cat.items) && Array.isArray(before.items) &&
+              cat.items.some(item => before.items.includes(item));
+          });
+        const historical = baselineFits ? baseline : (legacy || baseline);
+        const merged = official && Array.isArray(categories)
+          ? mergeOfficial(categories, historical, official) : categories;
+        const mergedRaw = Array.isArray(merged) ? JSON.stringify(merged) : null;
+        if (mergedRaw && mergedRaw !== localRaw) {
+          const before = Array.isArray(categories) ? JSON.stringify(categories) : null;
+          // Sauvegarde locale non destructive de l'état avant la première migration.
+          if (before && before !== mergedRaw) {
+            const backup = 'spingames.backup.'+owner+'.'+slug+'.before-official-sync.v1';
+            if (!readLocal(backup)) writeLocal(backup, before);
+          }
+          if (localRaw && !localWins && Array.isArray(asCategories(row?.categories)) &&
+              JSON.stringify(asCategories(row.categories)) !== localRaw) {
+            const previousLocal = 'spingames.backup.'+owner+'.'+slug+'.before-cloud-restore.v1';
+            if (!readLocal(previousLocal)) writeLocal(previousLocal, localRaw);
+          }
+          writeLocal(catKey, mergedRaw);
+        }
+        if (!localWins && Array.isArray(row?.history)) {
+          writeLocal(histKey, JSON.stringify(row.history));
+        }
+        if (official) {
+          // Base précédente enregistrée localement pour les mises à jour futures,
+          // même lorsqu'aucun enregistrement Supabase n'existe encore.
+          writeLocal(baselineKey(slug, owner), JSON.stringify(official));
+        }
+        if (Array.isArray(merged)) {
+          if (!row || !asCategories(row.categories) || localWins ||
+              (official && (!asCategories(row.official_baseline) ||
+                JSON.stringify(row.official_baseline) !== JSON.stringify(official))) ||
+              (asCategories(row.categories) &&
+                JSON.stringify(asCategories(row.categories)) !== mergedRaw)) {
+            uploads.push(slug);
+          }
+        }
+        if (slug === here) {
+          document.dispatchEvent(new CustomEvent('spingames:progress-ready', {
+            detail: { slug, synced: Boolean(official) }
+          }));
+        }
       }
-    }
-    restored.add(owner);
-    const active = (data || []).find(row => row.game_slug === currentSlug());
-    if (active && Array.isArray(active.official_baseline) && officialCategories(currentSlug()) &&
-        JSON.stringify(active.official_baseline) !== JSON.stringify(officialCategories(currentSlug()))) {
-      queueSave(currentSlug());
-    }
+      restored.add(owner);
+      for (const slug of uploads) queueSave(slug, true);
+    })();
+    restoreJobs.set(owner, task);
+    try { await task; }
+    finally { if (restoreJobs.get(owner) === task) restoreJobs.delete(owner); }
   }
   const api = {
     get user() { return user; },
     get client() { return client; },
     queueSave,
+    registerOfficialCategories(slug, categories) {
+      if (slug !== currentSlug() || !slugs.includes(slug) ||
+          !Array.isArray(categories)) return;
+      const old = registeredOfficial.get(slug);
+      if (old && JSON.stringify(old) === JSON.stringify(categories)) return;
+      registeredOfficial.set(slug, categories);
+      if (!user) return;
+      const owner = user.id, pending = restoreJobs.get(owner);
+      const resume = () => { if (user?.id === owner) void restoreProgress(); };
+      // Laisser se terminer une restauration lancée avant le chargement des
+      // catégories officielles (cas de l'iframe SimSpin).
+      if (pending) void pending.then(() => setTimeout(resume, 0),
+                                      () => setTimeout(resume, 0));
+      else void restoreProgress();
+    },
     async recordSpin(slug) {
       if (!client || !slugs.includes(slug)) return;
       const { error } = await client.rpc('site_register_spin', { p_visitor_id: visitorId, p_game_slug: slug });
