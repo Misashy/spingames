@@ -9,7 +9,7 @@
  platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
  const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
  const cloudScript=document.createElement('script');cloudScript.src='../../assets/cloud-sync.js?v=20261105-private-v2';cloudScript.async=false;
- const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-localmerge2';platformScript.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-overwatch100-1';platformScript.async=false;
  document.head.append(platformStyle,siteConfig,cloudScript,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
@@ -28,7 +28,7 @@
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`cat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
  const opts=[1,2,3,4,5];
  // Le défi spécial Valorant le plus long comporte 136 caractères : ne pas le tronquer.
- const itemTextLimit=game.slug==='valorant'?200:120;
+ const itemTextLimit=['valorant','overwatch'].includes(game.slug)?200:120;
  const safeCount=v=>opts.includes(Number(v))?Number(v):1;
  // Les invités utilisent l'espace temporaire de l'onglet ; les comptes ont des clés isolées.
  const scopedKey=key=>window.SpinGames?.user?.id
