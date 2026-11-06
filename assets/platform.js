@@ -278,6 +278,19 @@
       if (matching >= 4 && !saved.some(cat => cat?.name === 'Personnage'))
         legacy = historical;
     }
+    if (legacy && slug === 'overwatch') {
+      // Une ancienne migration pouvait juxtaposer les 8 anciens défis et les
+      // 20 nouveaux puis mémoriser, à tort, la nouvelle base officielle.
+      // La quantité de nouveaux défis ne suffit donc pas à prouver la migration.
+      const obsolete = legacy.reduce((total, older) => {
+        const current = officialCategories(slug)?.find(c => c.name === older.name);
+        const own = saved.find(c => c?.name === older.name);
+        if (!current || !Array.isArray(own?.items)) return total;
+        const obsoleteItems = new Set(older.items.filter(x => !current.items.includes(x)));
+        return total + own.items.filter(x => obsoleteItems.has(x)).length;
+      }, 0);
+      if (obsolete >= 4) return legacy;
+    }
     if (legacy && countShared(saved, legacy) > countShared(saved, base)) return legacy;
     if (legacy && (!base || countShared(saved, base) === 0)) return legacy;
     return base || legacy;
