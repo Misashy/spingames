@@ -27,6 +27,8 @@
  const safeColor=c=>/^#[\da-f]{6}$/i.test(c)?c:'#b8fb6b';
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`cat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
  const opts=[1,2,3,4,5];
+ // Le défi spécial Valorant le plus long comporte 136 caractères : ne pas le tronquer.
+ const itemTextLimit=game.slug==='valorant'?200:120;
  const safeCount=v=>opts.includes(Number(v))?Number(v):1;
  // Les invités utilisent l'espace temporaire de l'onglet ; les comptes ont des clés isolées.
  const scopedKey=key=>window.SpinGames?.user?.id
@@ -44,7 +46,7 @@
    const name=String(cat.name||'').trim().slice(0,60);
    if(!name)throw Error('Une catégorie doit avoir un nom.');
    const raw=Array.isArray(cat.items)?cat.items:[];
-   const items=raw.map(v=>typeof v==='string'?v:(v?.name||v?.text||'')).map(v=>String(v).trim().slice(0,120)).filter(Boolean).slice(0,250);
+   const items=raw.map(v=>typeof v==='string'?v:(v?.name||v?.text||'')).map(v=>String(v).trim().slice(0,itemTextLimit)).filter(Boolean).slice(0,250);
    return {id:id(),name,icon:String(cat.icon||'🎲').trim().slice(0,12),color:safeColor(cat.color||COLORS[i%COLORS.length]),active:cat.active!==false,items,drawCount:safeCount(cat.drawCount),spinMode:cat.spinMode==='each'?'each':'once',noDuplicates:cat.noDuplicates!==false};
   });
  };
@@ -272,7 +274,7 @@
   $('ed-save').addEventListener('click',()=>{
    if(spinning)return;
    const name=$('ed-name').value.trim().slice(0,60);if(!name){toast('Indique un nom de catégorie.');return;}
-   const items=$('ed-items').value.split(/\r?\n/).map(x=>x.trim().slice(0,120)).filter(Boolean);
+   const items=$('ed-items').value.split(/\r?\n/).map(x=>x.trim().slice(0,itemTextLimit)).filter(Boolean);
    if(items.length>250){toast('Maximum 250 choix par catégorie.');return;}
    c.name=name;c.icon=$('ed-icon').value.trim().slice(0,12)||'🎲';c.color=safeColor($('ed-color').value);c.drawCount=safeCount($('ed-count').value);c.spinMode=$('ed-mode').value==='each'?'each':'once';c.noDuplicates=$('ed-unique').checked;c.items=items;
    save();renderList();renderWheel();toast('Catégorie enregistrée !');
