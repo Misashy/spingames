@@ -24,7 +24,7 @@
       : [`devwebgames.${slug}.categories.v1`, `devwebgames.${slug}.history.v1`];
     return owner ? raw.map(key => 'spingames.account.'+owner+'.'+key) : raw;
   };
-  const slugs = ['les-sims-4','minecraft','fortnite','elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex'];
+  const slugs = ['les-sims-4','minecraft','fortnite','elden-ring','mario-kart','risk-of-rain-2','football-manager','pubg','apex','valorant','league-of-legends','overwatch','counter-strike','warzone','dota-2','deadlock','dofus'];
   const currentSlug = () => location.pathname.match(/\/jeux\/([^/]+)\//)?.[1] || null;
 
   const button = document.createElement('button');
