@@ -77,13 +77,13 @@
       const admin = document.createElement('span');
       admin.className = 'sg-chat-admin-badge';
       admin.textContent = 'ADMIN';
-      author.after(admin);
+      meta.append(admin);
     }
     const time = document.createElement('time');
     const date = new Date(entry.created_at);
     time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     time.dateTime = entry.created_at;
-    meta.append(author, time);
+    meta.prepend(author); meta.append(time);
     const body = document.createElement('p');
     body.textContent = entry.body || '';
     content.append(meta, body); item.append(avatar, content);
