@@ -132,7 +132,7 @@
   const dispatch = () => document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
   const saveTimers = new Map();
   const restored = new Set();
-  function mergeOfficial(saved, previousBase, currentBase) {
+  function mergeOfficial(saved, previousBase, currentBase, slug) {
     if (!Array.isArray(saved) || !Array.isArray(previousBase) || !Array.isArray(currentBase)) return saved;
     const previous = new Map(previousBase.filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
     const combined = saved.map(c => ({ ...c, items: Array.isArray(c.items) ? [...c.items] : [] }));
@@ -145,6 +145,15 @@
       }
       const own = combined.find(c => c.name === official.name);
       if (!own || !Array.isArray(official.items)) continue;
+      // Valorant : si la liste n'avait pas été personnalisée, remplacer l'ancien
+      // lot officiel de 8 défis par le nouveau (20/15/10). Les réglages de la
+      // catégorie sont conservés. Ne jamais écraser une liste personnalisée.
+      if (slug === 'valorant' && Array.isArray(old.items) &&
+          own.items.length === old.items.length &&
+          own.items.every((item, index) => item === old.items[index])) {
+        own.items = [...official.items];
+        continue;
+      }
       const oldItems = new Set(Array.isArray(old.items) ? old.items : []);
       const personalItems = new Set(own.items);
       for (const item of official.items) {
@@ -199,7 +208,7 @@
       let categories = row.categories;
       const official = officialCategories(row.game_slug);
       if (official && Array.isArray(categories)) {
-        categories = mergeOfficial(categories, row.official_baseline, official);
+        categories = mergeOfficial(categories, row.official_baseline, official, row.game_slug);
       }
       if (categories !== null) localStorage.setItem(catKey, JSON.stringify(categories));
       if (row.history !== null) localStorage.setItem(histKey, JSON.stringify(row.history));
