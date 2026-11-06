@@ -57,6 +57,7 @@
     link.className = 'sg-card-link';
     link.href = urlFor(game);
     link.setAttribute('aria-label', 'Jouer à ' + game.title);
+    link.dataset.icon = game.icon;
     const top = document.createElement('div');
     top.className='card-top';
     // La vignette utilise désormais l'image du jeu : plus d'icônes décoratives.
