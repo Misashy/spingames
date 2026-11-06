@@ -222,14 +222,30 @@
         // options personnelles : activation, nombre de tirages, style, etc.).
         own.items = [...official.items];
       } else {
-        // Liste personnalisée : conserver modifications et suppressions de l'ancien
-        // contenu ; n'ajouter que les défis réellement nouveaux depuis la base.
-        const previousItems = new Set(oldItems);
-        const personalItems = new Set(own.items);
-        for (const item of official.items) {
-          if (!previousItems.has(item) && !personalItems.has(item)) {
-            own.items.push(item);
-            personalItems.add(item);
+        // Lorsqu'une liste officielle Overwatch a été remplacée entièrement,
+        // ses anciens défis retirés du catalogue ne doivent plus masquer les
+        // nouveaux. On conserve les défis que le joueur a réellement ajoutés.
+        const oldSet = new Set(oldItems);
+        const currentSet = new Set(official.items);
+        const replaced = slug === 'overwatch' &&
+          oldItems.some(item => !currentSet.has(item)) &&
+          official.items.some(item => !oldSet.has(item));
+        if (replaced) {
+          const personal = own.items.filter(item => !oldSet.has(item) &&
+                                                 !currentSet.has(item));
+          const existing = new Set(own.items);
+          const newOfficial = official.items.filter(item =>
+            !oldSet.has(item) || existing.has(item));
+          own.items = [...newOfficial, ...personal];
+        } else {
+          // Mise à jour incrémentale : respecter les suppressions personnelles
+          // et ne joindre que les nouveaux défis officiels.
+          const personalItems = new Set(own.items);
+          for (const item of official.items) {
+            if (!oldSet.has(item) && !personalItems.has(item)) {
+              own.items.push(item);
+              personalItems.add(item);
+            }
           }
         }
       }
@@ -249,9 +265,21 @@
     }, 0);
   }
   function priorOfficial(slug, saved, baseline) {
-    const legacy = knownLegacy(slug, saved);
     const base = asCategories(baseline);
+    let legacy = knownLegacy(slug, saved);
+    if (!legacy && slug === 'overwatch' && Array.isArray(saved)) {
+      // Anciennes roues parfois entièrement réécrites par le joueur : il n'y a
+      // plus de texte commun avec la version d'origine. Reconnaître uniquement
+      // la structure historique 6 x 8 sans assimiler une vraie roue nouvelle.
+      const historical = legacyOfficial.overwatch;
+      const originalNames = new Set(historical.map(cat => cat.name));
+      const matching = saved.filter(cat => originalNames.has(cat?.name) &&
+        Array.isArray(cat.items) && cat.items.length <= 8).length;
+      if (matching >= 4 && !saved.some(cat => cat?.name === 'Personnage'))
+        legacy = historical;
+    }
     if (legacy && countShared(saved, legacy) > countShared(saved, base)) return legacy;
+    if (legacy && (!base || countShared(saved, base) === 0)) return legacy;
     return base || legacy;
   }
   function syncLocalOfficial(slug, current) {
@@ -385,7 +413,9 @@
             return before && Array.isArray(cat.items) && Array.isArray(before.items) &&
               cat.items.some(item => before.items.includes(item));
           });
-        const historical = baselineFits ? baseline : (legacy || baseline);
+        const historical = slug === 'overwatch'
+          ? priorOfficial(slug, categories, baseline)
+          : (baselineFits ? baseline : (legacy || baseline));
         const merged = official && Array.isArray(categories)
           ? mergeOfficial(categories, historical, official, slug) : categories;
         const mergedRaw = Array.isArray(merged) ? JSON.stringify(merged) : null;
