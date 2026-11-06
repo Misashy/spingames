@@ -175,12 +175,8 @@
     const files = { avatar: $('sg-profile-avatar').files[0], banner: $('sg-profile-banner').files[0] };
     const created = [];
     try {
-      // Avoid orphan uploads when a name is already occupied.
-      const { data: names, error: nameError } = await client().from(TABLE)
-        .select('user_id').ilike('username', username).limit(3);
-      if (nameError) throw nameError;
-      if ((names || []).some(row => row.user_id !== owner))
-        throw new Error('Pseudo déjà utilisé. Choisis-en un autre.');
+      // Exact, case-insensitive uniqueness is enforced atomically by PostgreSQL.
+      // Do not use ilike here: underscores are SQL wildcards, not literal characters.
       const previous = await getMine();
       const payload = { username, bio };
       if (files.avatar) { payload.avatar_path = await upload(files.avatar, 'avatar', owner); created.push(payload.avatar_path); }
