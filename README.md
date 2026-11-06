@@ -2,7 +2,7 @@
 
 Des roues interactives et des défis aléatoires, avec **une page dédiée et un thème visuel distinct pour chaque jeu**.
 
-## Catalogue (9 jeux)
+## Catalogue (17 jeux)
 
 - Les Sims 4 — roue SimSpin originale, conservée à l'identique dans `jeux/les-sims-4/index.html` et intégrée à l'espace SpinGames dans `jeux/les-sims-4/lancer.html`
 - Minecraft
@@ -13,8 +13,16 @@ Des roues interactives et des défis aléatoires, avec **une page dédiée et un
 - Football Manager
 - PUBG
 - Apex Legends
+- Valorant
+- League of Legends
+- Overwatch
+- Counter-Strike
+- Call of Duty: Warzone
+- Dota 2
+- Deadlock
+- Dofus
 
-Genres : Simulation · Battle Royale · Souls · Création & Survie · Action & Aventure.
+Genres : Simulation · Battle Royale · Souls · Création & Survie · Action & Aventure · FPS tactique · MOBA · Hero shooter · MMORPG.
 
 ## Bibliothèque
 
