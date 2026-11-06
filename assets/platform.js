@@ -284,7 +284,16 @@
           : (Array.isArray(row?.official_baseline) ? row.official_baseline
              : parseArray(readLocal(baselineKey(slug, owner))));
         const official = officialCategories(slug);
-        const historical = baseline || knownLegacy(slug, categories);
+        const legacy = knownLegacy(slug, categories);
+        // Une base locale plus récente ne doit pas masquer un ancien contenu
+        // officiel encore présent dans une sauvegarde distante.
+        const baselineFits = Array.isArray(baseline) && Array.isArray(categories) &&
+          categories.some(cat => {
+            const before = baseline.find(b => b?.name === cat?.name);
+            return before && Array.isArray(cat.items) && Array.isArray(before.items) &&
+              cat.items.some(item => before.items.includes(item));
+          });
+        const historical = baselineFits ? baseline : (legacy || baseline);
         const merged = official && Array.isArray(categories)
           ? mergeOfficial(categories, historical, official) : categories;
         const mergedRaw = Array.isArray(merged) ? JSON.stringify(merged) : null;
