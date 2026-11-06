@@ -141,9 +141,13 @@
   const readLocal = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
   const writeLocal = (key, value) => { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } };
   const removeLocal = key => { try { localStorage.removeItem(key); } catch (_) {} };
+  function asCategories(value) {
+    const list = Array.isArray(value) ? value : value?.categories;
+    return Array.isArray(list) ? list : null;
+  }
   function parseArray(raw) {
     if (!raw) return null;
-    try { const value = JSON.parse(raw); return Array.isArray(value) ? value : null; }
+    try { return asCategories(JSON.parse(raw)); }
     catch (_) { return null; }
   }
   function knownLegacy(slug, categories) {
@@ -279,12 +283,12 @@
         const localWins = hasLocalEdit && Array.isArray(localCategories);
         const categories = localWins
           ? localCategories
-          : (Array.isArray(row?.categories) ? row.categories : localCategories);
+          : (asCategories(row?.categories) || localCategories);
         const baseline = localWins
           ? (parseArray(readLocal(baselineKey(slug, owner))) ||
-             (Array.isArray(row?.official_baseline) ? row.official_baseline : null))
-          : (Array.isArray(row?.official_baseline) ? row.official_baseline
-             : parseArray(readLocal(baselineKey(slug, owner))));
+             (asCategories(row?.official_baseline)))
+          : (asCategories(row?.official_baseline)
+             || parseArray(readLocal(baselineKey(slug, owner))));
         const official = officialCategories(slug);
         const legacy = knownLegacy(slug, categories);
         // Une base locale plus récente ne doit pas masquer un ancien contenu
@@ -299,7 +303,20 @@
         const merged = official && Array.isArray(categories)
           ? mergeOfficial(categories, historical, official) : categories;
         const mergedRaw = Array.isArray(merged) ? JSON.stringify(merged) : null;
-        if (mergedRaw && mergedRaw !== localRaw) writeLocal(catKey, mergedRaw);
+        if (mergedRaw && mergedRaw !== localRaw) {
+          const before = Array.isArray(categories) ? JSON.stringify(categories) : null;
+          // Sauvegarde locale non destructive de l'état avant la première migration.
+          if (before && before !== mergedRaw) {
+            const backup = 'spingames.backup.'+owner+'.'+slug+'.before-official-sync.v1';
+            if (!readLocal(backup)) writeLocal(backup, before);
+          }
+          if (localRaw && !localWins && Array.isArray(asCategories(row?.categories)) &&
+              JSON.stringify(asCategories(row.categories)) !== localRaw) {
+            const previousLocal = 'spingames.backup.'+owner+'.'+slug+'.before-cloud-restore.v1';
+            if (!readLocal(previousLocal)) writeLocal(previousLocal, localRaw);
+          }
+          writeLocal(catKey, mergedRaw);
+        }
         if (!localWins && Array.isArray(row?.history)) {
           writeLocal(histKey, JSON.stringify(row.history));
         }
@@ -309,11 +326,11 @@
           writeLocal(baselineKey(slug, owner), JSON.stringify(official));
         }
         if (Array.isArray(merged)) {
-          if (!row || localWins ||
-              (official && (!Array.isArray(row.official_baseline) ||
+          if (!row || !asCategories(row.categories) || localWins ||
+              (official && (!asCategories(row.official_baseline) ||
                 JSON.stringify(row.official_baseline) !== JSON.stringify(official))) ||
-              (Array.isArray(row.categories) &&
-                JSON.stringify(row.categories) !== mergedRaw)) {
+              (asCategories(row.categories) &&
+                JSON.stringify(asCategories(row.categories)) !== mergedRaw)) {
             uploads.push(slug);
           }
         }
