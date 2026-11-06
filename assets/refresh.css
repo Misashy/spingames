@@ -262,3 +262,22 @@ body.sg-home-wallpaper > header.header nav .sg-nav-icon{
 
 /* Lien Discord dans le menu principal : style commun aux autres onglets. */
 body.sg-home-wallpaper > header.header nav a[target="_blank"]{gap:7px}
+
+
+/* Nouveaux jeux — affiches graphiques originales en CSS, sans images externes.
+   Les cartes existantes gardent leurs visuels HD intacts. */
+.sg-game-card[data-slug="valorant"] { --sg-art:radial-gradient(ellipse at 74% 20%, #fd657a9c,transparent 56%),linear-gradient(144deg,#782b42,#1c172c); }
+.sg-game-card[data-slug="league-of-legends"] { --sg-art:radial-gradient(ellipse at 72% 22%, #6ac8c483,transparent 58%),linear-gradient(135deg,#164e71,#132039); }
+.sg-game-card[data-slug="overwatch"] { --sg-art:radial-gradient(ellipse at 77% 18%, #ffcb79a6,transparent 56%),linear-gradient(125deg,#754d33,#242744); }
+.sg-game-card[data-slug="counter-strike"] { --sg-art:radial-gradient(ellipse at 70% 24%, #e0ad6f80,transparent 52%),linear-gradient(135deg,#6b6142,#1b242f); }
+.sg-game-card[data-slug="warzone"] { --sg-art:radial-gradient(ellipse at 78% 18%, #98c39f85,transparent 56%),linear-gradient(140deg,#42564b,#121b24); }
+.sg-game-card[data-slug="dota-2"] { --sg-art:radial-gradient(ellipse at 72% 20%, #e3616188,transparent 57%),linear-gradient(140deg,#662b30,#191522); }
+.sg-game-card[data-slug="deadlock"] { --sg-art:radial-gradient(ellipse at 72% 19%, #b7a0fa8c,transparent 55%),linear-gradient(132deg,#4e3c67,#162b32); }
+.sg-game-card[data-slug="dofus"] { --sg-art:radial-gradient(ellipse at 70% 21%, #f4d48c96,transparent 55%),linear-gradient(138deg,#627d4e,#2e3141); }
+.sg-game-card:is([data-slug="valorant"],[data-slug="league-of-legends"],[data-slug="overwatch"],[data-slug="counter-strike"],[data-slug="warzone"],[data-slug="dota-2"],[data-slug="deadlock"],[data-slug="dofus"]) .sg-card-link::before {
+  content:attr(data-icon);
+  position:absolute;right:15px;top:9px;opacity:.8;
+  font-size:clamp(64px,7vw,100px);line-height:1;
+  filter:drop-shadow(0 8px 18px #08091688);transform:rotate(-10deg);
+  pointer-events:none;
+}

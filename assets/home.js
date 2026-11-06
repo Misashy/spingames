@@ -12,7 +12,11 @@
     fortnite: ['#53319b','#181e4d'], elden: ['#51452d','#171b16'],
     mario: ['#a32f3a','#3a1b33'], ror2: ['#345da4','#101b39'],
     fm: ['#235c4b','#102b2d'], pubg: ['#6f5332','#272219'],
-    apex: ['#7d323f','#2e1a2d']
+    apex: ['#7d323f','#2e1a2d'],
+    valorant: ['#892c43','#251a33'], lol: ['#1b5572','#111d39'],
+    overwatch: ['#9d6b2d','#292442'], cs: ['#74643b','#1a232e'],
+    warzone: ['#536954','#161e1c'], dota: ['#963a3b','#291a25'],
+    deadlock: ['#50416e','#182c36'], dofus: ['#947848','#2e4637']
   };
   const FAV_KEY = 'spingames.favorites.v1';
   let fallbackFav = [];
@@ -53,6 +57,7 @@
     link.className = 'sg-card-link';
     link.href = urlFor(game);
     link.setAttribute('aria-label', 'Jouer à ' + game.title);
+    link.dataset.icon = game.icon;
     const top = document.createElement('div');
     top.className='card-top';
     // La vignette utilise désormais l'image du jeu : plus d'icônes décoratives.
