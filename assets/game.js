@@ -96,12 +96,19 @@
   ['defi mercato','football-manager-wheel-defi-mercato.webp'],
   ['defi trool','football-manager-wheel-defi-trool.webp'],
   ['defi extreme','football-manager-wheel-defi-extreme.webp']
+ ]):game.slug==='pubg'?new Map([
+  ['facile','pubg-wheel-facile.webp'],
+  ['moyen','pubg-wheel-moyen.webp'],
+  ['dfficile','pubg-wheel-dfficile.webp'],
+  ['extreme','pubg-wheel-extreme.webp'],
+  ['defi trool','pubg-wheel-defi-trool.webp'],
+  ['defi speciaux','pubg-wheel-defi-speciaux.webp']
  ]):null;
  const wheelImages=new Map();
  function minecraftImage(cat){
   if(!minecraftArt||!cat)return null;
   const name=cat.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr-FR').trim().replace(/\s+/g,' ');
-  const src=`../../assets/game-art/${minecraftArt.get(name)||(game.slug==='fortnite'?'fortnite-wheel-facile.webp':game.slug==='elden-ring'?'elden-ring-wheel-difficile.webp':game.slug==='mario-kart'?'mario-kart-wheel-facile.webp':game.slug==='risk-of-rain-2'?'risk-of-rain-2-wheel-facile.webp':game.slug==='football-manager'?'football-manager-wheel-facile.webp':'minecraft.webp')}`;
+  const src=`../../assets/game-art/${minecraftArt.get(name)||(game.slug==='fortnite'?'fortnite-wheel-facile.webp':game.slug==='elden-ring'?'elden-ring-wheel-difficile.webp':game.slug==='mario-kart'?'mario-kart-wheel-facile.webp':game.slug==='risk-of-rain-2'?'risk-of-rain-2-wheel-facile.webp':game.slug==='football-manager'?'football-manager-wheel-facile.webp':game.slug==='pubg'?'pubg-wheel-facile.webp':'minecraft.webp')}`;
   if(!wheelImages.has(src)){
    const img=new Image();
    wheelImages.set(src,img);
