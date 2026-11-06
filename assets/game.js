@@ -9,7 +9,7 @@
  platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
  const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
  const cloudScript=document.createElement('script');cloudScript.src='../../assets/cloud-sync.js?v=20261105-private-v2';cloudScript.async=false;
- const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-overwatch100-1';platformScript.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-overwatch-syncfix2';platformScript.async=false;
  document.head.append(platformStyle,siteConfig,cloudScript,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
@@ -413,8 +413,22 @@
  let lastCompact=window.matchMedia('(max-width:650px)').matches;
  window.addEventListener('resize',()=>{const compact=window.matchMedia('(max-width:650px)').matches;if(compact!==lastCompact){lastCompact=compact;if(!spinning)renderWheel();}},{passive:true});
  // Changer de compte ne doit jamais afficher les modifications d'un autre joueur.
+ // Deuxième garde-fou : lors de chaque relecture du profil, déclencher la fusion
+ // officielle avant de rendre les roues. Une restauration asynchrone ne peut ainsi
+ // réafficher d'anciennes listes Overwatch après la connexion.
+ let officialSyncing=false;
+ function ensureOfficialForAccount(){
+  if(officialSyncing||!window.SpinGames?.user?.id)return;
+  if(typeof window.SpinGames.syncLocalOfficial!=='function')return;
+  try{
+   officialSyncing=true;
+   window.SpinGames.syncLocalOfficial(game.slug,game.categories);
+  }catch(e){console.warn('Actualisation officielle indisponible :',e)}
+  finally{officialSyncing=false}
+ }
  function reloadPersonalData(){
   if(spinning)return;
+  ensureOfficialForAccount();
   categories=loadCategories();
   try{const h=JSON.parse(storageGet(HISTORY_KEY)||'[]');history=Array.isArray(h)?h.filter(x=>x&&Array.isArray(x.results)).slice(0,10):[]}
   catch(_){history=[]}
@@ -425,5 +439,6 @@
  document.addEventListener('spingames:progress-ready',event=>{
   if(event.detail?.slug===game.slug)reloadPersonalData();
  });
+ ensureOfficialForAccount();
  renderAll();
 })();
