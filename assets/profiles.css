@@ -1,0 +1,53 @@
+/* SpinGames — profil communautaire (sans influence sur les sauvegardes de roues). */
+.sg-profile-button {
+  border:1px solid #7bcf9b; border-radius:9px; background:#192b29; color:#e5ffe9;
+  padding:10px 13px; font:800 12px 'DM Sans',system-ui,sans-serif; cursor:pointer; white-space:nowrap;
+}
+.sg-profile-button:hover { background:#294a3b; border-color:#b9ff75; }
+.sg-profile-button[hidden], .sg-profile-modal[hidden] { display:none!important; }
+.sg-profile-modal {
+  position:fixed; inset:0; z-index:100001; background:rgba(3,8,19,.87);
+  display:grid; place-items:center; padding:14px; font-family:'DM Sans',system-ui,sans-serif;
+}
+.sg-profile-dialog {
+  width:min(580px,100%); max-height:min(94vh,920px); overflow-y:auto;
+  background:#151b2b; color:#f3f7ff; border:1px solid #566582; border-radius:18px;
+  box-shadow:0 22px 80px #000b; padding:18px; box-sizing:border-box;
+}
+.sg-profile-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.sg-profile-top h2 { margin:0 0 12px; font-size:24px; font-weight:900; }
+.sg-profile-close { background:#2c344b; color:#fff; font-size:24px; border:1px solid #5a6b8b;
+  border-radius:10px; width:36px; height:36px; cursor:pointer; }
+.sg-profile-cover {
+  height:135px; border-radius:13px; background-color:#254d57;
+  background-image:linear-gradient(120deg,#17294d,#5a368d 57%,#25745f);
+  background-size:cover; background-position:center; display:flex; align-items:flex-end;
+  padding:10px; color:#fff9; font-size:11px; font-weight:800; overflow:hidden;
+}
+.sg-profile-preview { display:flex; align-items:center; gap:14px; margin:-29px 10px 8px; position:relative; }
+.sg-profile-avatar-preview { height:82px; width:82px; display:grid; place-items:center; border:4px solid #151b2b;
+  border-radius:50%; overflow:hidden; background:#39485f; color:#fff; font-size:32px; flex-shrink:0; }
+.sg-profile-avatar-preview img { width:100%; height:100%; object-fit:cover; }
+.sg-profile-preview strong { display:block; font-weight:900; text-shadow:0 1px 4px #000; overflow-wrap:anywhere; }
+.sg-profile-preview small { display:block; color:#c2e7ab; font-weight:800; }
+#sg-profile-form { display:grid; gap:6px; }
+#sg-profile-form label { font-weight:800; margin-top:10px; font-size:12px; }
+#sg-profile-form input, #sg-profile-form textarea {
+  width:100%; min-width:0; box-sizing:border-box; border-radius:9px; border:1px solid #515c79;
+  background:#0c1425; color:#fff; font:500 13px 'DM Sans',system-ui,sans-serif; padding:11px;
+}
+#sg-profile-form input[type=file] { font-size:12px; }
+#sg-profile-form textarea { resize:vertical; }
+.sg-profile-help { color:#aab8cc; font-size:11px; line-height:1.45; }
+.sg-profile-status { min-height:20px; margin:9px 0 0; color:#c8ff9b; font-size:12px; }
+.sg-profile-status.sg-profile-error { color:#ff9b9b; }
+.sg-profile-save { width:100%; border:0; background:#b9ff75; color:#17211f; font-weight:900;
+  padding:12px; cursor:pointer; border-radius:10px; }
+.sg-profile-save:disabled { opacity:.55; cursor:wait; }
+.sg-profile-modal :focus-visible,.sg-profile-button:focus-visible { outline:3px solid #c5ff76; outline-offset:2px; }
+@media(max-width:620px) {
+  .sg-profile-button { font-size:10px; padding:8px; }
+  .sg-profile-top h2 { font-size:19px; }
+  .sg-profile-dialog { padding:12px; }
+  .sg-profile-cover { height:110px; }
+}
