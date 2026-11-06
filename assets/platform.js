@@ -208,58 +208,116 @@
       return Array.isArray(data?.categories) ? data.categories : null;
     } catch (_) { return null; }
   }
-  async function saveProgress(slug) {
-    if (!client || !user || !slugs.includes(slug) || !restored.has(user.id)) return;
-    const owner = user.id;
+  const restoreJobs = new Map();
+  async function saveProgress(slug, owner) {
+    if (!client || !owner || owner !== user?.id || !slugs.includes(slug) ||
+        !restored.has(owner)) return;
     const [categoriesKey, historyKey] = localKeys(slug, owner);
     let categories = null, history = null;
     try {
-      categories = JSON.parse(localStorage.getItem(categoriesKey) || 'null');
-      history = JSON.parse(localStorage.getItem(historyKey) || 'null');
+      categories = JSON.parse(readLocal(categoriesKey) || 'null');
+      history = JSON.parse(readLocal(historyKey) || 'null');
     } catch (_) { return; }
     if (categories === null && history === null) return;
-    const payload = { user_id: owner, game_slug: slug, categories, history: Array.isArray(history) ? history.slice(0, 10) : [] };
-    const baseline = officialCategories(slug);
-    if (baseline) payload.official_baseline = baseline;
+    const marker = readLocal(dirtyKey(slug, owner));
+    const payload = {
+      user_id: owner, game_slug: slug, categories,
+      history: Array.isArray(history) ? history.slice(0, 10) : []
+    };
+    const official = officialCategories(slug) ||
+      parseArray(readLocal(baselineKey(slug, owner)));
+    if (official) payload.official_baseline = official;
     if (owner !== user?.id) return;
-    const { error } = await client.from('player_progress').upsert(payload, { onConflict: 'user_id,game_slug' });
-    if (error) console.warn('Sauvegarde en ligne indisponible :', error.message);
+    const { error } = await client.from('player_progress')
+      .upsert(payload, { onConflict: 'user_id,game_slug' });
+    if (error) {
+      console.warn('Sauvegarde en ligne indisponible :', error.message);
+    } else if (owner === user?.id && marker &&
+               marker === readLocal(dirtyKey(slug, owner))) {
+      removeLocal(dirtyKey(slug, owner));
+    }
   }
-  function queueSave(slug) {
+  function queueSave(slug, officialUpdate = false) {
     if (!slugs.includes(slug) || !user) return;
+    const owner = user.id;
+    // Un changement personnel non envoyé doit gagner sur une ancienne sauvegarde
+    // distante. Une fusion officielle n'est pas une modification utilisateur.
+    if (!officialUpdate) writeLocal(dirtyKey(slug, owner), String(Date.now()));
     clearTimeout(saveTimers.get(slug));
-    saveTimers.set(slug, setTimeout(() => saveProgress(slug), 1200));
+    saveTimers.set(slug, setTimeout(() => saveProgress(slug, owner), 1200));
   }
   async function restoreProgress() {
     if (!client || !user) return;
     const owner = user.id;
-    const { data, error } = await client.from('player_progress')
-      .select('game_slug,categories,history,official_baseline').eq('user_id', owner);
-    if (owner !== user?.id) return;
-    if (error) {
-      console.warn('Lecture progression :', error.message);
-      return;
-    }
-    for (const row of (data || [])) {
-      if (!slugs.includes(row.game_slug)) continue;
-      const [catKey, histKey] = localKeys(row.game_slug, owner);
-      let categories = row.categories;
-      const official = officialCategories(row.game_slug);
-      if (official && Array.isArray(categories)) {
-        categories = mergeOfficial(categories, row.official_baseline, official, row.game_slug);
+    if (restoreJobs.has(owner)) return restoreJobs.get(owner);
+    const task = (async () => {
+      const here = currentSlug();
+      const atStart = here ? readLocal(localKeys(here, owner)[0]) : null;
+      const { data, error } = await client.from('player_progress')
+        .select('game_slug,categories,history,official_baseline')
+        .eq('user_id', owner);
+      if (owner !== user?.id) return;
+      if (error) {
+        // Une panne réseau ne doit jamais écraser les données d'un compte.
+        console.warn('Lecture progression :', error.message);
+        return;
       }
-      if (categories !== null) localStorage.setItem(catKey, JSON.stringify(categories));
-      if (row.history !== null) localStorage.setItem(histKey, JSON.stringify(row.history));
-      if (row.game_slug === currentSlug()) {
-        document.dispatchEvent(new CustomEvent('spingames:progress-ready', { detail: { slug: row.game_slug } }));
+      const rows = new Map((data || [])
+        .filter(row => slugs.includes(row.game_slug))
+        .map(row => [row.game_slug, row]));
+      const toCheck = new Set([...rows.keys(), ...(here && slugs.includes(here) ? [here] : [])]);
+      const uploads = [];
+      for (const slug of toCheck) {
+        const row = rows.get(slug);
+        const [catKey, histKey] = localKeys(slug, owner);
+        const localRaw = readLocal(catKey);
+        const localCategories = parseArray(localRaw);
+        const hasLocalEdit = Boolean(readLocal(dirtyKey(slug, owner))) ||
+          (slug === here && localRaw !== atStart);
+        const localWins = hasLocalEdit && Array.isArray(localCategories);
+        const categories = localWins
+          ? localCategories
+          : (Array.isArray(row?.categories) ? row.categories : localCategories);
+        const baseline = localWins
+          ? (parseArray(readLocal(baselineKey(slug, owner))) ||
+             (Array.isArray(row?.official_baseline) ? row.official_baseline : null))
+          : (Array.isArray(row?.official_baseline) ? row.official_baseline
+             : parseArray(readLocal(baselineKey(slug, owner))));
+        const official = officialCategories(slug);
+        const historical = baseline || knownLegacy(slug, categories);
+        const merged = official && Array.isArray(categories)
+          ? mergeOfficial(categories, historical, official) : categories;
+        const mergedRaw = Array.isArray(merged) ? JSON.stringify(merged) : null;
+        if (mergedRaw && mergedRaw !== localRaw) writeLocal(catKey, mergedRaw);
+        if (!localWins && Array.isArray(row?.history)) {
+          writeLocal(histKey, JSON.stringify(row.history));
+        }
+        if (official) {
+          // Base précédente enregistrée localement pour les mises à jour futures,
+          // même lorsqu'aucun enregistrement Supabase n'existe encore.
+          writeLocal(baselineKey(slug, owner), JSON.stringify(official));
+        }
+        if (Array.isArray(merged)) {
+          if (!row || localWins ||
+              (official && (!Array.isArray(row.official_baseline) ||
+                JSON.stringify(row.official_baseline) !== JSON.stringify(official))) ||
+              (Array.isArray(row.categories) &&
+                JSON.stringify(row.categories) !== mergedRaw)) {
+            uploads.push(slug);
+          }
+        }
+        if (slug === here) {
+          document.dispatchEvent(new CustomEvent('spingames:progress-ready', {
+            detail: { slug, synced: Boolean(official) }
+          }));
+        }
       }
-    }
-    restored.add(owner);
-    const active = (data || []).find(row => row.game_slug === currentSlug());
-    if (active && Array.isArray(active.official_baseline) && officialCategories(currentSlug()) &&
-        JSON.stringify(active.official_baseline) !== JSON.stringify(officialCategories(currentSlug()))) {
-      queueSave(currentSlug());
-    }
+      restored.add(owner);
+      for (const slug of uploads) queueSave(slug, true);
+    })();
+    restoreJobs.set(owner, task);
+    try { await task; }
+    finally { if (restoreJobs.get(owner) === task) restoreJobs.delete(owner); }
   }
   const api = {
     get user() { return user; },
