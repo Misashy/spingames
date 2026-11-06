@@ -13,7 +13,7 @@
 @media(max-width:550px){.sg-sims-header{padding:0 8px}.sg-sims-header a{font-size:11px}}
 </style>
 <script src="../../assets/site-config.js" defer></script>
-<script src="../../assets/cloud-sync.js?v=20261105-private-v2" defer></script><script src="../../assets/platform.js?v=20261106-profiles1" defer></script>
+<script src="../../assets/cloud-sync.js?v=20261105-private-v2" defer></script><script src="../../assets/platform.js?v=20261106-officialsync1" defer></script>
 </head><body>
 <header class="sg-sims-header"><a href="../../index.html">← SpinGames · Tous les jeux</a></header>
 <iframe class="sg-sims-frame" id="sg-sims-frame" src="about:blank" title="SimSpin, roue originale des Sims 4" loading="eager"></iframe>
@@ -47,6 +47,10 @@
         officialCategories = groups.flat();
       }
       if (current !== serial) return;
+      // La base officielle de SimSpin est chargée dans le parent, hors de l'iframe.
+      // La transmettre au synchroniseur pour fusionner les nouveautés avec les
+      // catégories du compte sans toucher aux personnalisations.
+      window.SpinGames?.registerOfficialCategories('les-sims-4', officialCategories);
       frame.setAttribute('data-sg-uid', owner);
       const officialJSON = JSON.stringify(officialCategories).replace(/</g, '\\u003c');
       const defaults = '<script type="application/json" id="sg-official-categories">' + officialJSON + '<' + '/script>';
@@ -93,7 +97,10 @@
       });
     } catch (_) {}
   });
-  document.addEventListener('spingames:auth', () => void showGame());
+  document.addEventListener('spingames:auth', () => {
+    if (officialCategories) window.SpinGames?.registerOfficialCategories('les-sims-4', officialCategories);
+    void showGame();
+  });
   document.addEventListener('spingames:progress-ready', event => {
     if (event.detail?.slug === 'les-sims-4') void showGame(true);
   });
