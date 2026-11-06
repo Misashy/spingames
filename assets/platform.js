@@ -200,8 +200,10 @@
     }
     return combined;
   }
+  const registeredOfficial = new Map();
   function officialCategories(slug) {
     if (slug !== currentSlug()) return null;
+    if (registeredOfficial.has(slug)) return registeredOfficial.get(slug);
     try {
       const node = document.getElementById('game-data');
       const data = node ? JSON.parse(node.textContent) : null;
@@ -332,6 +334,21 @@
     get user() { return user; },
     get client() { return client; },
     queueSave,
+    registerOfficialCategories(slug, categories) {
+      if (slug !== currentSlug() || !slugs.includes(slug) ||
+          !Array.isArray(categories)) return;
+      const old = registeredOfficial.get(slug);
+      if (old && JSON.stringify(old) === JSON.stringify(categories)) return;
+      registeredOfficial.set(slug, categories);
+      if (!user) return;
+      const owner = user.id, pending = restoreJobs.get(owner);
+      const resume = () => { if (user?.id === owner) void restoreProgress(); };
+      // Laisser se terminer une restauration lancée avant le chargement des
+      // catégories officielles (cas de l'iframe SimSpin).
+      if (pending) void pending.then(() => setTimeout(resume, 0),
+                                      () => setTimeout(resume, 0));
+      else void restoreProgress();
+    },
     async recordSpin(slug) {
       if (!client || !slugs.includes(slug)) return;
       const { error } = await client.rpc('site_register_spin', { p_visitor_id: visitorId, p_game_slug: slug });
