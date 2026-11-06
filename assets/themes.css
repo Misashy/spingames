@@ -161,46 +161,46 @@ body[data-tone="apex"] { --sg-page-art:url("game-art/optimized/apex.webp"); }
 }
 
 
-/* Huit nouveaux univers : palettes CSS originales (aucune illustration requise).
+/* Huit nouveaux univers : palettes conservées et illustrations WebP optimisées.
    Le moteur des roues et les anciens thèmes restent strictement inchangés. */
 body[data-tone="valorant"] {
   --accent:#ff879a; --accent2:#a79bff; --mist:#c3456845;
-  --sg-page-art:radial-gradient(circle at 81% 32%,#dc4f76 0%,#462340 42%,#131424 78%);
+  --sg-page-art:url("new-game-art/valorant.webp");
   background:#161321;
 }
 body[data-tone="lol"] {
   --accent:#c7dd9b; --accent2:#7ed9d0; --mist:#338fac44;
-  --sg-page-art:radial-gradient(circle at 80% 30%,#317e87,#21436a 48%,#151e2c 80%);
+  --sg-page-art:url("new-game-art/league-of-legends.webp");
   background:#111d2a;
 }
 body[data-tone="overwatch"] {
   --accent:#ffd08d; --accent2:#a6dbf6; --mist:#eb9f4f42;
-  --sg-page-art:radial-gradient(circle at 75% 24%,#d5a65d,#615477 49%,#182334 83%);
+  --sg-page-art:url("new-game-art/overwatch.webp");
   background:#202130;
 }
 body[data-tone="cs"] {
   --accent:#e9c88f; --accent2:#9dc7bf; --mist:#bda36342;
-  --sg-page-art:radial-gradient(circle at 77% 27%,#a08d67,#3b4a4b 49%,#18202c 83%);
+  --sg-page-art:url("new-game-art/counter-strike.webp");
   background:#192128;
 }
 body[data-tone="warzone"] {
   --accent:#a4edb3; --accent2:#c2bb9f; --mist:#719a7444;
-  --sg-page-art:radial-gradient(circle at 80% 22%,#497d61,#35433b 49%,#141e24 83%);
+  --sg-page-art:url("new-game-art/warzone.webp");
   background:#131d1e;
 }
 body[data-tone="dota"] {
   --accent:#ff9c93; --accent2:#d7a1be; --mist:#b74d5c44;
-  --sg-page-art:radial-gradient(circle at 79% 26%,#a2444c,#552c3d 47%,#201924 84%);
+  --sg-page-art:url("new-game-art/dota-2.webp");
   background:#20151c;
 }
 body[data-tone="deadlock"] {
   --accent:#d0b1ff; --accent2:#83d2c3; --mist:#9273d347;
-  --sg-page-art:radial-gradient(circle at 79% 22%,#8965aa,#3f526b 49%,#151d2c 84%);
+  --sg-page-art:url("new-game-art/deadlock.webp");
   background:#1a1e2e;
 }
 body[data-tone="dofus"] {
   --accent:#f0d38d; --accent2:#9cdcb5; --mist:#d2aa6844;
-  --sg-page-art:radial-gradient(circle at 79% 23%,#a5a76a,#47765e 49%,#202e2c 84%);
+  --sg-page-art:url("new-game-art/dofus.webp");
   background:#18271f;
 }
 body:is([data-tone="valorant"],[data-tone="lol"],[data-tone="overwatch"],
