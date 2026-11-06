@@ -1,0 +1,53 @@
+/* SpinGames — Fonds globaux d'ambiance des huit jeux (hors SimSpin).
+   Chargé après themes.css, sans toucher aux roues, au héros ni aux profils.
+   Les panneaux et bannières conservent leur style existant. */
+body[data-tone="minecraft"] { --sg-global-page-art: url("page-backgrounds/minecraft-bg.webp"); }
+body[data-tone="apex"]      { --sg-global-page-art: url("page-backgrounds/apex-bg.webp"); }
+body[data-tone="ror2"]      { --sg-global-page-art: url("page-backgrounds/risk-of-rain-2-bg.webp"); }
+body[data-tone="fm"]        { --sg-global-page-art: url("page-backgrounds/football-manager-bg.webp"); }
+body[data-tone="fortnite"]  { --sg-global-page-art: url("page-backgrounds/fortnite-bg.webp"); }
+body[data-tone="mario"]     { --sg-global-page-art: url("page-backgrounds/mario-kart-bg.webp"); }
+body[data-tone="elden"]     { --sg-global-page-art: url("page-backgrounds/elden-ring-bg.webp"); }
+body[data-tone="pubg"]      { --sg-global-page-art: url("page-backgrounds/pubg-bg.webp"); }
+
+/* Une couche fixe à la taille de l'écran garde le cadrage cover même sur
+   les longues pages mobiles, sans background-attachment: fixed ni étirement.
+   L'isolation place le décor derrière les contenus, au-dessus du fond de repli. */
+body:is([data-tone="minecraft"], [data-tone="apex"], [data-tone="ror2"],
+        [data-tone="fm"], [data-tone="fortnite"], [data-tone="mario"],
+        [data-tone="elden"], [data-tone="pubg"]) {
+  isolation: isolate;
+}
+
+body:is([data-tone="minecraft"], [data-tone="apex"], [data-tone="ror2"],
+        [data-tone="fm"], [data-tone="fortnite"], [data-tone="mario"],
+        [data-tone="elden"], [data-tone="pubg"]) .backdrop {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: #10141d;
+  background-image:
+    linear-gradient(180deg, rgba(7,10,17,.84), rgba(7,10,17,.88) 55%, rgba(7,10,17,.90)),
+    radial-gradient(ellipse at 76% 8%, var(--mist, rgba(120,130,150,.13)), transparent 59%),
+    var(--sg-global-page-art);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Un voile un peu plus fort sur les écrans tactiles et étroits.
+   Le décor reste indépendant de la hauteur du document pendant le défilement. */
+@media (max-width: 700px), (hover: none) {
+  body:is([data-tone="minecraft"], [data-tone="apex"], [data-tone="ror2"],
+        [data-tone="fm"], [data-tone="fortnite"], [data-tone="mario"],
+        [data-tone="elden"], [data-tone="pubg"]) .backdrop {
+    background-image:
+      linear-gradient(180deg, rgba(7,10,17,.88), rgba(7,10,17,.90)),
+      radial-gradient(ellipse at 76% 8%, var(--mist, rgba(120,130,150,.13)), transparent 59%),
+      var(--sg-global-page-art);
+  }
+}
+
+/* Aucune règle ne s'applique à SimSpin, aux panneaux ou aux bannières. */
