@@ -132,32 +132,70 @@
   const dispatch = () => document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
   const saveTimers = new Map();
   const restored = new Set();
-  function mergeOfficial(saved, previousBase, currentBase, slug) {
-    if (!Array.isArray(saved) || !Array.isArray(previousBase) || !Array.isArray(currentBase)) return saved;
-    const previous = new Map(previousBase.filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
-    const combined = saved.map(c => ({ ...c, items: Array.isArray(c.items) ? [...c.items] : [] }));
+  // Base officielle historique du premier catalogue Valorant. Utilisée une seule fois
+  // pour identifier les listes des comptes créés avant l'arrivée des 100 défis.
+  // Les listes inconnues/personnalisées ne sont jamais assimilées aux défauts.
+  const legacyOfficial = { valorant: [{"name":"Facile","items":["Annonce une information utile après chaque duel","Pose ton viseur à hauteur de tête avant chaque angle","Achète un équipement cohérent avec ton équipe","Utilise ton utilitaire avant de prendre une zone","Propose une stratégie simple au début de la manche","Assure une position de soutien sur un site","Joue une manche en restant proche d'un allié","Fais au moins un échange de duel (trade) avec un allié"]},{"name":"Moyen","items":["Gagne un duel en jouant patiemment un angle","Réussis une entrée coordonnée avec ton équipe","Fais une élimination après une flash alliée","Protège un poseur ou un désamorceur jusqu'au bout","Ne change pas d'arme pendant trois manches","Utilise tes compétences pour retarder une attaque","Réalise une bonne reprise de site à deux","Gagne une manche en utilisant une fausse rotation"]},{"name":"Difficile","items":["Remporte un duel sans te faire toucher","Réalise deux éliminations dans une même manche","Gagne une manche en ne prenant que les duels avec un allié prêt au trade","Désamorce le spike après avoir sécurisé toutes les positions proches","Réussis une élimination avec une arme secondaire","Gagne un round d'éco sans forcer l'achat","Prends un site sans subir de perte de ton équipe","Remporte un clutch en infériorité numérique"]},{"name":"Extrême","items":["Termine une manche avec trois éliminations ou plus","Remporte un clutch 1 contre 3","Gagne une manche sans utiliser d'armure (en partie personnalisée)","Réalise un tir décisif au dernier moment","Gagne un duel contre un adversaire mieux équipé","Remporte deux manches d'affilée en utilisant seulement un pistolet (partie privée)","Réussis un ace en partie personnalisée ou publique","Remporte un round avec uniquement des achats coordonnés"]},{"name":"Défi Trool","items":["Joue un round avec une voix d'espion (entre amis)","Donne un nom improbable à chaque stratégie sans gêner l'équipe","Échange les rôles habituels de ton groupe pendant une partie privée","Utilise uniquement les noms de lieux en français pendant une manche","Fais choisir ton agent par ton groupe en partie non classée","Nomme chaque duel remporté comme un épisode de série","Fais un briefing tactique en dix mots maximum entre amis","Célèbre un clutch avec un slogan inventé"]},{"name":"Défi Spéciaux","items":["Gagne trois manches avec trois stratégies d'entrée différentes","Joue une partie en changeant de rôle par rapport à ton habitude","Réalise un désamorçage sous couverture de fumée","Protège un allié jusqu'à la fin d'une manche","Gagne un round en économisant tes crédits au début","Réussis une reprise de site après une rotation adverse","Remporte une manche sans perdre le spike","Fais une partie en ne donnant que des communications utiles"]}] };
+  const baselineKey = (slug, owner) => 'spingames.account.'+owner+'.devwebgames.'+slug+'.official-baseline.v1';
+  const dirtyKey = (slug, owner) => 'spingames.account.'+owner+'.devwebgames.'+slug+'.dirty.v1';
+  const readLocal = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+  const writeLocal = (key, value) => { try { localStorage.setItem(key, value); return true; } catch (_) { return false; } };
+  const removeLocal = key => { try { localStorage.removeItem(key); } catch (_) {} };
+  function parseArray(raw) {
+    if (!raw) return null;
+    try { const value = JSON.parse(raw); return Array.isArray(value) ? value : null; }
+    catch (_) { return null; }
+  }
+  function knownLegacy(slug, categories) {
+    const old = legacyOfficial[slug];
+    if (!Array.isArray(categories) || !old) return null;
+    // Un défi identique prouve que la liste contient encore du contenu d'origine.
+    // En l'absence de preuve, on conserve les modifications telles quelles.
+    const match = categories.some(cat => {
+      const origin = old.find(previous => previous.name === cat?.name);
+      return origin && Array.isArray(cat.items) &&
+        cat.items.some(item => origin.items.includes(item));
+    });
+    return match ? old : null;
+  }
+  function mergeOfficial(saved, previousBase, currentBase) {
+    if (!Array.isArray(saved) || !Array.isArray(currentBase)) return saved;
+    const previous = new Map((Array.isArray(previousBase) ? previousBase : [])
+      .filter(c => c && typeof c.name === 'string').map(c => [c.name, c]));
+    const combined = saved.map(c => ({
+      ...c, items: Array.isArray(c?.items) ? [...c.items] : []
+    }));
     for (const official of currentBase) {
       if (!official || typeof official.name !== 'string') continue;
       const old = previous.get(official.name);
+      const own = combined.find(c => c?.name === official.name);
       if (!old) {
-        if (!combined.some(c => c.name === official.name)) combined.push(official);
+        // Nouvelle catégorie : la rendre disponible sans changer les roues cochées.
+        if (!own) combined.push({ ...official,
+          items: Array.isArray(official.items) ? [...official.items] : [],
+          active: false
+        });
         continue;
       }
-      const own = combined.find(c => c.name === official.name);
-      if (!own || !Array.isArray(official.items)) continue;
-      // Valorant : si la liste n'avait pas été personnalisée, remplacer l'ancien
-      // lot officiel de 8 défis par le nouveau (20/15/10). Les réglages de la
-      // catégorie sont conservés. Ne jamais écraser une liste personnalisée.
-      if (slug === 'valorant' && Array.isArray(old.items) &&
-          own.items.length === old.items.length &&
-          own.items.every((item, index) => item === old.items[index])) {
+      // Catégorie supprimée/renommée personnellement : ne pas la recréer.
+      if (!own || !Array.isArray(official.items) || !Array.isArray(old.items)) continue;
+      const oldItems = old.items;
+      if (own.items.length === oldItems.length &&
+          own.items.every((item, index) => item === oldItems[index])) {
+        // Liste intacte : remplacer l'ancien contenu officiel (sans toucher aux
+        // options personnelles : activation, nombre de tirages, style, etc.).
         own.items = [...official.items];
-        continue;
-      }
-      const oldItems = new Set(Array.isArray(old.items) ? old.items : []);
-      const personalItems = new Set(own.items);
-      for (const item of official.items) {
-        if (!oldItems.has(item) && !personalItems.has(item)) { own.items.push(item); personalItems.add(item); }
+      } else {
+        // Liste personnalisée : conserver modifications et suppressions de l'ancien
+        // contenu ; n'ajouter que les défis réellement nouveaux depuis la base.
+        const previousItems = new Set(oldItems);
+        const personalItems = new Set(own.items);
+        for (const item of official.items) {
+          if (!previousItems.has(item) && !personalItems.has(item)) {
+            own.items.push(item);
+            personalItems.add(item);
+          }
+        }
       }
     }
     return combined;
