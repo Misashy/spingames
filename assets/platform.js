@@ -291,6 +291,7 @@
       const { data } = await client.auth.getUser();
       user = data?.user || null;
       present();
+      dispatch();
       void window.SpinGamesCloud?.setSession(client, user);
       if (user && !restored.has(user.id)) void restoreProgress();
       heartbeat();
