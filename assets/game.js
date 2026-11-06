@@ -9,7 +9,7 @@
  platformStyle.rel='stylesheet';platformStyle.href='../../assets/platform.css';
  const siteConfig=document.createElement('script');siteConfig.src='../../assets/site-config.js';siteConfig.async=false;
  const cloudScript=document.createElement('script');cloudScript.src='../../assets/cloud-sync.js?v=20261105-private-v2';cloudScript.async=false;
- const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-officialsync1';platformScript.async=false;
+ const platformScript=document.createElement('script');platformScript.src='../../assets/platform.js?v=20261106-lol100-1';platformScript.async=false;
  document.head.append(platformStyle,siteConfig,cloudScript,platformScript);
 
  const CAT_KEY=`devwebgames.${game.slug}.categories.v1`;
