@@ -129,7 +129,15 @@
   });
   present();
 
-  const dispatch = () => document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
+  const dispatch = () => {
+    // Avant d'afficher les roues du compte, intégrer les nouveautés officielles
+    // directement dans ses données locales, sans attendre un appel réseau.
+    if (user) {
+      const slug = currentSlug();
+      if (slug && slug !== 'les-sims-4') syncLocalOfficial(slug, officialCategories(slug));
+    }
+    document.dispatchEvent(new CustomEvent('spingames:auth', { detail: { user } }));
+  };
   const saveTimers = new Map();
   const restored = new Set();
   // Base officielle historique du premier catalogue Valorant. Utilisée une seule fois
@@ -203,6 +211,60 @@
       }
     }
     return combined;
+  }
+  // Fusion immédiate et locale, même si Supabase ne répond pas ou n'a pas encore
+  // de sauvegarde pour ce jeu. Cette étape ne touche jamais à l'historique.
+  function countShared(saved, baseline) {
+    if (!Array.isArray(saved) || !Array.isArray(baseline)) return 0;
+    return saved.reduce((sum, cat) => {
+      const official = baseline.find(b => b?.name === cat?.name);
+      if (!official || !Array.isArray(cat?.items) || !Array.isArray(official.items))
+        return sum;
+      const matches = new Set(official.items);
+      return sum + cat.items.filter(item => matches.has(item)).length;
+    }, 0);
+  }
+  function priorOfficial(slug, saved, baseline) {
+    const legacy = knownLegacy(slug, saved);
+    const base = asCategories(baseline);
+    if (legacy && countShared(saved, legacy) > countShared(saved, base)) return legacy;
+    return base || legacy;
+  }
+  function syncLocalOfficial(slug, current) {
+    if (!user || slug !== currentSlug() || !slugs.includes(slug)) return false;
+    const official = asCategories(current) || officialCategories(slug);
+    if (!official) return false;
+    const owner = user.id;
+    const [localKey] = localKeys(slug, owner);
+    const raw = readLocal(localKey);
+    const saved = parseArray(raw);
+    if (!saved) return false; // Aucune copie locale : laisser Supabase restaurer.
+    const baseKey = baselineKey(slug, owner);
+    const historical = priorOfficial(slug, saved, parseArray(readLocal(baseKey)));
+    if (!historical) return false; // Ancienne base inconnue : ne rien inventer.
+    const merged = mergeOfficial(saved, historical, official);
+    const next = JSON.stringify(merged);
+    if (next === JSON.stringify(saved)) {
+      writeLocal(baseKey, JSON.stringify(official));
+      return false;
+    }
+    const backup = 'spingames.backup.'+owner+'.'+slug+'.before-local-official-sync.v1';
+    // Conserver la première copie d'origine pour pouvoir revenir en arrière.
+    if (!readLocal(backup) && !writeLocal(backup, raw)) {
+      console.warn('Copie de sécurité indisponible : fusion officielle annulée.');
+      return false;
+    }
+    if (!writeLocal(localKey, next)) {
+      console.warn('Stockage indisponible : fusion officielle annulée.');
+      return false;
+    }
+    writeLocal(baseKey, JSON.stringify(official));
+    writeLocal(dirtyKey(slug, owner), String(Date.now()));
+    document.dispatchEvent(new CustomEvent('spingames:progress-ready', {
+      detail: {slug, synced:true, local:true}
+    }));
+    if (restored.has(owner)) queueSave(slug, true);
+    return true;
   }
   const registeredOfficial = new Map();
   function officialCategories(slug) {
@@ -351,6 +413,7 @@
     get user() { return user; },
     get client() { return client; },
     queueSave,
+    syncLocalOfficial,
     registerOfficialCategories(slug, categories) {
       if (slug !== currentSlug() || !slugs.includes(slug) ||
           !Array.isArray(categories)) return;
@@ -358,6 +421,7 @@
       if (old && JSON.stringify(old) === JSON.stringify(categories)) return;
       registeredOfficial.set(slug, categories);
       if (!user) return;
+      syncLocalOfficial(slug, categories);
       const owner = user.id, pending = restoreJobs.get(owner);
       const resume = () => { if (user?.id === owner) void restoreProgress(); };
       // Laisser se terminer une restauration lancée avant le chargement des
