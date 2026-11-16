@@ -16,8 +16,8 @@
   const SPRITE_ROOT = 'assets/sprites/';
   // Portraits GIF sur GitHub (PokeAPI), avec PNG locaux de secours.
   const POKE_IDS={bulbasaur:1,charmander:4,squirtle:7,pikachu:25,pidgey:16,oddish:43,geodude:74,vulpix:37,psyduck:54,eevee:133,gastly:92,magnemite:81,machop:66,dratini:147,rattata:19,zubat:41,ekans:23,meowth:52,poliwag:60,sandshrew:27,koffing:109,snorlax:143,onix:95,dragonite:149};
-  const ANIMATED_ROOT='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/';
-  const animatedSprite=key=>POKE_IDS[key]?ANIMATED_ROOT+POKE_IDS[key]+'.gif':SPRITE_ROOT+key+'.png';
+  const ANIMATED_ROOT='assets/animated/';
+  const animatedSprite=key=>POKE_IDS[key]?ANIMATED_ROOT+key+'.gif':SPRITE_ROOT+key+'.png';
   const TYPE_COLOR = {Feu:'#f38b5a',Eau:'#69b9f5',Plante:'#73c987',Electrik:'#f4c859',Vol:'#a9b3ef',Roche:'#b7a184',Spectre:'#a68adb',Normal:'#aab4bc',Poison:'#b37ad0',Combat:'#df816e',Dragon:'#7d8cec'};
   const SPECIES = {
     bulbasaur:{name:'Bulbizarre',type:'Plante',emoji:'🌱',damage:17,cooldown:1.05,coins:42,energy:20,berries:20,unlock:0,starter:true},
@@ -123,8 +123,8 @@
   function playSprite(key){
     if(pictures.has(key))return pictures.get(key);
     const img=new Image();const value={img,loaded:false,error:false};pictures.set(key,value);
-    img.onload=()=>{value.loaded=true};img.onerror=()=>{value.error=true};
-    img.src=SPRITE_ROOT+encodeURIComponent(key)+'.png';return value;
+    img.onload=()=>{value.loaded=true};img.onerror=()=>{if(!value.fallback){value.fallback=true;img.src=SPRITE_ROOT+encodeURIComponent(key)+'.png'}else value.error=true};
+    img.src=animatedSprite(key);return value;
   }
   function avatar(key,cls=''){
     const info=SPECIES[key]||ENEMIES[key]||{name:key,emoji:'✦'};
