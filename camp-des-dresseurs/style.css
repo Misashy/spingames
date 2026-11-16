@@ -9,3 +9,21 @@
 .poke-avatar img{position:absolute;inset:0;opacity:0;transition:opacity .15s}.poke-avatar img[hidden]{display:none!important}.poke-avatar .emoji{display:grid;place-items:center;width:100%;height:100%}.starter-option .poke-avatar{width:91px;height:91px;background:radial-gradient(circle,#fff,#eef8fb)}.starter-option .poke-avatar img{width:90px;height:90px}
 @media(max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}.panel,.game-main,.canvas-card,.battlebar,.bottom-row{min-width:0}.shop-list{grid-template-columns:repeat(2,minmax(0,1fr))}.battlebar{grid-template-columns:repeat(2,minmax(0,1fr))}.panel-right .roster-list,.panel-right .team-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.shop-list{grid-template-columns:minmax(0,1fr)}.panel-right .roster-list,.panel-right .team-list{grid-template-columns:minmax(0,1fr)}.panel-right .upgrades{grid-template-columns:minmax(0,1fr)}.resource-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.resource{min-width:0}.resource em{font-size:8px}.header-actions{gap:5px}.mini-btn{font-size:10px}.battlebar{grid-template-columns:repeat(2,minmax(0,1fr))}.wave-title strong{font-size:16px}.action-button{white-space:normal}.map-hint{max-width:calc(100% - 10px)}}
+/* Camp des Dresseurs alpha 0.2 — caméra, bâtiments et expéditions */
+.shop-item.is-selected{border-color:#ed8189;background:#fff2f0;box-shadow:0 0 0 2px #fde1df}
+.map-view{position:absolute;right:12px;top:12px;background:#fffdf5ec;border:2px solid #d5e5d4;border-radius:99px;color:#3a7881;padding:9px 12px;font-size:11px;font-weight:1000;box-shadow:0 4px 0 #638c8035;z-index:2}
+.map-view:hover{background:#e8fbf3}
+.expedition-panel{border:2px solid #dbe9e1;border-radius:22px;padding:14px;background:linear-gradient(140deg,#fafff8,#effaf7);box-shadow:0 5px 0 #d4e5df}
+.expedition-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}
+.expedition-header h2{margin:3px 0;font-size:16px;color:#396b69}
+.expedition-header p{margin:0;font-size:11px;color:#557f78;text-align:right;line-height:1.45}
+.expedition-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.expedition-button{display:flex;align-items:center;gap:9px;padding:11px;background:white;border:2px solid #d9ebe3;border-radius:14px;text-align:left;color:#3d695f;min-width:0}
+.expedition-button:hover:not(:disabled){background:#e4f8ef;border-color:#8ec9a7}
+.expedition-button:disabled{opacity:.5;cursor:not-allowed}
+.expedition-emoji{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#e9f4ed;font-size:19px;flex-shrink:0}
+.expedition-details{display:block;min-width:0;flex:1}
+.expedition-details strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expedition-details small{display:block;font-size:10px;color:#71918a;margin-top:3px;line-height:1.3}
+.expedition-loot{font-size:16px}
+@media(max-width:700px){.expedition-header{display:block}.expedition-header p{text-align:left;margin:7px 0 0}.expedition-list{grid-template-columns:1fr}.map-view{font-size:9px;top:6px;right:6px;padding:6px}.expedition-panel{padding:10px}.map-hint{max-width:95%}}
