@@ -84,7 +84,7 @@
   meta.best=Math.max(0,Number(meta.best)||0);meta.badges=Math.max(0,Number(meta.badges)||0);
   const maxHp = () => 240+meta.upgrades.barrier*35;
   const initialResources = () => ({berries:72+meta.upgrades.supplies*20,energy:65+meta.upgrades.supplies*20,coins:100+meta.upgrades.supplies*20,balls:3});
-  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),buildingLevels:Array(6).fill(0),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,expedition:null,expeditionsDone:0,ballsTimer:40});
+  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),buildingLevels:Array(6).fill(0),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],floaters:[],rings:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,expedition:null,expeditionsDone:0,ballsTimer:40});
   let game = safeLoad(RUN_KEY);
   if(!game||!Array.isArray(game.buildings)||!Array.isArray(game.team)||!game.resources||!Array.isArray(game.enemies))game=freshRun();
   Object.assign(game,{paused:false,speed:1,over:false});
@@ -143,7 +143,7 @@
     persist();render(true);
   }
   function resetRun(){
-    game=freshRun();selected=null;hovered=-1;
+    game=freshRun();selected=null;hovered=-1;cameraTarget=0;
     $('startOverlay').classList.remove('hidden');$('endOverlay').classList.add('hidden');
     printLog('🌿 Nouvelle aventure : choisis ton Pokémon de départ.');
     persist();render(true);
@@ -454,7 +454,7 @@
     $('toggleRoster').innerHTML=(rosterOpen?'− Fermer le recrutement':'＋ Recruter un Pokémon')+` <span>${rosterOpen?'⌃':'⌄'}</span>`;
     if(game.starter)$('startOverlay').classList.add('hidden');
     if(game.over)$('endOverlay').classList.remove('hidden');
-    if(force){shopSig='';teamSig='';rosterSig='';upgradeSig='';}
+    if(force){shopSig='';teamSig='';rosterSig='';upgradeSig='';expeditionSig='';}
     const sig=JSON.stringify([selected,BUILDINGS.map(b=>canBuy(b.cost)),game.buildings,game.over]);
     if(sig!==shopSig){shopSig=sig;
       $('buildingShop').innerHTML=BUILDINGS.map((b,i)=>`<button class="shop-item ${selected===b.id?'is-selected':''}" data-building="${b.id}" aria-pressed="${selected===b.id}" title="Touche ${i+1}"><span class="shop-icon">${b.emoji}</span><span class="shop-description"><span class="shop-name">${b.name}</span><span class="shop-sub">${b.desc}</span><span class="shop-cost ${canBuy(b.cost)?'':'unaffordable'}">${price(b.cost)}</span></span><span class="shop-index">${i+1}</span></button>`).join('');
