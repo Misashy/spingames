@@ -77,13 +77,14 @@
   meta.best=Math.max(0,Number(meta.best)||0);meta.badges=Math.max(0,Number(meta.badges)||0);
   const maxHp = () => 240+meta.upgrades.barrier*35;
   const initialResources = () => ({berries:72+meta.upgrades.supplies*20,energy:65+meta.upgrades.supplies*20,coins:100+meta.upgrades.supplies*20,balls:3});
-  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,ballsTimer:40});
+  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),buildingLevels:Array(6).fill(0),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,ballsTimer:40});
   let game = safeLoad(RUN_KEY);
   if(!game||!Array.isArray(game.buildings)||!Array.isArray(game.team)||!game.resources||!Array.isArray(game.enemies))game=freshRun();
   Object.assign(game,{paused:false,speed:1,over:false});
   game.particles=[];game.projectiles=[];
   game.captures ||= [];game.id ||= 1;game.ballsTimer ||= 40;game.clock ||= 0;
   game.night ||= 0;
+  game.buildingLevels=game.buildings.map((b,i)=>b?Math.max(1,Math.min(3,Number(game.buildingLevels?.[i])||1)):0);
   let selected=null,hovered=-1,rosterOpen=true,prevFrame=performance.now(),uiClock=0,saveClock=0,toastTimer=0;
   let shopSig='',teamSig='',rosterSig='',upgradeSig='';
   let soundOn=false,audio=null;
@@ -94,8 +95,10 @@
   const maxLevel=12;
   const xpNeed=level=>4+level*4;
   const buildingCount=id=>game.buildings.filter(v=>v===id).length;
-  const rates=()=>({berries:.75+buildingCount('orchard')*2.4,energy:.65+buildingCount('power')*1.9,coins:.25+buildingCount('shop')*1.2});
-  const damageBonus=()=>1+meta.upgrades.bond*.12+buildingCount('dojo')*.12;
+  const buildingPower=id=>game.buildings.reduce((total,v,i)=>total+(v===id?1+.75*((game.buildingLevels[i]||1)-1):0),0);
+  const buildingPrice=(id,level)=>Object.fromEntries(Object.entries(BUILDINGS.find(b=>b.id===id).cost).map(([resource,n])=>[resource,Math.ceil(n*(1+level*.7))]));
+  const rates=()=>({berries:.75+buildingPower('orchard')*2.4,energy:.65+buildingPower('power')*1.9,coins:.25+buildingPower('shop')*1.2});
+  const damageBonus=()=>1+meta.upgrades.bond*.12+buildingPower('dojo')*.12;
   const upgradeCost=id=>3+meta.upgrades[id]*3;
   const price=cost=>Object.entries(cost).map(([r,n])=>`${r==='berries'?'🍓':r==='energy'?'⚡':'🪙'} ${n}`).join('  ');
   const canBuy=cost=>Object.entries(cost).every(([r,n])=>(game.resources[r]||0)>=n);
@@ -162,12 +165,26 @@
     toast(selected?`${BUILDINGS.find(x=>x.id===id).name} : clique une parcelle libre.`:'Placement annulé.');
     render(true);
   }
+  function upgradeBuilding(slot){
+    const id=game.buildings[slot];
+    if(!id||game.over||!game.starter)return;
+    const level=game.buildingLevels[slot]||1;
+    if(level>=3){toast('Ce bâtiment est déjà au niveau maximal (3).');return}
+    const cost=buildingPrice(id,level);
+    if(!pay(cost)){toast('Amélioration : '+price(cost)+' nécessaires.');return}
+    game.buildingLevels[slot]=level+1;
+    const b=BUILDINGS.find(b=>b.id===id),pos=SLOTS[slot];
+    effect(pos.x,pos.y-42,'#ffe48c',22);
+    printLog('🏗️ '+b.name+' passe au niveau '+(level+1)+' ! Production renforcée.');
+    toast('⬆ '+b.name+' · niveau '+(level+1)+'/3');ping(830,.16,'triangle');
+    persist();render(true);
+  }
   function placeBuilding(slot){
     if(!game.starter||game.over)return;
-    if(game.buildings[slot]){toast('Cette parcelle est déjà occupée.');return}
+    if(game.buildings[slot]){upgradeBuilding(slot);return}
     if(!selected){toast('Sélectionne d’abord un bâtiment à gauche.');return}
     const b=BUILDINGS.find(x=>x.id===selected);if(!pay(b.cost)){toast('Il manque des ressources pour ce bâtiment.');return}
-    game.buildings[slot]=selected;selected=null;
+    game.buildings[slot]=selected;game.buildingLevels[slot]=1;selected=null;
     effect(SLOTS[slot].x,SLOTS[slot].y-30,'#ffe280',16);
     printLog(`🏡 Construction terminée : ${b.name} !`);ping(610,.16,'triangle');persist();render(true);
   }
@@ -288,8 +305,8 @@
     game.night+=(Number(game.waveActive)-game.night)*Math.min(1,dt*.4);
     if(!game.starter||game.over)return;
     const ratesNow=rates();for(const r of ['berries','energy','coins'])game.resources[r]+=ratesNow[r]*dt;
-    game.hp=Math.min(maxHp(),game.hp+buildingCount('center')*.85*dt);
-    if(buildingCount('lab')){game.ballsTimer-=dt*buildingCount('lab');if(game.ballsTimer<=0){game.resources.balls++;game.ballsTimer+=40;}}
+    game.hp=Math.min(maxHp(),game.hp+buildingPower('center')*.85*dt);
+    if(buildingCount('lab')){game.ballsTimer-=dt*buildingPower('lab');if(game.ballsTimer<=0){game.resources.balls++;game.ballsTimer+=40;}}
     for(const p of game.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=190*dt;p.life-=dt}
     game.particles=game.particles.filter(p=>p.life>0);
     if(!game.waveActive){game.waveTimer-=dt;if(game.waveTimer<=0)startWave();return}
@@ -341,6 +358,7 @@
     $('hp').textContent=nfmt(game.hp);$('maxHp').textContent=nfmt(maxHp());
     $('hpBar').style.width=clamp(game.hp/maxHp()*100,0,100)+'%';
     $('hpBar').style.background=game.hp/maxHp()<.3?'#f04f65':'linear-gradient(90deg,#6ad4a3,#8de9b0)';
+    $('mapHint').textContent=hovered>=0&&game.buildings[hovered]?(game.buildingLevels[hovered]>=3?'Niveau maximum':('Niveau '+game.buildingLevels[hovered]+'/3 · cliquer pour améliorer : '+price(buildingPrice(game.buildings[hovered],game.buildingLevels[hovered])))):selected?'🏗️ Clique sur une parcelle libre pour construire':'🏡 Clique sur un bâtiment pour l’améliorer · 1–6 pour construire';
     $('waveLabel').textContent=`VAGUE ${game.wave+1}`;
     $('worldTitle').textContent=game.waveActive?'⚔️ Le camp est attaqué !':'🌿 Le camp reprend des forces';
     $('worldSubtitle').textContent=game.waveActive?`${game.enemies.filter(e=>e.hp>0).length+game.spawnLeft} adversaires à repousser`:'Construis, recrute et prépare la prochaine vague.';
@@ -513,7 +531,8 @@
     for(let i=0;i<SLOTS.length;i++){
       const s=SLOTS[i],occupied=game.buildings[i],over=hovered===i;
       ellipse(s.x,s.y+4,68,19,'#63aa6b70');
-      if(occupied){if(over){round(s.x-69,s.y-125,138,139,19,'#ffffff26','#fffdd2',3)}drawBuilding(occupied,s.x,s.y)}
+      if(occupied){if(over){round(s.x-69,s.y-125,138,139,19,'#ffffff26','#fffdd2',3)}drawBuilding(occupied,s.x,s.y);
+         round(s.x+24,s.y-121,46,24,10,'#fffbea','#e7b765');label('NV.'+(game.buildingLevels[i]||1),s.x+47,s.y-105,12,'#855a38');}
       else{
         round(s.x-65,s.y-106,130,110,19,over?'#fff1b86c':'#e6f6d337',over?'#ffe17a':'#dceabd',over?4:2);
         ctx.save();ctx.setLineDash([8,6]);ctx.strokeStyle=over?'#f7bd4c':'#8acb99';ctx.lineWidth=2;ctx.strokeRect(s.x-55,s.y-93,110,87);ctx.restore();
