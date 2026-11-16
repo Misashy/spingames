@@ -35,9 +35,11 @@ La sauvegarde de partie et la méta-progression utilisent le stockage local du n
 
 ## Sprites et droits
 
-Les sprites Pokémon ne sont **pas distribués dans le ZIP** : le jeu essaie de les charger en direct depuis les URL publiques des sprites génération 5 de [Pokémon Database](https://pokemondb.net/sprites), puis utilise des icônes de secours si le serveur refuse ou si vous êtes hors ligne. Le jeu lui-même fonctionne alors quand même.
+- 24 sprites PNG issus du dépôt [PokéAPI/sprites](https://github.com/PokeAPI/sprites) sont intégrés localement dans `assets/sprites/` et servis directement depuis GitHub Pages, y compris sans service externe.
+- Les portraits utilisent, lorsqu'ils sont accessibles, les GIF animés de la génération V du même dépôt hébergé sur GitHub. Si le chargement échoue ou si la connexion est coupée, le jeu affiche automatiquement les PNG locaux.
+- La carte et les combats animés sur Canvas utilisent les sprites PNG locaux ; le gameplay ne dépend d'aucun serveur de jeu.
 
-Ce projet est un prototype personnel **non officiel**, sans affiliation avec Nintendo, Game Freak ou The Pokémon Company. Pokémon Database n'est pas titulaire des droits sur les personnages ni leurs sprites. Le fait qu'il s'agisse d'un projet gratuit n'autorise pas la distribution ou la publication des éléments Pokémon ; il faut prendre en compte les droits de leurs titulaires avant de le diffuser.
+Les personnages et images Pokémon demeurent protégés et leur utilisation exige les droits appropriés. Le dépôt PokéAPI indique explicitement que les images sont © The Pokémon Company : sa licence de distribution ne constitue pas à elle seule une autorisation d'exploiter l'univers Pokémon.
 
 ## Code source
 
@@ -47,5 +49,5 @@ Ce projet est un prototype personnel **non officiel**, sans affiliation avec Nin
 
 La version est indépendante de Bastion des Brumes, avec ses propres clés de sauvegarde : aucun ancien jeu n'est modifié.
 
-## Hébergement des sprites
-Les sprites présents dans `assets/sprites/` proviennent de la collection PokeAPI/sprites. Ils sont hébergés directement sur GitHub Pages. Les personnages Pokémon restent la propriété de leurs ayants droit.
+## Hébergement
+Le dossier `camp-des-dresseurs/` est autonome et fonctionne comme un site statique sur GitHub Pages, sans toucher aux autres pages de `spingames`.
