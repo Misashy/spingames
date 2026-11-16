@@ -17,7 +17,7 @@
       <div><p class="eyebrow">FAN-GAME • VILLAGE DEFENSE</p><h1>Camp des <span>Dresseurs</span></h1></div>
     </div>
     <nav class="header-actions" aria-label="Contrôles">
-      <span class="version">DÉMO 0.1</span>
+      <span class="version">ALPHA 0.2</span>
       <button class="mini-btn" id="pauseBtn">⏸ Pause</button>
       <button class="mini-btn" id="speedBtn">⏩ x1</button>
       <button class="mini-btn ghost" id="soundBtn">🔈 Son : non</button>
@@ -37,9 +37,9 @@
   <div class="layout">
     <aside class="panel panel-left">
       <div class="panel-head"><div class="section-id">01 · CONSTRUCTION</div><h2>Ton village <span>🏡</span></h2><p>Construis des installations pour produire des ressources et protéger le camp.</p></div>
-      <div class="tab-notice">Choisis un bâtiment, puis une parcelle <strong>sur la carte</strong>.</div>
+      <div class="tab-notice">Choisis un bâtiment, puis une parcelle <strong>sur la carte</strong>. Clique sur une construction pour l’améliorer (niv. 3 max).</div>
       <div id="buildingShop" class="shop-list"></div>
-      <div class="controls-tip">💡 <strong>Raccourcis :</strong> 1–6 construire · Espace pause · X vitesse · R réparer · C capturer.</div>
+      <div class="controls-tip">💡 <strong>Raccourcis :</strong> 1–6 construire · A/D déplacer la carte · Espace pause · X vitesse · R réparer · C capturer.</div>
     </aside>
 
     <main class="game-main">
@@ -51,6 +51,7 @@
         <canvas id="gameCanvas" width="1180" height="600" aria-label="Carte animée : bâtiments, équipe Pokémon et vagues de Pokémon sauvages"></canvas>
         <div class="map-hint" id="mapHint">🏕️ Sélectionne une construction à gauche !</div>
         <div class="map-tag">🌿 Plaine du camp</div>
+        <button class="map-view" id="mapViewBtn" aria-label="Changer de secteur de carte">🧭 Voir la frontière →</button>
       </div>
       <div class="battlebar">
         <div class="wave-title"><small>PROCHAINE VAGUE</small><strong id="waveLabel">VAGUE 1</strong></div>
@@ -59,6 +60,10 @@
         <button id="captureBtn" class="action-button blue">◓ Capturer <small>1 Poké Ball</small></button>
         <button id="waveBtn" class="action-button primary">⚔️ LANCER LA VAGUE</button>
       </div>
+      <section class="expedition-panel" aria-label="Expéditions">
+        <div class="expedition-header"><div><span class="tiny-label">04 · EXPLORATION</span><h2>🧭 Expéditions de reconnaissance</h2></div><p id="expeditionStatus" role="status">Pars explorer les alentours pour gagner des ressources.</p></div>
+        <div id="expeditionList" class="expedition-list"></div>
+      </section>
       <div class="bottom-row">
         <div class="event-box"><span class="tiny-label">📖 JOURNAL DE L'AVENTURE</span><p id="logText" aria-live="polite">Bienvenue dans ton nouveau camp !</p></div>
         <div class="stats-box"><div><small>VAGUES VAINCUES</small><b id="bestWave">0</b></div><div><small>POKÉMON VAINCUS</small><b id="kills">0</b></div><div><small>ÉQUIPE</small><b id="teamCount">0 / 6</b></div></div>
