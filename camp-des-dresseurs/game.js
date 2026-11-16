@@ -88,7 +88,7 @@
   let game = safeLoad(RUN_KEY);
   if(!game||!Array.isArray(game.buildings)||!Array.isArray(game.team)||!game.resources||!Array.isArray(game.enemies))game=freshRun();
   Object.assign(game,{paused:false,speed:1,over:false});
-  game.particles=[];game.projectiles=[];
+  game.particles=[];game.projectiles=[];game.floaters=[];game.rings=[];
   game.captures ||= [];game.id ||= 1;game.ballsTimer ||= 40;game.clock ||= 0;
   game.night ||= 0;
   game.buildingLevels=game.buildings.map((b,i)=>b?Math.max(1,Math.min(3,Number(game.buildingLevels?.[i])||1)):0);
@@ -148,7 +148,7 @@
     printLog('🌿 Nouvelle aventure : choisis ton Pokémon de départ.');
     persist();render(true);
   }
-  function persist(){store(META_KEY,meta);if(!game.over){const {particles,projectiles,...data}=game;store(RUN_KEY,data)}}
+  function persist(){store(META_KEY,meta);if(!game.over){const {particles,projectiles,floaters,rings,...data}=game;store(RUN_KEY,data)}}
   function canRecruit(key){return !getUnit(key)&&game.team.length<MAX_TEAM&&(game.wave>=SPECIES[key].unlock||game.captures.includes(key));}
   function recruit(key){
     if(!game.starter||game.over||!isRosterSpecies(key))return;
@@ -270,13 +270,30 @@
     game.enemies.push({id:game.id++,key,x:WORLD_W+rand(16,80),y:[366,435,510][Math.floor(Math.random()*3)]+rand(-9,9),hp,maxHp:hp,attack:rand(.4,1),step:rand(0,7),speed:spec.speed*(1+Math.min(.45,n*.018)),damage:Math.round((5+n*.75)*spec.power),boss});
   }
   function effect(x,y,color,count=10){for(let i=0;i<count;i++)game.particles.push({x,y,vx:rand(-90,90),vy:rand(-110,-25),life:rand(.3,.75),max:.75,color,r:rand(2,6)})}
+  function floatText(x,y,value,color='#ffffff'){game.floaters.push({x,y,value:String(value),color,life:.9,max:.9})}
+  function ringEffect(x,y,color){game.rings.push({x,y,color,life:.38,max:.38})}
+  function moveTeam(dt){
+    const opponents=game.enemies.filter(e=>e.hp>0&&e.x<1140).sort((a,b)=>a.x-b.x);
+    for(const [i,u] of game.team.entries()){
+      const base=TEAM_POSITIONS[i];if(!base)continue;
+      if(!Number.isFinite(u.mapX))u.mapX=base.x;
+      if(!Number.isFinite(u.mapY))u.mapY=base.y;
+      const near=game.waveActive?opponents[0]:null;
+      const tx=near?clamp(near.x-170,base.x-42,745):base.x;
+      const ty=near?clamp(near.y+12,base.y-30,base.y+30):base.y;
+      const step=dt*(110+i*6);
+      u.mapX+=clamp(tx-u.mapX,-step,step);
+      u.mapY+=clamp(ty-u.mapY,-step,step);
+    }
+  }
   function experience(){
     for(const u of game.team){if(u.level>=maxLevel)continue;u.xp++;if(u.xp>=xpNeed(u.level)){u.level++;u.xp=0;const at=TEAM_POSITIONS[game.team.indexOf(u)];effect(at.x,at.y-35,'#ffdd6b',12);if(game.team[0]===u)toast(`${SPECIES[u.key].name} passe niveau ${u.level} !`)}}
   }
   function hurt(e,damage,color){
     if(e.hp<=0)return;
     e.hp-=damage;
-    effect(e.x,e.y-36,color,3);
+    e.flash=.14;effect(e.x,e.y-36,color,5);
+    floatText(e.x+rand(-12,12),e.y-75,Math.round(damage),color);ringEffect(e.x,e.y-36,color);
     if(e.hp<=0){
       game.kills++;game.resources.coins+=ENEMIES[e.key].gold+(game.wave+1)*2;
       experience();effect(e.x,e.y-34,'#f8e690',12);
@@ -347,6 +364,12 @@
     if(buildingCount('lab')){game.ballsTimer-=dt*buildingPower('lab');if(game.ballsTimer<=0){game.resources.balls++;game.ballsTimer+=40;}}
     for(const p of game.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=190*dt;p.life-=dt}
     game.particles=game.particles.filter(p=>p.life>0);
+    for(const f of game.floaters){f.y-=dt*34;f.life-=dt}
+    game.floaters=game.floaters.filter(f=>f.life>0);
+    for(const q of game.rings)q.life-=dt;
+    game.rings=game.rings.filter(q=>q.life>0);
+    for(const e of game.enemies)e.flash=Math.max(0,(e.flash||0)-dt);
+    moveTeam(dt);
     if(game.expedition){game.expedition.remaining-=dt;if(game.expedition.remaining<=0)finishExpedition()}
     if(!game.waveActive){game.waveTimer-=dt;if(game.waveTimer<=0)startWave();return}
     game.spawnTimer-=dt;
@@ -355,19 +378,20 @@
       if(e.hp<=0)continue;
       e.step+=dt*5;
       if(e.x>760){e.x-=e.speed*dt;}
-      else{e.attack-=dt;if(e.attack<=0){game.hp-=e.damage;effect(756,e.y-27,'#ff8590',6);e.attack=1.5;ping(210,.055,'square')}}
+      else{e.attack-=dt;if(e.attack<=0){game.hp-=e.damage;effect(756,e.y-27,'#ff8590',6);floatText(756,e.y-70,'-'+e.damage,'#ffbac1');ringEffect(759,e.y-26,'#ff6579');e.attack=1.5;ping(210,.055,'square')}}
     }
     for(const u of game.team){
       u.cooldown-=dt;if(u.cooldown>0)continue;
       const spec=SPECIES[u.key];
       const living=game.enemies.filter(e=>e.hp>0&&e.x<1075).sort((a,b)=>a.x-b.x);
       if(!living.length)continue;
-      const target=living[0];const pos=TEAM_POSITIONS[game.team.indexOf(u)];
-      game.projectiles.push({x:pos.x+20,y:pos.y-32,to:target.id,type:spec.type,damage:spec.damage*(1+(u.level-1)*.27)*damageBonus(),speed:spec.type==='Electrik'?580:spec.type==='Roche'?370:440,life:3.2});
+      const target=living[0];const base=TEAM_POSITIONS[game.team.indexOf(u)];
+      game.projectiles.push({x:(u.mapX??base.x)+20,y:(u.mapY??base.y)-32,to:target.id,type:spec.type,damage:spec.damage*(1+(u.level-1)*.27)*damageBonus(),speed:spec.type==='Electrik'?580:spec.type==='Roche'?370:440,life:3.2,trail:[]});
       u.cooldown=spec.cooldown;
       if(Math.random()<.09)ping(490,.035,'triangle',.008);
     }
     for(const p of game.projectiles){
+      p.trail||=[];p.trail.push({x:p.x,y:p.y});if(p.trail.length>7)p.trail.shift();
       p.life-=dt;const e=game.enemies.find(v=>v.id===p.to&&v.hp>0);
       if(!e){p.life=0;continue}
       const dx=e.x-p.x,dy=e.y-36-p.y,dist=Math.hypot(dx,dy);
@@ -611,6 +635,7 @@
     const info=SPECIES[key]||ENEMIES[key];if(!info)return;
     const size=opts.boss?126:opts.enemy?79:91;
     const bob=Math.sin(game.clock*4+(opts.shift||0))*3;
+    if(opts.flash){ctx.save();ctx.shadowColor='#ffffff';ctx.shadowBlur=30;ellipse(x,y-size/2,opts.boss?65:42,opts.boss?60:40,'#ffffff70');ctx.restore()}
     ellipse(x,y+5,opts.boss?48:32,opts.boss?13:9,'#2d565c58');
     const sprite=playSprite(key);
     ellipse(x,y-37,opts.boss?54:36,opts.boss?55:36,(TYPE_COLOR[info.type]||'#b7c0d0')+'49');
@@ -631,20 +656,28 @@
   function drawBattle(){
     drawGate();
     for(const [i,u]of game.team.entries()){
-      const p=TEAM_POSITIONS[i];pokemonOnMap(u.key,p.x,p.y,{shift:i*.89});
-      round(p.x-19,p.y+5,38,16,7,'#ffffffd9','#b7d7d6',1);
-      label('Lv '+u.level,p.x,p.y+17,10,'#4a718a');
+      const base=TEAM_POSITIONS[i],x=u.mapX??base.x,y=u.mapY??base.y;
+      pokemonOnMap(u.key,x,y,{shift:i*.89});
+      round(x-19,y+5,38,16,7,'#ffffffd9','#b7d7d6',1);
+      label('Lv '+u.level,x,y+17,10,'#4a718a');
     }
     const enemySorted=[...game.enemies].filter(e=>e.hp>0).sort((a,b)=>a.y-b.y);
-    for(const e of enemySorted)pokemonOnMap(e.key,e.x,e.y+Math.sin(e.step)*2,{enemy:true,hp:e.hp,maxHp:e.maxHp,boss:e.boss,shift:e.step});
+    for(const e of enemySorted)pokemonOnMap(e.key,e.x,e.y+Math.sin(e.step)*2,{enemy:true,hp:e.hp,maxHp:e.maxHp,boss:e.boss,shift:e.step,flash:e.flash});
     for(const p of game.projectiles){
       const col=TYPE_COLOR[p.type]||'#a9c7df';
       ctx.save();ctx.shadowColor=col;ctx.shadowBlur=21;
+      for(const [i,t] of (p.trail||[]).entries()){ctx.globalAlpha=(i+1)/(p.trail.length+2)*.6;ellipse(t.x,t.y,3+i*.7,3+i*.7,col)}
+      ctx.globalAlpha=1;
       ellipse(p.x,p.y,p.type==='Feu'?14:10,p.type==='Electrik'?6:10,col);ellipse(p.x,p.y,4,4,'#fffde6');ctx.restore();
     }
     for(const p of game.particles){
       ctx.save();ctx.globalAlpha=clamp(p.life/p.max,0,1);ellipse(p.x,p.y,p.r,p.r,p.color);ctx.restore();
     }
+    for(const q of game.rings){
+      ctx.save();ctx.strokeStyle=q.color;ctx.lineWidth=3;ctx.globalAlpha=q.life/q.max;
+      ctx.beginPath();ctx.arc(q.x,q.y,8+(1-q.life/q.max)*40,0,Math.PI*2);ctx.stroke();ctx.restore();
+    }
+    for(const f of game.floaters){ctx.save();ctx.globalAlpha=f.life/f.max;label(f.value,f.x,f.y,18,f.color,'center','#284f64');ctx.restore()}
   }
   function drawScene(){
     ctx.clearRect(0,0,W,H);
