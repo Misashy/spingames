@@ -8,6 +8,8 @@
   const canvas = $('gameCanvas');
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
+  const WORLD_W=1680;
+  let cameraX=0,cameraTarget=0;
   const RUN_KEY = 'camp-dresseurs-run-v01';
   const META_KEY = 'camp-dresseurs-meta-v01';
   const MAX_TEAM = 6;
@@ -265,7 +267,7 @@
     const spec=ENEMIES[key],boss=Boolean(spec.boss);
     const base=24+n*8.5;
     const hp=Math.round(base*spec.hp*(boss?1.8:1));
-    game.enemies.push({id:game.id++,key,x:W+rand(16,80),y:[366,435,510][Math.floor(Math.random()*3)]+rand(-9,9),hp,maxHp:hp,attack:rand(.4,1),step:rand(0,7),speed:spec.speed*(1+Math.min(.45,n*.018)),damage:Math.round((5+n*.75)*spec.power),boss});
+    game.enemies.push({id:game.id++,key,x:WORLD_W+rand(16,80),y:[366,435,510][Math.floor(Math.random()*3)]+rand(-9,9),hp,maxHp:hp,attack:rand(.4,1),step:rand(0,7),speed:spec.speed*(1+Math.min(.45,n*.018)),damage:Math.round((5+n*.75)*spec.power),boss});
   }
   function effect(x,y,color,count=10){for(let i=0;i<count;i++)game.particles.push({x,y,vx:rand(-90,90),vy:rand(-110,-25),life:rand(.3,.75),max:.75,color,r:rand(2,6)})}
   function experience(){
@@ -396,6 +398,7 @@
     $('hpBar').style.width=clamp(game.hp/maxHp()*100,0,100)+'%';
     $('hpBar').style.background=game.hp/maxHp()<.3?'#f04f65':'linear-gradient(90deg,#6ad4a3,#8de9b0)';
     $('mapHint').textContent=hovered>=0&&game.buildings[hovered]?(game.buildingLevels[hovered]>=3?'Niveau maximum':('Niveau '+game.buildingLevels[hovered]+'/3 · cliquer pour améliorer : '+price(buildingPrice(game.buildings[hovered],game.buildingLevels[hovered])))):selected?'🏗️ Clique sur une parcelle libre pour construire':'🏡 Clique sur un bâtiment pour l’améliorer · 1–6 pour construire';
+    $('mapViewBtn').textContent=cameraTarget===0?'🧭 Voir la frontière →':'← Revenir au village';
     $('waveLabel').textContent=`VAGUE ${game.wave+1}`;
     $('worldTitle').textContent=game.waveActive?'⚔️ Le camp est attaqué !':'🌿 Le camp reprend des forces';
     $('worldSubtitle').textContent=game.waveActive?`${game.enemies.filter(e=>e.hp>0).length+game.spawnLeft} adversaires à repousser`:'Construis, recrute et prépare la prochaine vague.';
@@ -509,6 +512,25 @@
       for(let i=0;i<32;i++){const x=(i*171+21)%W,y=(i*83+19)%216;ellipse(x,y,1+(i%3===0),1+(i%3===0),'#fff9df')}
       ctx.restore();
     }
+  }
+  function drawWilderness(){
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#94d6ff');grad.addColorStop(.7,'#d7f5ff');grad.addColorStop(1,'#f2e6ba');
+    ctx.fillStyle=grad;ctx.fillRect(W,0,WORLD_W-W,H);
+    polygon([[W,260],[1330,175],[1490,260],[1610,166],[WORLD_W,228],[WORLD_W,430],[W,430]],'#a8d4b8');
+    polygon([[W,316],[1300,245],[1430,300],[1550,225],[WORLD_W,316],[WORLD_W,438],[W,438]],'#8bcba2');
+    fill(W,325,WORLD_W-W,H-325,'#93dc85');
+    polygon([[W,351],[1400,327],[WORLD_W,355],[WORLD_W,H],[W,H]],'#77cd7b');
+    polygon([[W,402],[WORLD_W,422],[WORLD_W,560],[W,546]],'#ebc990');
+    polygon([[W,422],[WORLD_W,441],[WORLD_W,529],[W,527]],'#f4dca5');
+    for(const [x,y,z] of [[1203,366,.7],[1308,352,.84],[1414,358,.75],[1631,352,.85]])evergreen(x,y,z);
+    bush(1250,380,.75);bush(1352,380,.83);bush(1593,381,.76);
+    ellipse(1500,365,96,34,'#477f6388');
+    polygon([[1400,365],[1430,269],[1570,269],[1603,365]],'#93a3a0','#6e8587',5);
+    ellipse(1500,370,53,77,'#344b63');ellipse(1500,372,33,61,'#1e344d');
+    ellipse(1467,326,8,13,'#b9f5ee');ellipse(1538,334,7,11,'#92d6f3');
+    label('GROTTE DES ÉCHOS',1500,261,14,'#fff8e8','center','#3c6678');
+    ctx.save();ctx.globalAlpha=game.night*.68;fill(W,0,WORLD_W-W,H,'#172650');ctx.restore();
   }
   function drawFence(){
     for(let x=30;x<745;x+=26){
@@ -626,7 +648,7 @@
   }
   function drawScene(){
     ctx.clearRect(0,0,W,H);
-    drawSky();drawFence();drawPlots();drawBattle();
+    ctx.save();ctx.translate(-cameraX,0);drawSky();drawWilderness();drawFence();drawPlots();drawBattle();ctx.restore();
     if(!game.starter||game.paused){
       fill(0,0,W,H,'#2c455c74');
       round(W/2-199,H/2-50,398,91,24,'#fff9efed','#ffffff',3);
@@ -641,7 +663,7 @@
     $('starters').innerHTML=Object.entries(SPECIES).filter(([,v])=>v.starter).map(([key,v])=>`<button class="starter-option" data-starter="${key}">${avatar(key,'starter-avatar')}<strong>${v.name}</strong><small>${v.emoji} Type ${v.type}</small></button>`).join('');
   }
   function slotAt(x,y){return SLOTS.findIndex(s=>x>=s.x-68&&x<=s.x+68&&y>=s.y-128&&y<=s.y+15)}
-  function eventSlot(ev){const r=canvas.getBoundingClientRect();return slotAt((ev.clientX-r.left)/r.width*W,(ev.clientY-r.top)/r.height*H)}
+  function eventSlot(ev){const r=canvas.getBoundingClientRect();return slotAt((ev.clientX-r.left)/r.width*W+cameraX,(ev.clientY-r.top)/r.height*H)}
   $('expeditionList').addEventListener('click',ev=>{const el=ev.target.closest('[data-expedition]');if(el)startExpedition(el.dataset.expedition)});
   $('starters').addEventListener('click',ev=>{const el=ev.target.closest('[data-starter]');if(el)startWith(el.dataset.starter)});
   $('buildingShop').addEventListener('click',ev=>{const el=ev.target.closest('[data-building]');if(el)chooseBuilding(el.dataset.building)});
@@ -652,6 +674,7 @@
   });
   $('upgrades').addEventListener('click',ev=>{const el=ev.target.closest('[data-upgrade]');if(el)upgrade(el.dataset.upgrade)});
   $('toggleRoster').addEventListener('click',()=>{rosterOpen=!rosterOpen;render(true)});
+  $('mapViewBtn').addEventListener('click',()=>{cameraTarget=cameraTarget===0?WORLD_W-W:0;render(true)});
   $('waveBtn').addEventListener('click',startWave);
   $('captureBtn').addEventListener('click',capture);
   $('repairBtn').addEventListener('click',repair);
@@ -669,6 +692,8 @@
     if(ev.key.toLowerCase()==='x'){game.speed=game.speed===1?2:game.speed===2?3:1;render(true)}
     if(ev.key.toLowerCase()==='r')repair();
     if(ev.key.toLowerCase()==='c')capture();
+    if(ev.key.toLowerCase()==='d'||ev.key==='ArrowRight'){cameraTarget=WORLD_W-W;render(true)}
+    if(ev.key.toLowerCase()==='a'||ev.key==='ArrowLeft'){cameraTarget=0;render(true)}
     if(ev.key==='Escape'){selected=null;render(true)}
     const i=Number(ev.key)-1;if(Number.isInteger(i)&&i>=0&&i<BUILDINGS.length)chooseBuilding(BUILDINGS[i].id);
   });
@@ -680,6 +705,7 @@
   function loop(now){
     const dt=Math.min(.065,Math.max(0,(now-prevFrame)/1000));prevFrame=now;
     if(!game.paused&&!game.over)update(dt*game.speed);
+    cameraX+=(cameraTarget-cameraX)*Math.min(1,dt*5);
     drawScene();uiClock+=dt;saveClock+=dt;
     if(uiClock>.36){render();uiClock=0}
     if(saveClock>4){persist();saveClock=0}
