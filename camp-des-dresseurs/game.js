@@ -63,6 +63,11 @@
     {id:'bond',name:'Lien Pokémon',emoji:'💞',desc:'+12 % dégâts de l’équipe / niveau'},
     {id:'barrier',name:'Portail renforcé',emoji:'🛡️',desc:'+35 PV maximum du portail / niveau'}
   ];
+  const ZONES=[
+    {id:'forest',name:'Bois des Baies',emoji:'🌲',unlock:0,seconds:22,cost:{berries:18,energy:10},reward:{berries:65,coins:16},discover:['pidgey','oddish']},
+    {id:'lake',name:'Lac Azur',emoji:'💧',unlock:2,seconds:35,cost:{berries:24,energy:25},reward:{energy:75,coins:35,balls:1},discover:['poliwag','psyduck']},
+    {id:'cave',name:'Grotte des Échos',emoji:'💎',unlock:4,seconds:49,cost:{berries:35,energy:42},reward:{coins:120,energy:20,balls:2},discover:['geodude','gastly','dratini']}
+  ];
   const SLOTS = [
     {x:125,y:314},{x:285,y:314},{x:445,y:314},
     {x:125,y:516},{x:285,y:516},{x:445,y:516}
@@ -77,7 +82,7 @@
   meta.best=Math.max(0,Number(meta.best)||0);meta.badges=Math.max(0,Number(meta.badges)||0);
   const maxHp = () => 240+meta.upgrades.barrier*35;
   const initialResources = () => ({berries:72+meta.upgrades.supplies*20,energy:65+meta.upgrades.supplies*20,coins:100+meta.upgrades.supplies*20,balls:3});
-  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),buildingLevels:Array(6).fill(0),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,ballsTimer:40});
+  const freshRun = () => ({starter:null,resources:initialResources(),buildings:Array(6).fill(null),buildingLevels:Array(6).fill(0),team:[],captures:[],hp:maxHp(),wave:0,waveActive:false,waveTimer:28,spawnLeft:0,spawnTimer:0,enemies:[],projectiles:[],particles:[],kills:0,caught:0,id:1,clock:0,paused:false,speed:1,night:0,over:false,expedition:null,expeditionsDone:0,ballsTimer:40});
   let game = safeLoad(RUN_KEY);
   if(!game||!Array.isArray(game.buildings)||!Array.isArray(game.team)||!game.resources||!Array.isArray(game.enemies))game=freshRun();
   Object.assign(game,{paused:false,speed:1,over:false});
@@ -85,8 +90,10 @@
   game.captures ||= [];game.id ||= 1;game.ballsTimer ||= 40;game.clock ||= 0;
   game.night ||= 0;
   game.buildingLevels=game.buildings.map((b,i)=>b?Math.max(1,Math.min(3,Number(game.buildingLevels?.[i])||1)):0);
+  if(!game.expedition||!ZONES.some(z=>z.id===game.expedition.id))game.expedition=null;
+  game.expeditionsDone=Math.max(0,Number(game.expeditionsDone)||0);
   let selected=null,hovered=-1,rosterOpen=true,prevFrame=performance.now(),uiClock=0,saveClock=0,toastTimer=0;
-  let shopSig='',teamSig='',rosterSig='',upgradeSig='';
+  let shopSig='',teamSig='',rosterSig='',upgradeSig='',expeditionSig='';
   let soundOn=false,audio=null;
   const pictures=new Map();
   const rand=(a,b)=>a+Math.random()*(b-a);
@@ -209,6 +216,35 @@
     toast(`✨ ${UPGRADES.find(v=>v.id===id).name} : niveau ${meta.upgrades[id]} !`);
     printLog('🏅 Une amélioration permanente vient d’être débloquée.');ping(870,.22,'triangle');persist();render(true);
   }
+  function startExpedition(id){
+    if(!game.starter||game.over||game.expedition)return;
+    const zone=ZONES.find(z=>z.id===id);if(!zone)return;
+    if(game.wave<zone.unlock){toast('Cette zone se débloque après la vague '+zone.unlock+'.');return}
+    if(!pay(zone.cost)){toast('Ressources insuffisantes : '+price(zone.cost));return}
+    game.expedition={id,remaining:zone.seconds};
+    printLog('🧭 Des éclaireurs partent explorer '+zone.name+'.');
+    toast(zone.emoji+' Expédition lancée : '+zone.name);
+    ping(670,.13,'triangle');persist();render(true);
+  }
+  function finishExpedition(){
+    const quest=game.expedition;if(!quest)return;
+    const zone=ZONES.find(z=>z.id===quest.id);
+    game.expedition=null;if(!zone)return;
+    game.expeditionsDone++;
+    for(const [resource,value] of Object.entries(zone.reward))game.resources[resource]=(game.resources[resource]||0)+value;
+    let findText='';
+    if(Math.random()<.33){
+      const found=zone.discover[Math.floor(Math.random()*zone.discover.length)];
+      if(isRosterSpecies(found)&&!game.captures.includes(found)&&!getUnit(found)){
+        game.captures.push(found);
+        findText=' · Espèce découverte : '+SPECIES[found].name+' !';
+      }
+    }
+    effect(1030,330,'#ffe58e',24);
+    printLog('🎒 Retour de '+zone.name+' : '+price(Object.fromEntries(Object.entries(zone.reward).filter(([k])=>k!=='balls')))+(zone.reward.balls?' · ◓ '+zone.reward.balls+' Poké Ball(s)':'')+findText);
+    toast('🎒 Expédition réussie !'+findText);
+    ping(970,.2,'triangle');persist();render(true);
+  }
   function startWave(){
     if(!game.starter||game.waveActive||game.over)return;
     game.waveActive=true;game.waveTimer=0;
@@ -309,6 +345,7 @@
     if(buildingCount('lab')){game.ballsTimer-=dt*buildingPower('lab');if(game.ballsTimer<=0){game.resources.balls++;game.ballsTimer+=40;}}
     for(const p of game.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=190*dt;p.life-=dt}
     game.particles=game.particles.filter(p=>p.life>0);
+    if(game.expedition){game.expedition.remaining-=dt;if(game.expedition.remaining<=0)finishExpedition()}
     if(!game.waveActive){game.waveTimer-=dt;if(game.waveTimer<=0)startWave();return}
     game.spawnTimer-=dt;
     if(game.spawnLeft>0&&game.spawnTimer<=0){spawn();game.spawnLeft--;game.spawnTimer=rand(.72,1.25)}
@@ -362,6 +399,14 @@
     $('waveLabel').textContent=`VAGUE ${game.wave+1}`;
     $('worldTitle').textContent=game.waveActive?'⚔️ Le camp est attaqué !':'🌿 Le camp reprend des forces';
     $('worldSubtitle').textContent=game.waveActive?`${game.enemies.filter(e=>e.hp>0).length+game.spawnLeft} adversaires à repousser`:'Construis, recrute et prépare la prochaine vague.';
+    $('expeditionStatus').textContent=game.expedition?'⏳ '+ZONES.find(z=>z.id===game.expedition.id).name+' : '+Math.max(0,Math.ceil(game.expedition.remaining))+' s':'Envoyez des éclaireurs récolter des ressources.';
+    const esig=JSON.stringify([game.wave,game.expedition?.id,game.over,game.starter,ZONES.map(z=>canBuy(z.cost))]);
+    if(esig!==expeditionSig){expeditionSig=esig;
+      $('expeditionList').innerHTML=ZONES.map(z=>{
+        const locked=game.wave<z.unlock,active=Boolean(game.expedition);
+        return '<button class="expedition-button" data-expedition="'+z.id+'" '+(locked||active||!canBuy(z.cost)||!game.starter||game.over?'disabled':'')+'><span class="expedition-emoji">'+z.emoji+'</span><span class="expedition-details"><strong>'+z.name+'</strong><small>'+(locked?'🔒 Vague '+z.unlock:(active?'Expédition en cours…':z.seconds+' s · '+price(z.cost)))+'</small></span><span class="expedition-loot">🎒</span></button>';
+      }).join('');
+    }
     $('dayBadge').classList.toggle('night',game.waveActive);
     $('dayBadge').textContent=game.waveActive?'🌙 NUIT · COMBAT':'☀️ JOUR · PRÉPARATION';
     $('waveStatus').textContent=game.waveActive?`${game.enemies.filter(e=>e.hp>0).length+game.spawnLeft} Pokémon sauvages en approche`:`Attaque automatique dans ${Math.max(0,Math.ceil(game.waveTimer))} s`;
@@ -597,6 +642,7 @@
   }
   function slotAt(x,y){return SLOTS.findIndex(s=>x>=s.x-68&&x<=s.x+68&&y>=s.y-128&&y<=s.y+15)}
   function eventSlot(ev){const r=canvas.getBoundingClientRect();return slotAt((ev.clientX-r.left)/r.width*W,(ev.clientY-r.top)/r.height*H)}
+  $('expeditionList').addEventListener('click',ev=>{const el=ev.target.closest('[data-expedition]');if(el)startExpedition(el.dataset.expedition)});
   $('starters').addEventListener('click',ev=>{const el=ev.target.closest('[data-starter]');if(el)startWith(el.dataset.starter)});
   $('buildingShop').addEventListener('click',ev=>{const el=ev.target.closest('[data-building]');if(el)chooseBuilding(el.dataset.building)});
   $('teamList').addEventListener('click',ev=>{const el=ev.target.closest('[data-train]');if(el)train(el.dataset.train)});
