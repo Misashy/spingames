@@ -1,38 +1,20 @@
 (() => {
 "use strict";
-const INCARNAM_MONSTERS = [
-["Blue Lilpiwi","🐦","Plume de Piou bleu"],
-["Chafer Novice","💀","Os de Chafer novice"],
-["Chafer Pikeman","💀","Lance de Chafer"],
-["Chafer Scout","💀","Os de Chafer éclaireur"],
-["Chafer Sergeant","💀","Insigne de Chafer"],
-["Daredevil Crab","🦀","Pince de Crabe"],
-["Fearful Moskito","🦟","Aile de Moskito"],
-["Green Lilpiwi","🐦","Plume de Piou vert"],
-["Immature Blue Larva","🐛","Peau de Larve bleue"],
-["Immature Green Larva","🐛","Peau de Larve verte"],
-["Immature Orange Larva","🐛","Peau de Larve orange"],
-["Incarnam Scarecrow","🌾","Paille d'épouvantail"],
-["Lupus Minimus","🐺","Poil de Lupus"],
-["Pink Lilpiwi","🐦","Plume de Piou rose"],
-["Pliplop","💧","Éclat de Pliplop"],
-["Prepubescent Chafer","💀","Os de jeune Chafer"],
-["Purple Lilpiwi","🐦","Plume de Piou violet"],
-["Purrsnikit","🐈","Griffe de Purrsnikit"],
-["Red Lilpiwi","🐦","Plume de Piou rouge"],
-["Small Gobball War Chief","🐏","Laine de chef de guerre"],
-["Tigrimas","🐈","Poil de Tigrimas"],
-["Vulnerable Mush Mush","🍄","Champignon fragile"],
-["Yellow Lilpiwi","🐦","Plume de Piou jaune"],
-["Young Arachnee","🕷️","Patte de jeune Arakne"],
-["Young Boar","🐗","Défense de jeune Sanglier"]
-].map(([name,emoji,loot],i)=>({
- id:"incarnam-"+name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-$/,""),
- name,emoji,loot,
- hp:12+Math.round(i*3.8),xp:9+Math.round(i*2.5),k:6+Math.round(i*1.8)
-}));
+// Noms et IDs exacts du bestiaire DOFUS 3 pour les sept étapes d'Incarnam.
+const INCARNAM_TERRITORIES=[{"name":"Champs","icon":"🌾","monsters":[[979,"Pissenlit Miroitant"],[980,"Rose Vaporeuse"],[970,"Tofu Chimérique"],[981,"Tournesol Nébuleux"]],"dungeon":false},{"name":"Route des âmes","icon":"🔥","monsters":[[3271,"Feu de Joie"],[3273,"Feu Follet"],[3272,"Feu Furieux"],[3270,"Feu Vif"]],"dungeon":false},{"name":"Pâturages","icon":"🐑","monsters":[[973,"Boufton Orageux"],[972,"Boufton Pâlichon"],[984,"Bouftor Éthéré"],[971,"Bouftou Nuageux"]],"dungeon":false},{"name":"Forêt","icon":"🌲","monsters":[[982,"Chakrobat"],[4105,"Ronronchon"],[4106,"Tigrimas"]],"dungeon":false},{"name":"Lac","icon":"💧","monsters":[[4110,"Grand Splatch"],[4109,"Petit Gloot"],[4108,"Plikplok"]],"dungeon":false},{"name":"Cimetière","icon":"🪦","monsters":[[4046,"Chafer Débutant"],[4048,"Chafer Éclaireur"],[4047,"Chafer Furtif"],[4049,"Chafer Piquier"],[4050,"Sergent Chafer"]],"dungeon":false},{"name":"Crypte de Kardorim","icon":"🏰","monsters":[[4046,"Chafer Débutant"],[4048,"Chafer Éclaireur"],[4047,"Chafer Furtif"],[4049,"Chafer Piquier"],[4050,"Sergent Chafer"]],"dungeon":true}];
+const INCARNAM_MONSTERS=[];
+const INCARNAM_BOUNDS=INCARNAM_TERRITORIES.map((area,index)=>{
+ const start=INCARNAM_MONSTERS.length;
+ for(const [id,name] of area.monsters) {
+  const i=INCARNAM_MONSTERS.length;
+  INCARNAM_MONSTERS.push({id,name,emoji:index===5||index===6?"💀":area.icon,
+   loot:index===5||index===6?"Os de Chafer":"Ressource d'Incarnam",territoryIndex:index,
+   hp:Math.round(12+i*4.2+Math.pow(i,1.35)),xp:Math.round(9+i*3.6),k:Math.round(6+i*2.6)});
+ }
+ return {name:area.name,icon:area.icon,start,count:area.monsters.length,dungeon:area.dungeon};
+});
 const ZONES=[
- {name:"Incarnam",subtitle:"L'Île céleste",icon:"🌿",color:"#8bc89f",enemies:INCARNAM_MONSTERS,boss:{id:"incarnam-kardorim",name:"Kardorim",emoji:"💀",hp:470,xp:280,k:350,loot:"Relique de Kardorim"}},
+ {name:"Incarnam",subtitle:"L'Île céleste",icon:"🌿",color:"#8bc89f",enemies:INCARNAM_MONSTERS,boss:{id:4051,name:"Kardorim",emoji:"💀",hp:680,xp:390,k:480,loot:"Relique de Kardorim"}},
  {name:"Astrub",subtitle:"Les champs d'Astrub",icon:"🏘️",color:"#e8c77b",enemies:[{id:48,name:"Tournesol Sauvage",emoji:"🌻",hp:50,xp:26,k:21,loot:"Pétale de Tournesol"},{id:79,name:"Pissenlit Diabolique",emoji:"🌼",hp:60,xp:31,k:25,loot:"Feuille de Pissenlit"},{id:59,name:"Champ Champ",emoji:"🍄",hp:76,xp:39,k:31,loot:"Champignon"}],boss:{id:104,name:"Sanglier",emoji:"🐗",hp:380,xp:140,k:180,loot:"Défense de Sanglier"}},
  {name:"Tainéla",subtitle:"Le berceau des Bouftous",icon:"🐑",color:"#e8d8ae",enemies:[{id:134,name:"Boufton Blanc",emoji:"🐑",hp:140,xp:69,k:57,loot:"Laine de Boufton"},{id:149,name:"Boufton Noir",emoji:"🐑",hp:166,xp:81,k:69,loot:"Laine noire"},{id:36,name:"Bouftou",emoji:"🐏",hp:220,xp:104,k:87,loot:"Laine de Bouftou"}],boss:{id:147,name:"Bouftou Royal",emoji:"👑",hp:1000,xp:350,k:460,loot:"Couronne Bouftou"}},
  {name:"Forêt d'Amakna",subtitle:"Le bois des Abraknydes",icon:"🌲",color:"#92b775",enemies:[{id:103,name:"Prespic",emoji:"🦔",hp:420,xp:175,k:142,loot:"Pic de Prespic"},{id:47,name:"Abraknyde",emoji:"🌳",hp:540,xp:210,k:180,loot:"Racine d'Abraknyde"},{id:102,name:"Mulou",emoji:"🐺",hp:610,xp:245,k:216,loot:"Poil de Mulou"}],boss:{id:173,name:"Abraknyde Ancestral",emoji:"🌳",hp:3300,xp:980,k:1120,loot:"Écorce ancestrale"}},
