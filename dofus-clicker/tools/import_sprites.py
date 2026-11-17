@@ -5,6 +5,7 @@ import difflib
 import json
 import pathlib
 import re
+from urllib.parse import quote, urlparse
 import sys
 import urllib.request
 import zipfile
@@ -150,6 +151,45 @@ def main():
         keyword=[k for k in by_name if any(t in k for t in tokens)][:12]
         print("MISSING",name,"suggestions",approximate,"keyword",keyword,flush=True)
 
+    # Lupus Minimus a disparu des noms du client récent.
+    # Essayer l'illustration historique du wiki, sinon même famille (Milimulou).
+    lup_key = "incarnam-lupus-minimus"
+    if "Lupus Minimus" in unresolved:
+        print("Recherche du PNG Lupus Minimus du wiki historique...",flush=True)
+        try:
+            api = ("https://wiki-dofus.eu/api.php?action=query"
+                   "&format=json&prop=imageinfo&iiprop=url"
+                   "&titles=File%3ALupusMinimus.png")
+            payload = json.loads(get(api))
+            pages = payload.get("query",{}).get("pages",{})
+            urls = [i.get("url") for p in pages.values()
+                    for i in p.get("imageinfo",[]) if i.get("url")]
+            if not urls:
+                raise ValueError("Pas d'URL d'image exposée par MediaWiki")
+            url = urls[0]
+            hostname = (urlparse(url).hostname or "").lower()
+            if hostname != "wiki-dofus.eu" and not hostname.endswith(".wiki-dofus.eu"):
+                raise ValueError("Hôte d'image wiki non attendu")
+            png = get(url)
+            if not png.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(png)>2_000_000:
+                raise ValueError("Fichier wiki invalide ou trop grand")
+            (OUT/f"{lup_key}.png").write_bytes(png)
+            imported[lup_key] = {"name":"Lupus Minimus","source":url,"exact":True,
+                                 "bytes":len(png),"origin":"wiki-dofus.eu / historical 2.0"}
+            unresolved.remove("Lupus Minimus")
+            print("EXACT HISTORICAL Lupus Minimus PNG",len(png),flush=True)
+        except Exception as err:
+            print("Wiki indisponible pour Lupus Minimus:",repr(err),flush=True)
+            wolf = OUT/"159.png"
+            if wolf.exists():
+                png = wolf.read_bytes()
+                (OUT/f"{lup_key}.png").write_bytes(png)
+                imported[lup_key] = {"name":"Lupus Minimus","source":"159.png",
+                                     "exact":False,"substitute":"Milimulou (famille loup)",
+                                     "bytes":len(png)}
+                approximated.append("Lupus Minimus")
+                unresolved.remove("Lupus Minimus")
+                print("FAMILY ART Lupus Minimus => Milimulou",flush=True)
     manifest={
         "release":RELEASE_TAG,
         "source":"ledouxm/dofus-sqlite",
