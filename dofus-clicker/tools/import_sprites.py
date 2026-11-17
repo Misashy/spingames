@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Importe les pictogrammes monstres DOFUS 3 en PNG, par MonsterData.gfxId."""
+"""Importe les PNG DOFUS 3, sans associer une mauvaise image à un ancien nom wiki."""
 import io
 import json
-import os
 import pathlib
+import re
 import sys
 import urllib.request
 import zipfile
@@ -12,84 +12,127 @@ RELEASE_TAG = "v6.0_3.7.13.17"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "monsters"
 IDS = [98,52,61,159,48,79,59,104,134,149,36,147,103,47,102,173,55,56,57,58,96,64,65,180]
+INCARNAM_NAMES = [
+    "Blue Lilpiwi", "Chafer Novice", "Chafer Pikeman", "Chafer Scout",
+    "Chafer Sergeant", "Daredevil Crab", "Fearful Moskito", "Green Lilpiwi",
+    "Immature Blue Larva", "Immature Green Larva", "Immature Orange Larva",
+    "Incarnam Scarecrow", "Kardorim", "Lupus Minimus", "Pink Lilpiwi",
+    "Pliplop", "Prepubescent Chafer", "Purple Lilpiwi", "Purrsnikit",
+    "Red Lilpiwi", "Small Gobball War Chief", "Tigrimas", "Vulnerable Mush Mush",
+    "Yellow Lilpiwi", "Young Arachnee", "Young Boar"
+]
 
 def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "DofusClickerAssetImporter/1.0", "Accept": "application/octet-stream"})
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "DofusClickerAssetImporter/1.0",
+                      "Accept": "application/octet-stream"})
     with urllib.request.urlopen(req, timeout=180) as response:
         return response.read()
 
-def find_gfx_map(data):
-    result = {}
+def records_in(data):
+    """Ne retourne que les objets monstres contenant id, gfxId ET nameId."""
+    found = []
     def walk(value):
         if isinstance(value, dict):
-            if "id" in value and ("gfxId" in value or "gfx_id" in value):
-                try:
-                    result[int(value["id"])] = int(value.get("gfxId", value.get("gfx_id")))
-                except (ValueError, TypeError):
-                    pass
+            if all(k in value for k in ("id", "gfxId", "nameId")):
+                found.append((value["id"],value["gfxId"],value["nameId"]))
+                return
             for v in value.values():
-                if isinstance(v, (list, dict)):
+                if isinstance(v, (dict, list)):
                     walk(v)
         elif isinstance(value, list):
-            for v in value: walk(v)
+            for v in value:
+                if isinstance(v, (dict, list)):
+                    walk(v)
     walk(data)
-    return result
+    return found
+
+def slug(text):
+    return re.sub(r"[^a-z0-9]+","-",text.lower()).strip("-")
 
 def main():
-    base=f"https://github.com/ledouxm/dofus-sqlite/releases/download/{RELEASE_TAG}"
-    assets={name:f"{base}/{name}" for name in ("images-monster.zip","monstersdata.json")}
-    for name in ("images-monster.zip","monstersdata.json"):
-        if name not in assets: raise RuntimeError("Fichier absent de la release: "+name)
-    print("Release stable:",RELEASE_TAG,flush=True)
-    print("Téléchargement des données monstres...",flush=True)
-    data=json.loads(get(assets["monstersdata.json"]))
-    print("DEBUG data type", type(data).__name__, flush=True)
-    print("DEBUG data keys/sample:", json.dumps((list(data.items())[:1] if isinstance(data,dict) else data[:1]),ensure_ascii=False,default=str)[:4500], flush=True)
-    mapping=find_gfx_map(data)
-    del data
-    locale=json.loads(get(f"{base}/i18n_en.json"))
-    print("DEBUG locale type", type(locale).__name__, flush=True)
-    print("DEBUG locale keys/sample", json.dumps((list(locale.items())[:2] if isinstance(locale,dict) else locale[:2]),ensure_ascii=False,default=str)[:3500],flush=True)
-    samples=[]
-    def search_samples(obj):
-        if isinstance(obj,dict):
-            if "gfxId" in obj and "id" in obj and len(samples)<2:samples.append(obj)
-            for value in obj.values():
-                if isinstance(value,(dict,list)):search_samples(value)
-        elif isinstance(obj,list):
-            for item in obj:search_samples(item)
-    search_samples(json.loads(get(assets["monstersdata.json"])))
-    print("DEBUG monster record examples:",json.dumps(samples,ensure_ascii=False)[:9500],flush=True)
-    del locale
-    print("Correspondances MonsterData:",len(mapping),flush=True)
-    print("Téléchargement des images...",flush=True)
-    blob=get(assets["images-monster.zip"])
-    archive=zipfile.ZipFile(io.BytesIO(blob))
-    names=set(archive.namelist())
-    OUT.mkdir(parents=True,exist_ok=True)
-    imported={}
-    for monster_id in IDS:
-        gfx=mapping.get(monster_id)
-        candidates=[f"2x/{gfx}.png",f"1x/{gfx}.png"] if gfx else []
-        candidates += [f"2x/{monster_id}.png",f"1x/{monster_id}.png"]
-        path=next((p for p in candidates if p in names),None)
-        if not path:
-            print(f"WARNING missing sprite for monster {monster_id} (gfx={gfx})")
+    base = f"https://github.com/ledouxm/dofus-sqlite/releases/download/{RELEASE_TAG}"
+    print("Release:", RELEASE_TAG, flush=True)
+    print("Téléchargement de la base de monstres...", flush=True)
+    monsters = json.loads(get(base + "/monstersdata.json"))
+    records = records_in(monsters)
+    del monsters
+    print("Monstres indexés:", len(records), flush=True)
+    english = json.loads(get(base + "/i18n_en.json"))
+    by_id = {}
+    by_name = {}
+    for mid, gfx, name_id in records:
+        try:
+            mid = int(mid)
+            gfx = int(gfx)
+        except (TypeError, ValueError):
             continue
-        raw=archive.read(path)
-        if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-            print(f"WARNING invalid PNG {path}");continue
-        (OUT/f"{monster_id}.png").write_bytes(raw)
-        imported[str(monster_id)]={"gfxId":gfx,"source":path,"bytes":len(raw)}
-        print(f"{monster_id} -> {path} ({len(raw)} octets)")
-    if len(imported)<len(IDS)//2:
-        raise RuntimeError(f"Seulement {len(imported)}/{len(IDS)} PNG trouvés; importer à vérifier")
-    manifest={"release":RELEASE_TAG,"source":"ledouxm/dofus-sqlite", "total":len(IDS),"imported":imported}
-    (ROOT/"assets"/"manifest.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
-    print("Import terminé:",len(imported),"/",len(IDS),flush=True)
+        by_id[mid] = gfx
+        name = english.get(str(name_id))
+        if isinstance(name,str) and name.strip():
+            by_name.setdefault(name.casefold().strip(), []).append((mid,gfx,name))
+    del english
+    print("Monstres avec nom anglais:",len(by_name), flush=True)
+
+    print("Téléchargement des PNG...",flush=True)
+    archive = zipfile.ZipFile(io.BytesIO(get(base + "/images-monster.zip")))
+    paths = set(archive.namelist())
+    OUT.mkdir(parents=True, exist_ok=True)
+    imported = {}
+    unresolved = []
+
+    def copy_image(key, gfx, mid=None, label=None):
+        # Prioriser gfxId, jamais un autre id si celui-ci existe.
+        candidates = [f"2x/{gfx}.png",f"1x/{gfx}.png"] if gfx is not None else []
+        # Réserve historique : certains monstersdata n'ont pas de gfxId.
+        if gfx is None and mid is not None:
+            candidates += [f"2x/{mid}.png",f"1x/{mid}.png"]
+        path = next((p for p in candidates if p in paths),None)
+        if not path: return False
+        content = archive.read(path)
+        if not content.startswith(b"\x89PNG\r\n\x1a\n"): return False
+        (OUT/f"{key}.png").write_bytes(content)
+        imported[str(key)] = {"monsterId":mid,"gfxId":gfx,"source":path,"bytes":len(content)}
+        if label: imported[str(key)]["name"]=label
+        return True
+
+    for mid in IDS:
+        if not copy_image(str(mid),by_id.get(mid),mid):
+            print("WARNING: ancien sprite manquant:",mid,flush=True)
+
+    for name in INCARNAM_NAMES:
+        key = "incarnam-" + slug(name)
+        options = by_name.get(name.casefold().strip(), [])
+        # L'ancien wiki et le client 3.x n'utilisent pas toujours le même nom.
+        # Ne jamais attribuer une image "à peu près" sans contrôle humain.
+        if len(options)==1:
+            mid,gfx,official_name=options[0]
+            if copy_image(key,gfx,mid,name):
+                print("OK",name,"=>",mid,"gfx",gfx,flush=True)
+                continue
+        unresolved.append(name)
+        print("MISSING",name,": candidats",options[:4],flush=True)
+
+    manifest={
+        "release":RELEASE_TAG,
+        "source":"ledouxm/dofus-sqlite",
+        "total":len(IDS)+len(INCARNAM_NAMES),
+        "incarnamRequested":len(INCARNAM_NAMES),
+        "incarnamResolved":len(INCARNAM_NAMES)-len(unresolved),
+        "unresolvedIncarnam":unresolved,
+        "imported":imported
+    }
+    (ROOT/"assets"/"manifest.json").write_text(
+        json.dumps(manifest,indent=2,ensure_ascii=False)+"\n", encoding="utf-8")
+    print("IMPORT DONE",len(imported),"images, Incarnam",
+          manifest["incarnamResolved"],"/",len(INCARNAM_NAMES),flush=True)
+    # Doit rester fonctionnel même si les sprites d'une version ancienne
+    # n'existent plus dans la version moderne de DOFUS.
+    if len(imported)<len(IDS):
+        raise RuntimeError("Les sprites des zones existantes sont incomplets")
 
 if __name__=="__main__":
-    try:main()
+    try: main()
     except Exception as exc:
-        print("IMPORT FAILED:",exc,file=sys.stderr)
+        print("IMPORT FAILED:",str(exc),file=sys.stderr)
         raise
