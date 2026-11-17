@@ -3,26 +3,30 @@
   "source": "ledouxm/dofus-sqlite",
   "total": 50,
   "incarnamRequested": 26,
-  "incarnamResolved": 8,
-  "unresolvedIncarnam": [
+  "incarnamResolved": 21,
+  "incarnamExact": 8,
+  "incarnamFamilySprites": 13,
+  "approximateIncarnam": [
     "Blue Lilpiwi",
     "Daredevil Crab",
     "Fearful Moskito",
     "Green Lilpiwi",
-    "Immature Blue Larva",
-    "Immature Green Larva",
-    "Immature Orange Larva",
     "Incarnam Scarecrow",
-    "Lupus Minimus",
     "Pink Lilpiwi",
     "Prepubescent Chafer",
     "Purple Lilpiwi",
     "Red Lilpiwi",
-    "Small Gobball War Chief",
     "Vulnerable Mush Mush",
     "Yellow Lilpiwi",
     "Young Arachnee",
     "Young Boar"
+  ],
+  "unresolvedIncarnam": [
+    "Immature Blue Larva",
+    "Immature Green Larva",
+    "Immature Orange Larva",
+    "Lupus Minimus",
+    "Small Gobball War Chief"
   ],
   "imported": {
     "98": {
@@ -169,61 +173,186 @@
       "source": "2x/101.png",
       "bytes": 16215
     },
+    "incarnam-blue-lilpiwi": {
+      "monsterId": 491,
+      "gfxId": 275,
+      "source": "2x/275.png",
+      "bytes": 10444,
+      "name": "Blue Lilpiwi",
+      "substitute": "Blue Piwi",
+      "exact": false
+    },
     "incarnam-chafer-novice": {
       "monsterId": 4046,
       "gfxId": 16,
       "source": "2x/16.png",
       "bytes": 15337,
-      "name": "Chafer Novice"
+      "name": "Chafer Novice",
+      "exact": true
     },
     "incarnam-chafer-pikeman": {
       "monsterId": 4049,
       "gfxId": 178,
       "source": "2x/178.png",
       "bytes": 11135,
-      "name": "Chafer Pikeman"
+      "name": "Chafer Pikeman",
+      "exact": true
     },
     "incarnam-chafer-scout": {
       "monsterId": 4048,
       "gfxId": 179,
       "source": "2x/179.png",
       "bytes": 16736,
-      "name": "Chafer Scout"
+      "name": "Chafer Scout",
+      "exact": true
     },
     "incarnam-chafer-sergeant": {
       "monsterId": 4050,
       "gfxId": 180,
       "source": "2x/180.png",
       "bytes": 14089,
-      "name": "Chafer Sergeant"
+      "name": "Chafer Sergeant",
+      "exact": true
+    },
+    "incarnam-daredevil-crab": {
+      "monsterId": 63,
+      "gfxId": 24,
+      "source": "2x/24.png",
+      "bytes": 16080,
+      "name": "Daredevil Crab",
+      "substitute": "Crab",
+      "exact": false
+    },
+    "incarnam-fearful-moskito": {
+      "monsterId": 61,
+      "gfxId": 22,
+      "source": "2x/22.png",
+      "bytes": 15798,
+      "name": "Fearful Moskito",
+      "substitute": "Moskito",
+      "exact": false
+    },
+    "incarnam-green-lilpiwi": {
+      "monsterId": 490,
+      "gfxId": 274,
+      "source": "2x/274.png",
+      "bytes": 9664,
+      "name": "Green Lilpiwi",
+      "substitute": "Green Piwi",
+      "exact": false
+    },
+    "incarnam-incarnam-scarecrow": {
+      "monsterId": 1003,
+      "gfxId": 278,
+      "source": "2x/278.png",
+      "bytes": 12390,
+      "name": "Incarnam Scarecrow",
+      "substitute": "Training Scarecrow",
+      "exact": false
     },
     "incarnam-kardorim": {
       "monsterId": 4051,
       "gfxId": 1287,
       "source": "2x/1287.png",
       "bytes": 19492,
-      "name": "Kardorim"
+      "name": "Kardorim",
+      "exact": true
+    },
+    "incarnam-pink-lilpiwi": {
+      "monsterId": 492,
+      "gfxId": 276,
+      "source": "2x/276.png",
+      "bytes": 11647,
+      "name": "Pink Lilpiwi",
+      "substitute": "Pink Piwi",
+      "exact": false
     },
     "incarnam-pliplop": {
       "monsterId": 4108,
       "gfxId": 1311,
       "source": "2x/1311.png",
       "bytes": 16394,
-      "name": "Pliplop"
+      "name": "Pliplop",
+      "exact": true
+    },
+    "incarnam-prepubescent-chafer": {
+      "monsterId": 4046,
+      "gfxId": 16,
+      "source": "2x/16.png",
+      "bytes": 15337,
+      "name": "Prepubescent Chafer",
+      "substitute": "Chafer Novice",
+      "exact": false
+    },
+    "incarnam-purple-lilpiwi": {
+      "monsterId": 236,
+      "gfxId": 131,
+      "source": "2x/131.png",
+      "bytes": 12758,
+      "name": "Purple Lilpiwi",
+      "substitute": "Purple Piwi",
+      "exact": false
     },
     "incarnam-purrsnikit": {
       "monsterId": 4105,
       "gfxId": 1309,
       "source": "2x/1309.png",
       "bytes": 13263,
-      "name": "Purrsnikit"
+      "name": "Purrsnikit",
+      "exact": true
+    },
+    "incarnam-red-lilpiwi": {
+      "monsterId": 489,
+      "gfxId": 273,
+      "source": "2x/273.png",
+      "bytes": 9736,
+      "name": "Red Lilpiwi",
+      "substitute": "Red Piwi",
+      "exact": false
     },
     "incarnam-tigrimas": {
       "monsterId": 4106,
       "gfxId": 1308,
       "source": "2x/1308.png",
       "bytes": 13945,
-      "name": "Tigrimas"
+      "name": "Tigrimas",
+      "exact": true
+    },
+    "incarnam-vulnerable-mush-mush": {
+      "monsterId": 59,
+      "gfxId": 21,
+      "source": "2x/21.png",
+      "bytes": 15169,
+      "name": "Vulnerable Mush Mush",
+      "substitute": "Mush Mush",
+      "exact": false
+    },
+    "incarnam-yellow-lilpiwi": {
+      "monsterId": 493,
+      "gfxId": 277,
+      "source": "2x/277.png",
+      "bytes": 10270,
+      "name": "Yellow Lilpiwi",
+      "substitute": "Yellow Piwi",
+      "exact": false
+    },
+    "incarnam-young-arachnee": {
+      "monsterId": 5226,
+      "gfxId": 1733,
+      "source": "2x/1733.png",
+      "bytes": 13113,
+      "name": "Young Arachnee",
+      "substitute": "Tiny Arachnee",
+      "exact": false
+    },
+    "incarnam-young-boar": {
+      "monsterId": 104,
+      "gfxId": 54,
+      "source": "2x/54.png",
+      "bytes": 14794,
+      "name": "Young Boar",
+      "substitute": "Boar",
+      "exact": false
     }
   }
 }
