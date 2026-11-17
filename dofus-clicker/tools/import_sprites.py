@@ -83,6 +83,7 @@ def main():
     del monsters
     print("Monstres indexés:", len(records), flush=True)
     english = json.loads(get(base + "/i18n_en.json"))
+    french = json.loads(get(base + "/i18n_fr.json"))
     by_id = {}
     by_name = {}
     for mid, gfx, name_id in records:
@@ -91,7 +92,7 @@ def main():
             gfx = int(gfx)
         except (TypeError, ValueError):
             continue
-        by_id[mid] = gfx
+        by_id[mid] = {"gfxId":gfx,"nameId":int(name_id)}
         name = english.get(str(name_id))
         if isinstance(name,str) and name.strip():
             by_name.setdefault(name.casefold().strip(), []).append((mid,gfx,name))
@@ -122,7 +123,8 @@ def main():
         return True
 
     for mid in IDS:
-        if not copy_image(str(mid),by_id.get(mid),mid):
+        info = by_id.get(mid)
+        if not copy_image(str(mid),info["gfxId"] if info else None,mid):
             print("WARNING: ancien sprite manquant:",mid,flush=True)
 
     for name in INCARNAM_NAMES:
@@ -185,11 +187,52 @@ def main():
                 png = wolf.read_bytes()
                 (OUT/f"{lup_key}.png").write_bytes(png)
                 imported[lup_key] = {"name":"Lupus Minimus","source":"159.png",
+                                     "monsterId":159,"gfxId":by_id.get(159,{}).get("gfxId"),
                                      "exact":False,"substitute":"Milimulou (famille loup)",
                                      "bytes":len(png)}
                 approximated.append("Lupus Minimus")
                 unresolved.remove("Lupus Minimus")
                 print("FAMILY ART Lupus Minimus => Milimulou",flush=True)
+    # Chaque label affiché vient de l'identifiant de traduction française
+    # du MONSTRE qui a fourni le PNG. Aucun nom inventé ou traduit à la main.
+    for key, sprite in imported.items():
+        mid = sprite.get("monsterId")
+        info = by_id.get(int(mid)) if mid is not None else None
+        if info is not None:
+            official_fr = french.get(str(info["nameId"]))
+            if isinstance(official_fr,str) and official_fr.strip():
+                sprite["officialNameFr"] = official_fr.strip()
+
+    localized = {
+        key: {
+            "name":value["officialNameFr"],
+            "monsterId":value.get("monsterId"),
+            "exactHistorical":value.get("exact",True),
+        }
+        for key,value in imported.items()
+        if value.get("officialNameFr")
+    }
+    (OUT/"catalog.fr.js").write_text(
+        "window.DOFUS_CATALOG_FR = "+
+        json.dumps(localized,ensure_ascii=False,sort_keys=True).replace("</","<\\/")+";\\n",
+        encoding="utf-8"
+    )
+    # Index de toutes les entrées MonsterData (pas seulement les zones jouables).
+    # Permet la sélection fiable des noms et gfxId pour de futures zones.
+    database=[
+        {"id":mid,"gfxId":info["gfxId"],"name":french[str(info["nameId"])]}
+        for mid,info in sorted(by_id.items())
+        if isinstance(french.get(str(info["nameId"])),str)
+           and french[str(info["nameId"])].strip()
+    ]
+    (OUT/"database.fr.json").write_text(
+        json.dumps({"source":"ledouxm/dofus-sqlite","release":RELEASE_TAG,
+                    "count":len(database),"monsters":database},
+                   ensure_ascii=False,separators=(",",":"))+"\\n",
+        encoding="utf-8"
+    )
+    print("CATALOG FR:",len(localized),"images, BASE:",len(database),
+          "monstres nommés",flush=True)
     manifest={
         "release":RELEASE_TAG,
         "source":"ledouxm/dofus-sqlite",
