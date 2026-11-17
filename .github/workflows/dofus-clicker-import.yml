@@ -7,6 +7,7 @@ on:
       - 'dofus-clicker/index.html'
       - 'dofus-clicker/game.js'
       - 'dofus-clicker/tools/**'
+      - 'dofus-clicker/tests/**'
       - '.github/workflows/dofus-clicker-import.yml'
 permissions:
   contents: write
@@ -25,6 +26,12 @@ jobs:
           python-version: '3.12'
       - name: Importer les PNG des monstres
         run: python dofus-clicker/tools/import_sprites.py
+      - name: Vérifier les données françaises et les transitions du jeu
+        run: |
+          node --check dofus-clicker/game.js
+          node --check dofus-clicker/assets/monsters/catalog.fr.js
+          python -m json.tool dofus-clicker/assets/monsters/database.fr.json > /dev/null
+          node dofus-clicker/tests/smoke.cjs
       - name: Publier uniquement les images de DOFUS Clicker
         run: |
           git config user.name "github-actions[bot]"
