@@ -43,8 +43,14 @@ def main():
     print("Release stable:",RELEASE_TAG,flush=True)
     print("Téléchargement des données monstres...",flush=True)
     data=json.loads(get(assets["monstersdata.json"]))
+    print("DEBUG data type", type(data).__name__, flush=True)
+    print("DEBUG data keys/sample:", json.dumps((list(data.items())[:1] if isinstance(data,dict) else data[:1]),ensure_ascii=False,default=str)[:4500], flush=True)
     mapping=find_gfx_map(data)
     del data
+    locale=json.loads(get(f"{base}/i18n_en.json"))
+    print("DEBUG locale type", type(locale).__name__, flush=True)
+    print("DEBUG locale keys/sample", json.dumps((list(locale.items())[:2] if isinstance(locale,dict) else locale[:2]),ensure_ascii=False,default=str)[:3500],flush=True)
+    del locale
     print("Correspondances MonsterData:",len(mapping),flush=True)
     print("Téléchargement des images...",flush=True)
     blob=get(assets["images-monster.zip"])
