@@ -68,7 +68,7 @@ def main():
         print(f"{monster_id} -> {path} ({len(raw)} octets)")
     if len(imported)<len(IDS)//2:
         raise RuntimeError(f"Seulement {len(imported)}/{len(IDS)} PNG trouvés; importer à vérifier")
-    manifest={"release":release["tag_name"],"source":"ledouxm/dofus-sqlite", "total":len(IDS),"imported":imported}
+    manifest={"release":RELEASE_TAG,"source":"ledouxm/dofus-sqlite", "total":len(IDS),"imported":imported}
     (ROOT/"assets"/"manifest.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("Import terminé:",len(imported),"/",len(IDS),flush=True)
 
