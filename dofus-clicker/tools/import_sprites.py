@@ -8,7 +8,7 @@ import sys
 import urllib.request
 import zipfile
 
-RELEASE_API = "https://api.github.com/repos/ledouxm/dofus-sqlite/releases/latest"
+RELEASE_TAG = "v6.0_3.7.13.17"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "monsters"
 IDS = [98,52,61,159,48,79,59,104,134,149,36,147,103,47,102,173,55,56,57,58,96,64,65,180]
@@ -36,11 +36,11 @@ def find_gfx_map(data):
     return result
 
 def main():
-    release=json.loads(get(RELEASE_API))
-    assets={a["name"]:a["browser_download_url"] for a in release["assets"]}
+    base=f"https://github.com/ledouxm/dofus-sqlite/releases/download/{RELEASE_TAG}"
+    assets={name:f"{base}/{name}" for name in ("images-monster.zip","monstersdata.json")}
     for name in ("images-monster.zip","monstersdata.json"):
         if name not in assets: raise RuntimeError("Fichier absent de la release: "+name)
-    print("Release stable:",release["tag_name"],flush=True)
+    print("Release stable:",RELEASE_TAG,flush=True)
     print("Téléchargement des données monstres...",flush=True)
     data=json.loads(get(assets["monstersdata.json"]))
     mapping=find_gfx_map(data)
