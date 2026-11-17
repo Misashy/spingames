@@ -244,6 +244,26 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{tab
 el("reset").addEventListener("click",()=>{if(confirm("Recommencer l\'aventure ? Les sauvegardes et ressources seront effacées.")){if(victoryTimer!==null)clearTimeout(victoryTimer);victoryTimer=null;transitioning=false;monsterRequest++;localStorage.removeItem(STORAGE);s={...DEFAULT,loot:{},dex:{},bosses:[]};resetHp();refreshCombat(true);if(overlayTimer!==null){clearTimeout(overlayTimer);overlayTimer=null;}el("zoneOverlay").hidden=true;setMonster();render();save()}});
 el("soundToggle").addEventListener("click",()=>{muted=!muted;el("soundToggle").textContent=muted?"🔈 Sons désactivés":"🔊 Sons activés";el("soundToggle").setAttribute("aria-pressed",String(!muted));if(!muted)sound(440)});
 setMonster();render();save();
-setInterval(()=>{const now=Date.now();const elapsed=Math.min(2,(now-lastFrame)/1000);lastFrame=now;const p=dps();if(p>0)hit(p*elapsed,false);if(now-lastSave>2200){lastSave=now;save();if(tab==="shop")renderPanel()}},250);
+setInterval(()=>{
+ const now=Date.now(),elapsed=Math.max(0,Math.min(1,(now-lastFrame)/1000));
+ lastFrame=now;
+ // Mise en pause lors du chargement, des transitions et lorsque l'onglet est masqué.
+ if(!document.hidden&&!transitioning&&!switchingMonster&&el("zoneOverlay").hidden!==false){
+  const p=dps();
+  if(p>0)hit(p*elapsed,false);
+  if(!transitioning){
+   s.timeLeft=Math.max(0,s.timeLeft-elapsed);
+   enemyClock+=elapsed;
+   if(s.timeLeft<=0)defeat("temps");
+   else if(enemyClock>=ENEMY_STRIKE){
+    enemyClock-=ENEMY_STRIKE;
+    s.playerHp=Math.max(0,s.playerHp-enemyDamage());
+    if(s.playerHp<=0)defeat("vie");
+   }
+   renderSurvival();
+  }
+ }
+ if(now-lastSave>2200){lastSave=now;save();if(tab==="shop")renderPanel()}
+},250);
 window.addEventListener("pagehide",save);
 })();
