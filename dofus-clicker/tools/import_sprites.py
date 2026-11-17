@@ -129,8 +129,10 @@ def main():
         alias = FAMILY_ALIASES.get(name)
         official = alias if alias else name
         options = by_name.get(official.casefold().strip(), [])
-        if len(options)==1:
-            mid,gfx,official_name=options[0]
+        if options:
+            # Plusieurs variantes portant le même nom officiel sont possibles.
+            # Pour une image de famille, choisir de façon stable la plus ancienne entrée.
+            mid,gfx,official_name=sorted(options,key=lambda x: int(x[0]))[0]
             if copy_image(key,gfx,mid,name):
                 if alias:
                     imported[key]["substitute"] = alias
