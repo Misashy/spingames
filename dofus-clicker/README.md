@@ -25,3 +25,15 @@ Si le lancement automatique a échoué, ouvrir Actions > Import DOFUS Clicker sp
 - Valider les images visuellement et corriger les correspondances si une image présente un défaut.
 - Ajouter ensuite des animations WebP issues des vrais fichiers du jeu via PyDofus/d3-ts-renderer et une installation DOFUS locale.
 - Missions, équipements, inventaire détaillé, carte, classes, authentification et sauvegarde Supabase.
+
+## Noms authentiques FR / mise à jour du 17 novembre 2026
+
+- `assets/monsters/database.fr.json` : index de 5 135 monstres issu de MonsterData + i18n_fr (noms du client DOFUS 3, version `v6.0_3.7.13.17`).
+- `assets/monsters/catalog.fr.js` : les 50 portraits employés par les zones du prototype et leurs noms FR associés.
+- Chaque portrait provient du `gfxId` du même `MonsterData.id` qui fournit le nom affiché ; ne jamais attribuer au PNG le nom d'un autre monstre.
+- Les 26 combats d'Incarnam viennent d'une catégorie historique du wiki anglophone. Seuls 8 ont une image identique dans la version DOFUS 3 ; les 18 autres utilisent une espèce proche de la base actuelle, **affichée sous son véritable nom français** (ex. variante Blue Lilpiwi → Piou Bleu). Il est donc normal que certains anciens noms aient disparu ou que deux combats historiques correspondent à la même espèce actuelle.
+- Les portraits issus de `images-monster.zip` sont des **images fixes 2x**, pas les sprites squelettiques complets du client. Pour les vraies animations : exporter Bones + Skins + données depuis une installation locale DOFUS et les utiliser avec le moteur `PyDofus/d3-ts-renderer`.
+- Le changement de monstre précharge + décode le PNG suivant et masque le précédent durant une transition de 350 ms, ce qui supprime l'apparition parasite d'un autre monstre ou de l'emoji provisoire.
+- Les tests automatiques `node dofus-clicker/tests/smoke.cjs` vérifient l'identité FR et le changement de cible.
+
+Les ajouts ultérieurs doivent choisir les monstres dans `database.fr.json` par identifiant officiel, puis importer les PNG correspondant à leurs `gfxId`, et **non** par similarité de nom.
