@@ -35,7 +35,7 @@ class FakeImage{
 }
 const local=new Map();
 const sandbox={
- window:assets.window,
+ window:{...assets.window,addEventListener(){}},
  document:{
   getElementById:element,
   querySelectorAll(selector){return selector===".tab"?tabs:[];},
