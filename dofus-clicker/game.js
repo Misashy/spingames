@@ -53,7 +53,11 @@ const maxPlayerHp=()=>100+25*s.vitalityLevel+6*Math.floor((s.level-1)/2);
 const fightDuration=()=>24+Math.min(8,s.zone*2)+5*s.tempoLevel+(s.stage>=bossStage()?12:0)+(s.zone===0&&incarnamArea()?.dungeon?4:0);
 const enemyDamage=()=>Math.max(3,Math.round(7+s.zone*4+(s.zone===0?incarnamAreaIndex()*2:s.stage*1.2)+(s.stage>=bossStage()?8:0)));
 const ENEMY_STRIKE=3.5;
-const cost=kind==="click"?()=>Math.floor(15*Math.pow(1.55,s.clickLevel)):kind==="auto"?()=>Math.floor(35*Math.pow(1.6,s.autoLevel)):kind==="luck"?()=>Math.floor(85*Math.pow(1.7,s.luckLevel)):kind==="vitality"?()=>Math.floor(30*Math.pow(1.55,s.vitalityLevel)):()=>Math.floor(50*Math.pow(1.65,s.tempoLevel));
+const cost=(kind)=>kind==="click"?Math.floor(15*Math.pow(1.55,s.clickLevel)):
+ kind==="auto"?Math.floor(35*Math.pow(1.6,s.autoLevel)):
+ kind==="luck"?Math.floor(85*Math.pow(1.7,s.luckLevel)):
+ kind==="vitality"?Math.floor(30*Math.pow(1.55,s.vitalityLevel)):
+ Math.floor(50*Math.pow(1.65,s.tempoLevel));
 function refreshCombat(resetLife=false){s.timeLeft=fightDuration();enemyClock=0;if(resetLife)s.playerHp=maxPlayerHp();else s.playerHp=Math.min(maxPlayerHp(),Math.max(0,s.playerHp));}
 function resetHp(){s.maxHp=target().hp;s.hp=s.maxHp}
 if(s.hp===null||s.hp<=0||s.maxHp!==target().hp)resetHp();
