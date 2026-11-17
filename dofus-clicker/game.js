@@ -125,7 +125,44 @@ function renderZones(){
    (boss?"👑 Kardorim — boss final":done+"/"+area.count+" monstres")+'</small></span></div>';
  }).join("");
 }
-function renderHud(){const m=target(),z=zone(),isBoss=s.stage>=bossStage();el("kamas").textContent=nf(s.kamas);el("kills").textContent=nf(s.kills);el("power").textContent=nf(clickDamage())+"/clic";el("attackPower").textContent="+"+nf(clickDamage());el("dps").textContent=nf(dps())+" DPS";el("autoText").textContent=s.autoLevel?("Niveau "+s.autoLevel+" • Attaques continues"):"Achète ton premier compagnon";el("levelLabel").textContent="Niveau "+s.level;el("xpLabel").textContent=nf(s.xp)+" / "+nf(xpReq())+" XP";el("xpFill").style.width=Math.min(100,100*s.xp/xpReq())+"%";const area=incarnamArea();el("zoneTitle").textContent=area?area.name:z.name;el("zoneSubtitle").textContent=area?"INCARNAM • ÉTAPE "+(incarnamAreaIndex()+1)+"/7":z.subtitle.toUpperCase()+" • ZONE "+(s.zone+1);el("monsterName").textContent=m.name;el("monsterType").textContent=isBoss?(s.zone===0?"👑 BOSS FINAL • "+nf(m.xp)+" XP":"👑 BOSS DE ZONE • "+nf(m.xp)+" XP"):area?((area.dungeon?"🏰 DONJON • ":"")+area.name+" d’Incarnam • "+nf(m.xp)+" XP"):"Monstre sauvage • "+nf(m.xp)+" XP";el("enemyLevel").textContent="NIV. "+Math.max(1,s.zone*25+Math.ceil(m.hp/75));el("bossTag").textContent=isBoss?(s.zone===0?"👑 BOSS FINAL":"👑 COMBAT DE BOSS"):area?.dungeon?"🏰 CRYPTE":"⚔ COMBAT NORMAL";el("bossTag").classList.toggle("boss",isBoss);el("arena").classList.toggle("boss-mode",isBoss);el("hpLabel").textContent=nf(Math.max(0,Math.ceil(s.hp)))+" / "+nf(s.maxHp)+" PV";el("hpFill").style.width=Math.max(0,Math.min(100,100*s.hp/s.maxHp))+"%";el("progressLabel").textContent=s.stage+" / "+totalStages();el("steps").innerHTML=Array.from({length:totalStages()},(_,i)=>'<i class="'+(i<s.stage?"done ":"")+(i===bossStage()?"boss-step":"")+'"></i>').join("");el("tip").textContent=isBoss?(s.zone===0?"Kardorim est le dernier adversaire du donjon. Vaincs-le pour accéder à Astrub !":"Le boss se dresse devant toi ! Vaincs-le pour avancer."):area?("Étape "+(incarnamAreaIndex()+1)+"/7 • "+Math.max(0,Math.min(area.count,s.stage-area.start))+"/"+area.count+" monstres vaincus — "+area.name):(bossStage()-s.stage)+" victoire(s) avant le boss de la zone.";el("questText").textContent=isBoss?(s.zone===0?"Terrasse Kardorim pour finir Incarnam !":"Terrasse "+m.name+" !"):area?"Termine "+area.name+" pour accéder à la prochaine étape.":"Vaincs le boss "+z.boss.name+" pour progresser."}
+function locationKey(){return s.zone===0?"incarnam-"+incarnamAreaIndex():"zone-"+s.zone;}
+function showTerritoryOverlay(kind="area",reason=""){
+ const overlay=el("zoneOverlay");
+ if(!overlay)return;
+ if(overlayTimer!==null){clearTimeout(overlayTimer);overlayTimer=null;}
+ const isDefeat=kind==="defeat",area=incarnamArea(),title=area?area.name:zone().name;
+ overlay.classList.toggle("defeat-overlay",isDefeat);
+ el("zoneOverlayIcon").textContent=isDefeat?"💔":area?area.icon:zone().icon;
+ el("zoneOverlayEyebrow").textContent=isDefeat?"DÉFAITE • RECOMMENCER":area?"INCARNAM • NOUVEAU TERRITOIRE":"NOUVELLE ZONE";
+ el("zoneOverlayName").textContent=isDefeat?"Retour aux "+(area?area.name:zone().name):title;
+ el("zoneOverlaySubtitle").textContent=isDefeat?
+  (reason==="temps"?"Temps écoulé !":"Tu n'as plus de vie !")+" Tu conserves tes niveaux, kamas et améliorations.":
+  area?(area.dungeon?"Traverse la Crypte, puis affronte Kardorim !":"Monstres : "+area.count+" • Prépare tes améliorations !"):
+  "Un nouveau territoire s'ouvre devant toi.";
+ overlay.hidden=false;
+ overlayTimer=setTimeout(()=>{overlay.hidden=true;overlayTimer=null;},isDefeat?1900:1650);
+}
+function renderSurvival(){
+ const playerMax=maxPlayerHp(),hp=Math.max(0,Math.min(playerMax,s.playerHp));
+ const duration=fightDuration(),sec=Math.max(0,Math.min(duration,s.timeLeft));
+ el("playerHpLabel").textContent=nf(Math.ceil(hp))+" / "+nf(playerMax)+" PV";
+ el("playerHpFill").style.width=(100*hp/playerMax)+"%";
+ el("timerLabel").textContent=Math.ceil(sec)+" s";
+ el("timerFill").style.width=(100*sec/duration)+"%";
+ el("playerHpLabel").parentElement?.parentElement?.classList?.toggle("critical",hp/playerMax<=.25);
+ el("timerLabel").parentElement?.parentElement?.classList?.toggle("critical",sec<=6);
+}
+function renderTerritoryBanner(){
+ const area=incarnamArea(),index=incarnamAreaIndex();
+ el("territorySymbol").textContent=area?area.icon:zone().icon;
+ el("territoryBannerTitle").textContent=area?"Incarnam • "+area.name:zone().name;
+ const progress=area?Math.max(0,Math.min(area.count,s.stage-area.start)):s.stage;
+ el("territoryBannerDetail").textContent=area?
+  "ÉTAPE "+(index+1)+"/7 • "+(area.dungeon&&s.stage>=bossStage()?"Boss Kardorim":progress+"/"+area.count+" monstres vaincus"):
+  "ZONE "+(s.zone+1)+" • "+progress+"/"+totalStages()+" combats";
+ el("territoryBannerBadge").textContent=area?index===6?"DONJON":"TERRITOIRE "+(index+1):"ZONE "+(s.zone+1);
+}
+function renderHud(){const m=target(),z=zone(),isBoss=s.stage>=bossStage();el("kamas").textContent=nf(s.kamas);el("kills").textContent=nf(s.kills);el("power").textContent=nf(clickDamage())+"/clic";el("attackPower").textContent="+"+nf(clickDamage());el("dps").textContent=nf(dps())+" DPS";el("autoText").textContent=s.autoLevel?("Niveau "+s.autoLevel+" • Attaques continues"):"Achète ton premier compagnon";el("levelLabel").textContent="Niveau "+s.level;el("xpLabel").textContent=nf(s.xp)+" / "+nf(xpReq())+" XP";el("xpFill").style.width=Math.min(100,100*s.xp/xpReq())+"%";const area=incarnamArea();el("zoneTitle").textContent=area?area.name:z.name;el("zoneSubtitle").textContent=area?"INCARNAM • ÉTAPE "+(incarnamAreaIndex()+1)+"/7":z.subtitle.toUpperCase()+" • ZONE "+(s.zone+1);el("monsterName").textContent=m.name;el("monsterType").textContent=isBoss?(s.zone===0?"👑 BOSS FINAL • "+nf(m.xp)+" XP":"👑 BOSS DE ZONE • "+nf(m.xp)+" XP"):area?((area.dungeon?"🏰 DONJON • ":"")+area.name+" d’Incarnam • "+nf(m.xp)+" XP"):"Monstre sauvage • "+nf(m.xp)+" XP";el("enemyLevel").textContent="NIV. "+Math.max(1,s.zone*25+Math.ceil(m.hp/75));el("bossTag").textContent=isBoss?(s.zone===0?"👑 BOSS FINAL":"👑 COMBAT DE BOSS"):area?.dungeon?"🏰 CRYPTE":"⚔ COMBAT NORMAL";el("bossTag").classList.toggle("boss",isBoss);el("arena").classList.toggle("boss-mode",isBoss);el("hpLabel").textContent=nf(Math.max(0,Math.ceil(s.hp)))+" / "+nf(s.maxHp)+" PV";el("hpFill").style.width=Math.max(0,Math.min(100,100*s.hp/s.maxHp))+"%";el("progressLabel").textContent=s.stage+" / "+totalStages();el("steps").innerHTML=Array.from({length:totalStages()},(_,i)=>'<i class="'+(i<s.stage?"done ":"")+(i===bossStage()?"boss-step":"")+'"></i>').join("");el("tip").textContent=isBoss?(s.zone===0?"Kardorim est le dernier adversaire du donjon. Vaincs-le pour accéder à Astrub !":"Le boss se dresse devant toi ! Vaincs-le pour avancer."):area?("Étape "+(incarnamAreaIndex()+1)+"/7 • "+Math.max(0,Math.min(area.count,s.stage-area.start))+"/"+area.count+" monstres vaincus — "+area.name):(bossStage()-s.stage)+" victoire(s) avant le boss de la zone.";el("questText").textContent=isBoss?(s.zone===0?"Terrasse Kardorim pour finir Incarnam !":"Terrasse "+m.name+" !"):area?"Termine "+area.name+" pour accéder à la prochaine étape.":"Vaincs le boss "+z.boss.name+" pour progresser.";renderSurvival();renderTerritoryBanner()}
 function renderPanel(){const p=el("panel");if(tab==="shop"){p.innerHTML='<p class="section-label">AMÉLIORE TA PUISSANCE</p>'+[
  {kind:"click",icon:"⚔️",name:"Maîtrise des armes",desc:"Dégâts par clic • niveau "+s.clickLevel,price:cost("click")},
  {kind:"auto",icon:"🤝",name:"Compagnon d'armes",desc:"Dégâts automatiques • niveau "+s.autoLevel,price:cost("auto")},
