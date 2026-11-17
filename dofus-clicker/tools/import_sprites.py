@@ -23,6 +23,28 @@ INCARNAM_NAMES = [
     "Yellow Lilpiwi", "Young Arachnee", "Young Boar"
 ]
 
+# Noms de l'ancien wiki absents du client DOFUS 3 : image de même famille.
+# Il ne s'agit PAS du sprite original exact de ces variantes.
+FAMILY_ALIASES = {
+    "Blue Lilpiwi":"Blue Piwi",
+    "Daredevil Crab":"Crab",
+    "Fearful Moskito":"Moskito",
+    "Green Lilpiwi":"Green Piwi",
+    "Immature Blue Larva":"Blue Larva",
+    "Immature Green Larva":"Green Larva",
+    "Immature Orange Larva":"Orange Larva",
+    "Incarnam Scarecrow":"Training Scarecrow",
+    "Pink Lilpiwi":"Pink Piwi",
+    "Prepubescent Chafer":"Chafer Novice",
+    "Purple Lilpiwi":"Purple Piwi",
+    "Red Lilpiwi":"Red Piwi",
+    "Small Gobball War Chief":"Gobball War Chief",
+    "Vulnerable Mush Mush":"Mush Mush",
+    "Yellow Lilpiwi":"Yellow Piwi",
+    "Young Arachnee":"Tiny Arachnee",
+    "Young Boar":"Boar",
+}
+
 def get(url):
     req = urllib.request.Request(
         url, headers={"User-Agent": "DofusClickerAssetImporter/1.0",
@@ -81,6 +103,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     imported = {}
     unresolved = []
+    approximated = []
 
     def copy_image(key, gfx, mid=None, label=None):
         # Prioriser gfxId, jamais un autre id si celui-ci existe.
@@ -103,13 +126,20 @@ def main():
 
     for name in INCARNAM_NAMES:
         key = "incarnam-" + slug(name)
-        options = by_name.get(name.casefold().strip(), [])
-        # L'ancien wiki et le client 3.x n'utilisent pas toujours le même nom.
-        # Ne jamais attribuer une image "à peu près" sans contrôle humain.
+        alias = FAMILY_ALIASES.get(name)
+        official = alias if alias else name
+        options = by_name.get(official.casefold().strip(), [])
         if len(options)==1:
             mid,gfx,official_name=options[0]
             if copy_image(key,gfx,mid,name):
-                print("OK",name,"=>",mid,"gfx",gfx,flush=True)
+                if alias:
+                    imported[key]["substitute"] = alias
+                    imported[key]["exact"] = False
+                    approximated.append(name)
+                    print("FAMILY ART", name,"=>",alias,mid,flush=True)
+                else:
+                    imported[key]["exact"] = True
+                    print("EXACT",name,"=>",mid,"gfx",gfx,flush=True)
                 continue
         unresolved.append(name)
         normalized=name.casefold().replace("lilpiwi","piwi").replace("immature","young").replace("vulnerable","fragile")
@@ -124,6 +154,9 @@ def main():
         "total":len(IDS)+len(INCARNAM_NAMES),
         "incarnamRequested":len(INCARNAM_NAMES),
         "incarnamResolved":len(INCARNAM_NAMES)-len(unresolved),
+        "incarnamExact":len(INCARNAM_NAMES)-len(unresolved)-len(approximated),
+        "incarnamFamilySprites":len(approximated),
+        "approximateIncarnam":approximated,
         "unresolvedIncarnam":unresolved,
         "imported":imported
     }
