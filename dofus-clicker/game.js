@@ -1,7 +1,38 @@
 (() => {
 "use strict";
+const INCARNAM_MONSTERS = [
+["Blue Lilpiwi","🐦","Plume de Piou bleu"],
+["Chafer Novice","💀","Os de Chafer novice"],
+["Chafer Pikeman","💀","Lance de Chafer"],
+["Chafer Scout","💀","Os de Chafer éclaireur"],
+["Chafer Sergeant","💀","Insigne de Chafer"],
+["Daredevil Crab","🦀","Pince de Crabe"],
+["Fearful Moskito","🦟","Aile de Moskito"],
+["Green Lilpiwi","🐦","Plume de Piou vert"],
+["Immature Blue Larva","🐛","Peau de Larve bleue"],
+["Immature Green Larva","🐛","Peau de Larve verte"],
+["Immature Orange Larva","🐛","Peau de Larve orange"],
+["Incarnam Scarecrow","🌾","Paille d'épouvantail"],
+["Lupus Minimus","🐺","Poil de Lupus"],
+["Pink Lilpiwi","🐦","Plume de Piou rose"],
+["Pliplop","💧","Éclat de Pliplop"],
+["Prepubescent Chafer","💀","Os de jeune Chafer"],
+["Purple Lilpiwi","🐦","Plume de Piou violet"],
+["Purrsnikit","🐈","Griffe de Purrsnikit"],
+["Red Lilpiwi","🐦","Plume de Piou rouge"],
+["Small Gobball War Chief","🐏","Laine de chef de guerre"],
+["Tigrimas","🐈","Poil de Tigrimas"],
+["Vulnerable Mush Mush","🍄","Champignon fragile"],
+["Yellow Lilpiwi","🐦","Plume de Piou jaune"],
+["Young Arachnee","🕷️","Patte de jeune Arakne"],
+["Young Boar","🐗","Défense de jeune Sanglier"]
+].map(([name,emoji,loot],i)=>({
+ id:"incarnam-"+name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/-$/,""),
+ name,emoji,loot,
+ hp:12+Math.round(i*3.8),xp:9+Math.round(i*2.5),k:6+Math.round(i*1.8)
+}));
 const ZONES=[
- {name:"Incarnam",subtitle:"L'Île céleste",icon:"🌿",color:"#8bc89f",enemies:[{id:98,name:"Tofu",emoji:"🐤",hp:12,xp:9,k:6,loot:"Plume de Tofu"},{id:52,name:"Arakne",emoji:"🕷️",hp:17,xp:12,k:9,loot:"Patte d'Arakne"},{id:61,name:"Moskito",emoji:"🦟",hp:24,xp:14,k:11,loot:"Aile de Moskito"}],boss:{id:159,name:"Milimulou",emoji:"🐺",hp:120,xp:65,k:90,loot:"Crocs de Milimulou"}},
+ {name:"Incarnam",subtitle:"L'Île céleste",icon:"🌿",color:"#8bc89f",enemies:INCARNAM_MONSTERS,boss:{id:"incarnam-kardorim",name:"Kardorim",emoji:"💀",hp:470,xp:280,k:350,loot:"Relique de Kardorim"}},
  {name:"Astrub",subtitle:"Les champs d'Astrub",icon:"🏘️",color:"#e8c77b",enemies:[{id:48,name:"Tournesol Sauvage",emoji:"🌻",hp:50,xp:26,k:21,loot:"Pétale de Tournesol"},{id:79,name:"Pissenlit Diabolique",emoji:"🌼",hp:60,xp:31,k:25,loot:"Feuille de Pissenlit"},{id:59,name:"Champ Champ",emoji:"🍄",hp:76,xp:39,k:31,loot:"Champignon"}],boss:{id:104,name:"Sanglier",emoji:"🐗",hp:380,xp:140,k:180,loot:"Défense de Sanglier"}},
  {name:"Tainéla",subtitle:"Le berceau des Bouftous",icon:"🐑",color:"#e8d8ae",enemies:[{id:134,name:"Boufton Blanc",emoji:"🐑",hp:140,xp:69,k:57,loot:"Laine de Boufton"},{id:149,name:"Boufton Noir",emoji:"🐑",hp:166,xp:81,k:69,loot:"Laine noire"},{id:36,name:"Bouftou",emoji:"🐏",hp:220,xp:104,k:87,loot:"Laine de Bouftou"}],boss:{id:147,name:"Bouftou Royal",emoji:"👑",hp:1000,xp:350,k:460,loot:"Couronne Bouftou"}},
  {name:"Forêt d'Amakna",subtitle:"Le bois des Abraknydes",icon:"🌲",color:"#92b775",enemies:[{id:103,name:"Prespic",emoji:"🦔",hp:420,xp:175,k:142,loot:"Pic de Prespic"},{id:47,name:"Abraknyde",emoji:"🌳",hp:540,xp:210,k:180,loot:"Racine d'Abraknyde"},{id:102,name:"Mulou",emoji:"🐺",hp:610,xp:245,k:216,loot:"Poil de Mulou"}],boss:{id:173,name:"Abraknyde Ancestral",emoji:"🌳",hp:3300,xp:980,k:1120,loot:"Écorce ancestrale"}},
@@ -10,12 +41,14 @@ const ZONES=[
 ];
 const STORAGE="dofus-clicker-v1";
 const DEFAULT={level:1,xp:0,kamas:0,kills:0,clickLevel:0,autoLevel:0,luckLevel:0,zone:0,stage:0,maxZone:0,hp:null,maxHp:null,loot:{},dex:{},bosses:[],last:0};
-function load(){try{const parsed=JSON.parse(localStorage.getItem(STORAGE));if(parsed&&typeof parsed==="object"){const result={...DEFAULT,...parsed};result.kamas=Math.max(0,Number(result.kamas)||0);result.zone=Math.min(ZONES.length-1,Math.max(0,Number(result.zone)||0));result.maxZone=Math.min(ZONES.length-1,Math.max(0,Number(result.maxZone)||0));result.zone=Math.min(result.zone,result.maxZone);result.stage=Math.max(0,Math.min(6,Number(result.stage)||0));result.loot=result.loot||{};result.dex=result.dex||{};result.bosses=Array.isArray(result.bosses)?result.bosses:[];return result}}catch(e){}return {...DEFAULT,loot:{},dex:{},bosses:[]}}
+function load(){try{const parsed=JSON.parse(localStorage.getItem(STORAGE));if(parsed&&typeof parsed==="object"){const result={...DEFAULT,...parsed};result.kamas=Math.max(0,Number(result.kamas)||0);result.zone=Math.min(ZONES.length-1,Math.max(0,Number(result.zone)||0));result.maxZone=Math.min(ZONES.length-1,Math.max(0,Number(result.maxZone)||0));result.zone=Math.min(result.zone,result.maxZone);result.stage=Math.max(0,Math.min(ZONES[result.zone].enemies.length,Number(result.stage)||0));result.loot=result.loot||{};result.dex=result.dex||{};result.bosses=Array.isArray(result.bosses)?result.bosses:[];return result}}catch(e){}return {...DEFAULT,loot:{},dex:{},bosses:[]}}
 let s=load(),tab="shop",muted=true,ctx=null,lastFrame=Date.now(),lastSave=0,assetManifest=null;
 const el=(id)=>document.getElementById(id);
 const nf=(n)=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:1,notation:n>=10000?"compact":"standard"}).format(Math.floor(n));
 const zone=()=>ZONES[s.zone];
-const target=()=>s.stage===6?zone().boss:zone().enemies[s.stage%zone().enemies.length];
+const bossStage=()=>zone().enemies.length;
+const totalStages=()=>bossStage()+1;
+const target=()=>s.stage>=bossStage()?zone().boss:zone().enemies[s.stage%zone().enemies.length];
 const clickDamage=()=>1+2*s.clickLevel+Math.floor((s.level-1)/3);
 const dps=()=>s.autoLevel*1.8*Math.pow(1.16,Math.max(0,s.autoLevel-1));
 const xpReq=()=>Math.floor(20+s.level*s.level*15);
@@ -25,7 +58,7 @@ if(s.hp===null||s.hp<=0||s.maxHp!==target().hp)resetHp();
 function save(){s.last=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(s));el("saveStatus").textContent="Sauvegarde automatique activée"}catch(e){el("saveStatus").textContent="Impossible de sauvegarder sur cet appareil"}}
 function setMonster(){const m=target();const img=el("monsterImage"),fallback=el("monsterFallback");fallback.textContent=m.emoji;fallback.style.display="block";img.style.display="none";img.onload=()=>{img.style.display="block";fallback.style.display="none"};img.onerror=()=>{img.style.display="none";fallback.style.display="block"};img.src="./assets/monsters/"+m.id+".png";img.alt=m.name;el("monsterWrap").classList.remove("defeated")}
 function renderZones(){el("zones").innerHTML=ZONES.map((z,i)=>'<button class="zone '+(i===s.zone?"active ":"")+(i>s.maxZone?"locked":"")+'" '+(i>s.maxZone?"disabled":"")+' data-zone="'+i+'"><span class="zone-icon">'+z.icon+'</span><span class="zone-details"><strong>'+z.name+'</strong><small>'+(i>s.maxZone?"🔒 Zone verrouillée":i===s.zone?"⚔ En cours":"✓ Accessible")+'</small></span><span class="zone-arrow">'+(i>s.maxZone?"🔒":"›")+'</span></button>').join("")}
-function renderHud(){const m=target(),z=zone(),isBoss=s.stage===6;el("kamas").textContent=nf(s.kamas);el("kills").textContent=nf(s.kills);el("power").textContent=nf(clickDamage())+"/clic";el("attackPower").textContent="+"+nf(clickDamage());el("dps").textContent=nf(dps())+" DPS";el("autoText").textContent=s.autoLevel?("Niveau "+s.autoLevel+" • Attaques continues"):"Achète ton premier compagnon";el("levelLabel").textContent="Niveau "+s.level;el("xpLabel").textContent=nf(s.xp)+" / "+nf(xpReq())+" XP";el("xpFill").style.width=Math.min(100,100*s.xp/xpReq())+"%";el("zoneTitle").textContent=z.name;el("zoneSubtitle").textContent=z.subtitle.toUpperCase()+" • ZONE "+(s.zone+1);el("monsterName").textContent=m.name;el("monsterType").textContent=isBoss?"👑 BOSS DE ZONE • RÉCOMPENSE RARE":"Monstre sauvage • "+nf(m.xp)+" XP";el("enemyLevel").textContent="NIV. "+Math.max(1,s.zone*25+Math.ceil(m.hp/75));el("bossTag").textContent=isBoss?"👑 COMBAT DE BOSS":"⚔ COMBAT NORMAL";el("bossTag").classList.toggle("boss",isBoss);el("arena").classList.toggle("boss-mode",isBoss);el("hpLabel").textContent=nf(Math.max(0,Math.ceil(s.hp)))+" / "+nf(s.maxHp)+" PV";el("hpFill").style.width=Math.max(0,Math.min(100,100*s.hp/s.maxHp))+"%";el("progressLabel").textContent=s.stage+" / 7";el("steps").innerHTML=Array.from({length:7},(_,i)=>'<i class="'+(i<s.stage?"done ":"")+(i===6?"boss-step":"")+'"></i>').join("");el("tip").textContent=isBoss?"Le boss se dresse devant toi ! Vaincs-le pour avancer.":(6-s.stage)+" victoire(s) avant le boss de la zone.";el("questText").textContent=isBoss?"Terrasse "+m.name+" !":"Vaincs le boss "+z.boss.name+" pour progresser."}
+function renderHud(){const m=target(),z=zone(),isBoss=s.stage>=bossStage();el("kamas").textContent=nf(s.kamas);el("kills").textContent=nf(s.kills);el("power").textContent=nf(clickDamage())+"/clic";el("attackPower").textContent="+"+nf(clickDamage());el("dps").textContent=nf(dps())+" DPS";el("autoText").textContent=s.autoLevel?("Niveau "+s.autoLevel+" • Attaques continues"):"Achète ton premier compagnon";el("levelLabel").textContent="Niveau "+s.level;el("xpLabel").textContent=nf(s.xp)+" / "+nf(xpReq())+" XP";el("xpFill").style.width=Math.min(100,100*s.xp/xpReq())+"%";el("zoneTitle").textContent=z.name;el("zoneSubtitle").textContent=z.subtitle.toUpperCase()+" • ZONE "+(s.zone+1);el("monsterName").textContent=m.name;el("monsterType").textContent=isBoss?"👑 BOSS DE ZONE • RÉCOMPENSE RARE":"Monstre sauvage • "+nf(m.xp)+" XP";el("enemyLevel").textContent="NIV. "+Math.max(1,s.zone*25+Math.ceil(m.hp/75));el("bossTag").textContent=isBoss?"👑 COMBAT DE BOSS":"⚔ COMBAT NORMAL";el("bossTag").classList.toggle("boss",isBoss);el("arena").classList.toggle("boss-mode",isBoss);el("hpLabel").textContent=nf(Math.max(0,Math.ceil(s.hp)))+" / "+nf(s.maxHp)+" PV";el("hpFill").style.width=Math.max(0,Math.min(100,100*s.hp/s.maxHp))+"%";el("progressLabel").textContent=s.stage+" / "+totalStages();el("steps").innerHTML=Array.from({length:totalStages()},(_,i)=>'<i class="'+(i<s.stage?"done ":"")+(i===bossStage()?"boss-step":"")+'"></i>').join("");el("tip").textContent=isBoss?"Le boss se dresse devant toi ! Vaincs-le pour avancer.":(bossStage()-s.stage)+" victoire(s) avant le boss de la zone.";el("questText").textContent=isBoss?"Terrasse "+m.name+" !":"Vaincs le boss "+z.boss.name+" pour progresser."}
 function renderPanel(){const p=el("panel");if(tab==="shop"){p.innerHTML='<p class="section-label">AMÉLIORE TA PUISSANCE</p>'+[
  {kind:"click",icon:"⚔️",name:"Maîtrise des armes",desc:"Dégâts par clic • niveau "+s.clickLevel,price:cost("click")},
  {kind:"auto",icon:"🤝",name:"Compagnon d'armes",desc:"Dégâts automatiques • niveau "+s.autoLevel,price:cost("auto")},
@@ -37,7 +70,7 @@ function render(){renderHud();renderZones();renderPanel()}
 function sound(freq){if(muted)return;try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();const oscillator=ctx.createOscillator(),gain=ctx.createGain();oscillator.type="triangle";oscillator.frequency.value=freq;gain.gain.setValueAtTime(.04,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start();oscillator.stop(ctx.currentTime+.08)}catch(e){}}
 function damagePop(dmg,crit){const node=document.createElement("span");node.className="damage-pop"+(crit?" crit":"");node.textContent=(crit?"CRITIQUE ! ":"−")+nf(dmg);node.style.left=(45+Math.random()*12)+"%";el("floatingDamage").appendChild(node);node.addEventListener("animationend",()=>node.remove())}
 function hit(dmg,fromClick){if(!Number.isFinite(dmg)||dmg<=0)return;s.hp=Math.max(0,s.hp-dmg);if(fromClick){el("monsterWrap").classList.remove("hit");void el("monsterWrap").offsetWidth;el("monsterWrap").classList.add("hit");damagePop(dmg,false);sound(340)}if(s.hp<=0)victory();else{el("hpFill").style.width=(100*s.hp/s.maxHp)+"%";el("hpLabel").textContent=nf(Math.ceil(s.hp))+" / "+nf(s.maxHp)+" PV"}}
-function victory(){const m=target(),boss=s.stage===6;el("monsterWrap").classList.add("defeated");s.kills++;s.kamas+=Math.round(m.k*(1+.08*s.luckLevel));s.xp+=m.xp;s.dex[m.id]=(s.dex[m.id]||0)+1;const dropChance=Math.min(.88,.2+.05*s.luckLevel+(boss?.35:0));if(Math.random()<dropChance)s.loot[m.loot]=(s.loot[m.loot]||0)+1;while(s.xp>=xpReq()){s.xp-=xpReq();s.level++;sound(550)}if(boss){if(!s.bosses.includes(s.zone))s.bosses.push(s.zone);s.maxZone=Math.max(s.maxZone,Math.min(ZONES.length-1,s.zone+1));s.stage=0;if(s.zone<ZONES.length-1)s.zone++}else s.stage++;resetHp();setMonster();render();save()}
+function victory(){const m=target(),boss=s.stage>=bossStage();el("monsterWrap").classList.add("defeated");s.kills++;s.kamas+=Math.round(m.k*(1+.08*s.luckLevel));s.xp+=m.xp;s.dex[m.id]=(s.dex[m.id]||0)+1;const dropChance=Math.min(.88,.2+.05*s.luckLevel+(boss?.35:0));if(Math.random()<dropChance)s.loot[m.loot]=(s.loot[m.loot]||0)+1;while(s.xp>=xpReq()){s.xp-=xpReq();s.level++;sound(550)}if(boss){if(!s.bosses.includes(s.zone))s.bosses.push(s.zone);s.maxZone=Math.max(s.maxZone,Math.min(ZONES.length-1,s.zone+1));s.stage=0;if(s.zone<ZONES.length-1)s.zone++}else s.stage++;resetHp();setMonster();render();save()}
 function buy(kind){const price=cost(kind);if(s.kamas<price)return;s.kamas-=price;if(kind==="click")s.clickLevel++;if(kind==="auto")s.autoLevel++;if(kind==="luck")s.luckLevel++;sound(480);render();save()}
 function setZone(i){if(i<0||i>s.maxZone||i===s.zone)return;s.zone=i;s.stage=0;resetHp();setMonster();render();save()}
 function doAttack(){const crit=Math.random()<(.08+.01*s.luckLevel);const dmg=clickDamage()*(crit?2:1);hit(dmg,true);if(crit)damagePop(dmg,true)}
