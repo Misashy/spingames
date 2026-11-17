@@ -50,6 +50,16 @@ def main():
     locale=json.loads(get(f"{base}/i18n_en.json"))
     print("DEBUG locale type", type(locale).__name__, flush=True)
     print("DEBUG locale keys/sample", json.dumps((list(locale.items())[:2] if isinstance(locale,dict) else locale[:2]),ensure_ascii=False,default=str)[:3500],flush=True)
+    samples=[]
+    def search_samples(obj):
+        if isinstance(obj,dict):
+            if "gfxId" in obj and "id" in obj and len(samples)<2:samples.append(obj)
+            for value in obj.values():
+                if isinstance(value,(dict,list)):search_samples(value)
+        elif isinstance(obj,list):
+            for item in obj:search_samples(item)
+    search_samples(json.loads(get(assets["monstersdata.json"])))
+    print("DEBUG monster record examples:",json.dumps(samples,ensure_ascii=False)[:9500],flush=True)
     del locale
     print("Correspondances MonsterData:",len(mapping),flush=True)
     print("Téléchargement des images...",flush=True)
