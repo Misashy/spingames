@@ -75,7 +75,12 @@ function spriteFor(m) {
  if (!spriteCache.has(url)) {
   const promise=new Promise(resolve=>{
    const preload=new Image();
-   preload.onload=()=>resolve({url,ok:true});
+   preload.onload=()=>{
+   // Décodage avant affichage pour empêcher l'ancien bitmap de réapparaître.
+   if(typeof preload.decode==="function"){
+    preload.decode().then(()=>resolve({url,ok:true}),()=>resolve({url,ok:true}));
+   }else resolve({url,ok:true});
+  };
    preload.onerror=()=>resolve({url,ok:false});
    preload.src=url;
   });
@@ -112,7 +117,11 @@ function renderPanel(){const p=el("panel");if(tab==="shop"){p.innerHTML='<p clas
  {kind:"auto",icon:"🤝",name:"Compagnon d'armes",desc:"Dégâts automatiques • niveau "+s.autoLevel,price:cost("auto")},
  {kind:"luck",icon:"🍀",name:"Prospection",desc:"Chances de butin • niveau "+s.luckLevel,price:cost("luck")}].map(u=>'<div class="upgrade"><div class="upgrade-emoji">'+u.icon+'</div><div class="upgrade-info"><strong>'+u.name+'</strong><small>'+u.desc+'</small></div><button class="buy" data-buy="'+u.kind+'" '+(s.kamas<u.price?"disabled":"")+'>'+nf(u.price)+' 🪙</button></div>').join("")+'<div class="upgrade-note">💡 Les kamas gagnés pendant les combats servent à acheter des améliorations permanentes.</div>'}
 else if(tab==="loot"){const entries=Object.entries(s.loot).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);p.innerHTML='<p class="section-label">RESSOURCES RÉCOLTÉES</p>'+(entries.length?entries.map(x=>'<div class="loot-row"><span class="item-icon">📦</span><span>'+x[0]+'</span><strong>× '+nf(x[1])+'</strong></div>').join(""):'<p class="muted">Aucun butin pour le moment. Combat des monstres pour récupérer des ressources.</p>')}
-else{let enemies=ZONES.flatMap(z=>[...z.enemies,z.boss]);const unique=[...new Map(enemies.map(m=>[m.id,m])).values()];p.innerHTML='<p class="section-label">MONSTRES DÉCOUVERTS • '+Object.keys(s.dex).length+'/'+unique.length+'</p>'+unique.map(m=>'<div class="dex-row"><span class="item-icon">'+(s.dex[m.id]?m.emoji:"❔")+'</span><span>'+(s.dex[m.id]?m.name:"Monstre inconnu")+'</span><strong>'+(s.dex[m.id]?"× "+nf(s.dex[m.id]):"—")+'</strong></div>').join("")}
+else{let enemies=ZONES.flatMap(z=>[...z.enemies,z.boss]);const unique=[...new Map(enemies.map(m=>[m.id,m])).values()];p.innerHTML='<p class="section-label">MONSTRES DÉCOUVERTS • '+Object.keys(s.dex).length+'/'+unique.length+'</p>'+unique.map(m=>'<div class="dex-row"><span class="item-icon dex-icon">'+(s.dex[m.id]?'<img src="./assets/monsters/'+encodeURIComponent(String(m.id))+'.png" alt="" loading="lazy" width="34" height="34"><span class="dex-fallback" hidden>'+m.emoji+'</span>':"❔")+'</span><span>'+(s.dex[m.id]?m.name:"Monstre inconnu")+'</span><strong>'+(s.dex[m.id]?"× "+nf(s.dex[m.id]):"—")+'</strong></div>').join("")}
+p.querySelectorAll(".dex-icon img").forEach(img=>img.addEventListener("error",()=>{
+ img.hidden=true;
+ const emoji=img.nextElementSibling;if(emoji)emoji.hidden=false;
+}));
 }
 function render(){renderHud();renderZones();renderPanel()}
 function sound(freq){if(muted)return;try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();const oscillator=ctx.createOscillator(),gain=ctx.createGain();oscillator.type="triangle";oscillator.frequency.value=freq;gain.gain.setValueAtTime(.04,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start();oscillator.stop(ctx.currentTime+.08)}catch(e){}}
