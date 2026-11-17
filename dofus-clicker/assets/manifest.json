@@ -3,30 +3,30 @@
   "source": "ledouxm/dofus-sqlite",
   "total": 50,
   "incarnamRequested": 26,
-  "incarnamResolved": 21,
+  "incarnamResolved": 25,
   "incarnamExact": 8,
-  "incarnamFamilySprites": 13,
+  "incarnamFamilySprites": 17,
   "approximateIncarnam": [
     "Blue Lilpiwi",
     "Daredevil Crab",
     "Fearful Moskito",
     "Green Lilpiwi",
+    "Immature Blue Larva",
+    "Immature Green Larva",
+    "Immature Orange Larva",
     "Incarnam Scarecrow",
     "Pink Lilpiwi",
     "Prepubescent Chafer",
     "Purple Lilpiwi",
     "Red Lilpiwi",
+    "Small Gobball War Chief",
     "Vulnerable Mush Mush",
     "Yellow Lilpiwi",
     "Young Arachnee",
     "Young Boar"
   ],
   "unresolvedIncarnam": [
-    "Immature Blue Larva",
-    "Immature Green Larva",
-    "Immature Orange Larva",
-    "Lupus Minimus",
-    "Small Gobball War Chief"
+    "Lupus Minimus"
   ],
   "imported": {
     "98": {
@@ -241,6 +241,33 @@
       "substitute": "Green Piwi",
       "exact": false
     },
+    "incarnam-immature-blue-larva": {
+      "monsterId": 31,
+      "gfxId": 1,
+      "source": "2x/1.png",
+      "bytes": 11874,
+      "name": "Immature Blue Larva",
+      "substitute": "Blue Larva",
+      "exact": false
+    },
+    "incarnam-immature-green-larva": {
+      "monsterId": 34,
+      "gfxId": 2,
+      "source": "2x/2.png",
+      "bytes": 11529,
+      "name": "Immature Green Larva",
+      "substitute": "Green Larva",
+      "exact": false
+    },
+    "incarnam-immature-orange-larva": {
+      "monsterId": 46,
+      "gfxId": 12,
+      "source": "2x/12.png",
+      "bytes": 14428,
+      "name": "Immature Orange Larva",
+      "substitute": "Orange Larva",
+      "exact": false
+    },
     "incarnam-incarnam-scarecrow": {
       "monsterId": 1003,
       "gfxId": 278,
@@ -308,6 +335,15 @@
       "bytes": 9736,
       "name": "Red Lilpiwi",
       "substitute": "Red Piwi",
+      "exact": false
+    },
+    "incarnam-small-gobball-war-chief": {
+      "monsterId": 148,
+      "gfxId": 75,
+      "source": "2x/75.png",
+      "bytes": 16114,
+      "name": "Small Gobball War Chief",
+      "substitute": "Gobball War Chief",
       "exact": false
     },
     "incarnam-tigrimas": {
