@@ -21,11 +21,17 @@
       <div class="side-title"><span>🧭</span><div><strong>Explorer le monde</strong><small>Parcours & zones</small></div></div>
       <div id="zones" class="zones"></div>
       <div id="incarnamStages" class="incarnam-stages" aria-label="Les sept territoires d’Incarnam"></div>
-      <div class="help"><span>✦ CONSEIL DU VOYAGEUR</span><p>Bats 6 monstres, puis le boss de la zone pour débloquer la suivante.</p></div>
+      <div class="help"><span>✦ SURVIE EN COMBAT</span><p>Élimine le monstre avant la fin du chrono ! Tes ennemis attaquent aussi. En cas de défaite, tu recommences au début du territoire en gardant tes améliorations.</p></div>
     </aside>
     <section class="battle-area">
       <div class="area-head"><div><span class="eyebrow" id="zoneSubtitle">INCARNAM • ZONE 1</span><h1 id="zoneTitle">Bienvenue dans l'aventure</h1></div><div id="bossTag" class="boss-tag">COMBAT NORMAL</div></div>
+      <div class="territory-banner" id="territoryBanner" aria-live="polite"><span id="territorySymbol" class="territory-banner-icon">🌾</span><span class="territory-banner-copy"><strong id="territoryBannerTitle">Incarnam · Champs</strong><small id="territoryBannerDetail">Étape 1 / 7 · 4 monstres</small></span><span id="territoryBannerBadge" class="territory-banner-badge">ZONE 1</span></div>
+      <div class="survival-bar" aria-label="Survie en combat">
+        <div class="survival-stat"><div class="survival-stat-head"><span>❤️ VIE DU PERSONNAGE</span><strong id="playerHpLabel">100 / 100 PV</strong></div><div class="survival-track"><span id="playerHpFill"></span></div></div>
+        <div class="survival-stat"><div class="survival-stat-head"><span>⏱️ TEMPS RESTANT</span><strong id="timerLabel">30 s</strong></div><div class="survival-track timer-track"><span id="timerFill"></span></div></div>
+      </div>
       <div class="arena" id="arena">
+        <div id="zoneOverlay" class="zone-overlay" hidden role="status" aria-live="polite"><span class="zone-overlay-icon" id="zoneOverlayIcon">🌾</span><span id="zoneOverlayEyebrow" class="zone-overlay-eyebrow">NOUVEAU TERRITOIRE</span><strong id="zoneOverlayName">Champs</strong><span id="zoneOverlaySubtitle">Prépare-toi au prochain défi !</span></div>
         <div class="scene-glow"></div><div class="scene-hills hill-a"></div><div class="scene-hills hill-b"></div>
         <div class="particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="enemy-display"><div class="enemy-level" id="enemyLevel">NIV. 1</div><div class="monster-wrap" id="monsterWrap"><div class="monster-shadow"></div><img id="monsterImage" class="monster-image" alt="" draggable="false"><span class="monster-placeholder" id="monsterFallback">🐤</span></div></div>
