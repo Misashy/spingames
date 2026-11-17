@@ -6,8 +6,8 @@ const assert = require("node:assert/strict");
 const root=path.resolve(__dirname,"..");
 const assets = {window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(root,"assets/monsters/catalog.fr.js"),"utf8"),assets);
-assert.equal(assets.window.DOFUS_CATALOG_FR["incarnam-blue-lilpiwi"].name,"Piou Bleu");
-assert.ok(Object.keys(assets.window.DOFUS_CATALOG_FR).length>=50);
+assert.equal(assets.window.DOFUS_CATALOG_FR["979"].name,"Pissenlit Miroitant");
+assert.ok(Object.keys(assets.window.DOFUS_CATALOG_FR).length>=48);
 
 const nodes=new Map(),images=[],timers=[],intervals=[];
 class ClassList {
@@ -55,7 +55,29 @@ const sandbox={
  Math,
  Date,
 };
-vm.runInNewContext(fs.readFileSync(path.join(root,"game.js"),"utf8"),sandbox);
+const source=fs.readFileSync(path.join(root,"game.js"),"utf8");
+const marker='window.addEventListener("pagehide",save);';
+assert.ok(source.includes(marker));
+vm.runInNewContext(source.replace(marker,
+ 'window.__testIncarnam = {territories:INCARNAM_TERRITORIES,zones:ZONES};\\n'+marker),sandbox);
+const game=sandbox.window.__testIncarnam;
+assert.equal(game.territories.length,7);
+assert.equal(game.zones[0].enemies.length,28);
+assert.equal(game.zones[0].boss.id,4051);
+const expected=[
+ ["Champs",[979,980,970,981]],
+ ["Route des âmes",[3271,3273,3272,3270]],
+ ["Pâturages",[973,972,984,971]],
+ ["Forêt",[982,4105,4106]],
+ ["Lac",[4110,4109,4108]],
+ ["Cimetière",[4046,4048,4047,4049,4050]],
+ ["Crypte de Kardorim",[4046,4048,4047,4049,4050]]
+];
+for(let i=0;i<expected.length;i++){
+ assert.equal(game.territories[i].name,expected[i][0]);
+ assert.equal(game.territories[i].monsters.map(x=>x[0]).join(","),expected[i][1].join(","));
+}
+
 async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
 (async()=>{
  assert.equal(images.length,1);
@@ -63,7 +85,7 @@ async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
  assert.equal(element("monsterFallback").style.display,"none");
  images[0].onload();
  await flush();
- assert.equal(element("monsterName").textContent,"Piou Bleu");
+ assert.equal(element("monsterName").textContent,"Pissenlit Miroitant");
  assert.equal(element("monsterImage").style.display,"block");
  assert.equal(element("monsterFallback").style.display,"none");
  assert.ok(images.length>=2,"l'image du prochain monstre doit être préchargée");
@@ -80,8 +102,8 @@ async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
  assert.equal(element("monsterFallback").style.display,"none","pas d'emoji clignotant");
  images[1].onload();
  await flush();
- assert.equal(element("monsterName").textContent,"Chafer Débutant");
- assert.ok(element("monsterImage").src.endsWith("incarnam-chafer-novice.png"));
+ assert.equal(element("monsterName").textContent,"Rose Vaporeuse");
+ assert.ok(element("monsterImage").src.endsWith("980.png"));
  assert.equal(element("monsterWrap").classList.contains("defeated"),false);
  assert.equal(element("monsterImage").style.display,"block");
  assert.equal(element("monsterFallback").style.display,"none");
