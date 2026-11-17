@@ -3,9 +3,9 @@
   "source": "ledouxm/dofus-sqlite",
   "total": 50,
   "incarnamRequested": 26,
-  "incarnamResolved": 25,
+  "incarnamResolved": 26,
   "incarnamExact": 8,
-  "incarnamFamilySprites": 17,
+  "incarnamFamilySprites": 18,
   "approximateIncarnam": [
     "Blue Lilpiwi",
     "Daredevil Crab",
@@ -23,11 +23,10 @@
     "Vulnerable Mush Mush",
     "Yellow Lilpiwi",
     "Young Arachnee",
-    "Young Boar"
-  ],
-  "unresolvedIncarnam": [
+    "Young Boar",
     "Lupus Minimus"
   ],
+  "unresolvedIncarnam": [],
   "imported": {
     "98": {
       "monsterId": 98,
@@ -389,6 +388,13 @@
       "name": "Young Boar",
       "substitute": "Boar",
       "exact": false
+    },
+    "incarnam-lupus-minimus": {
+      "name": "Lupus Minimus",
+      "source": "159.png",
+      "exact": false,
+      "substitute": "Milimulou (famille loup)",
+      "bytes": 18323
     }
   }
 }
