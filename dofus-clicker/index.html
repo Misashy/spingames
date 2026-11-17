@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b19">
+<title>DOFUS Clicker — Aventure dans le Monde des Douze</title>
+<meta name="description" content="Un jeu de combat et de progression idle dans l'univers de DOFUS.">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Accueil DOFUS Clicker"><span class="emblem">D</span><span><strong>DOFUS <em>CLICKER</em></strong><small>AVENTURE DANS LE MONDE DES DOUZE</small></span></a>
+    <div class="currencies"><div class="currency"><span>🪙</span><div><small>Kamas</small><strong id="kamas">0</strong></div></div><div class="currency"><span>✨</span><div><small>Puissance</small><strong id="power">1/clic</strong></div></div><div class="currency"><span>⚔️</span><div><small>Victoires</small><strong id="kills">0</strong></div></div></div>
+    <button id="reset" class="quiet reset" title="Réinitialiser la progression">↺ Nouvelle partie</button>
+  </header>
+  <div class="levelbar"><span id="levelLabel">Niveau 1</span><div class="leveltrack"><span id="xpFill"></span></div><span id="xpLabel">0 / 35 XP</span></div>
+  <main class="layout">
+    <aside class="sidebar left">
+      <div class="side-title"><span>🧭</span><div><strong>Explorer le monde</strong><small>Parcours & zones</small></div></div>
+      <div id="zones" class="zones"></div>
+      <div class="help"><span>✦ CONSEIL DU VOYAGEUR</span><p>Bats 6 monstres, puis le boss de la zone pour débloquer la suivante.</p></div>
+    </aside>
+    <section class="battle-area">
+      <div class="area-head"><div><span class="eyebrow" id="zoneSubtitle">INCARNAM • ZONE 1</span><h1 id="zoneTitle">Bienvenue dans l'aventure</h1></div><div id="bossTag" class="boss-tag">COMBAT NORMAL</div></div>
+      <div class="arena" id="arena">
+        <div class="scene-glow"></div><div class="scene-hills hill-a"></div><div class="scene-hills hill-b"></div>
+        <div class="particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="enemy-display"><div class="enemy-level" id="enemyLevel">NIV. 1</div><div class="monster-wrap" id="monsterWrap"><div class="monster-shadow"></div><img id="monsterImage" class="monster-image" alt="" draggable="false"><span class="monster-placeholder" id="monsterFallback">🐤</span></div></div>
+        <div class="floating-damage" id="floatingDamage" aria-hidden="true"></div>
+        <div class="fight-info"><h2 id="monsterName">Tofu</h2><p id="monsterType">Créature du Monde des Douze</p><div class="hp-track"><span id="hpFill"></span></div><div class="hp-number" id="hpLabel">10 / 10 PV</div></div>
+      </div>
+      <div class="actions">
+        <button class="attack" id="attack"><span class="attack-icon">⚔</span><span><strong>ATTAQUER</strong><small>Clique ou appuie sur espace</small></span><span id="attackPower" class="attack-stat">+1</span></button>
+        <div class="auto-status"><div class="auto-icon">✦</div><div><strong>Compagnons</strong><small id="autoText">Débloque les dégâts automatiques</small></div><strong id="dps">0 DPS</strong></div>
+      </div>
+      <div class="progress-card"><div class="progress-header"><span>PROGRESSION DE LA ZONE</span><span id="progressLabel">0 / 7</span></div><div class="step-dots" id="steps"></div><p id="tip">Chaque monstre vaincu te rapproche du boss.</p></div>
+      <div class="battle-bottom"><span><span class="green-dot"></span><span id="saveStatus">Sauvegarde automatique activée</span></span><button class="quiet" id="soundToggle" aria-pressed="false">🔈 Sons désactivés</button></div>
+    </section>
+    <aside class="sidebar right">
+      <div class="side-title"><span>🎒</span><div><strong>Ton aventure</strong><small>Puissance & collection</small></div></div>
+      <div class="tabs" role="tablist"><button class="tab active" data-tab="shop" role="tab" aria-selected="true">Améliorer</button><button class="tab" data-tab="loot" role="tab" aria-selected="false">Butin</button><button class="tab" data-tab="dex" role="tab" aria-selected="false">Bestiaire</button></div>
+      <div id="panel" class="panel"></div>
+      <div class="milestone"><span>🏆</span><div><strong>Objectif actuel</strong><p id="questText">Atteins le boss d'Incarnam !</p></div></div>
+    </aside>
+  </main>
+  <footer>DOFUS CLICKER • Prototype indépendant • Ressources graphiques DOFUS selon autorisations applicables • <a href="../">Retour à SpinGames</a></footer>
+</div>
+<script src="./game.js" defer></script>
+</body>
+</html>
