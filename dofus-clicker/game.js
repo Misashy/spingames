@@ -94,7 +94,22 @@ function setMonster(){
   preloadFollowing();
  });
 }
-function renderZones(){el("zones").innerHTML=ZONES.map((z,i)=>'<button class="zone '+(i===s.zone?"active ":"")+(i>s.maxZone?"locked":"")+'" '+(i>s.maxZone?"disabled":"")+' data-zone="'+i+'"><span class="zone-icon">'+z.icon+'</span><span class="zone-details"><strong>'+z.name+'</strong><small>'+(i>s.maxZone?"🔒 Zone verrouillée":i===s.zone?"⚔ En cours":"✓ Accessible")+'</small></span><span class="zone-arrow">'+(i>s.maxZone?"🔒":"›")+'</span></button>').join("")}
+function renderZones(){
+ el("zones").innerHTML=ZONES.map((z,i)=>'<button class="zone '+(i===s.zone?"active ":"")+(i>s.maxZone?"locked":"")+'" '+(i>s.maxZone?"disabled":"")+' data-zone="'+i+'"><span class="zone-icon">'+z.icon+'</span><span class="zone-details"><strong>'+z.name+'</strong><small>'+(i>s.maxZone?"🔒 Zone verrouillée":i===s.zone?"⚔ En cours":"✓ Accessible")+'</small></span><span class="zone-arrow">'+(i>s.maxZone?"🔒":"›")+'</span></button>').join("");
+ const container=el("incarnamStages");
+ if(!container)return;
+ container.hidden=s.zone!==0;
+ if(s.zone!==0)return;
+ const current=incarnamAreaIndex();
+ container.innerHTML='<div class="inc-stages-title">LES 7 TERRITOIRES D’INCARNAM</div>'+
+ INCARNAM_BOUNDS.map((area,i)=>{
+  const done=Math.max(0,Math.min(area.count,s.stage-area.start));
+  const boss=area.dungeon&&s.stage>=bossStage();
+  return '<div class="inc-stage '+(i===current?"active ":"")+(s.stage>=area.start+area.count?"completed":"")+'">'+
+   '<span class="inc-stage-icon">'+area.icon+'</span><span class="inc-stage-label"><strong>'+(i+1)+'. '+area.name+'</strong><small>'+
+   (boss?"👑 Kardorim — boss final":done+"/"+area.count+" monstres")+'</small></span></div>';
+ }).join("");
+}
 function renderHud(){const m=target(),z=zone(),isBoss=s.stage>=bossStage();el("kamas").textContent=nf(s.kamas);el("kills").textContent=nf(s.kills);el("power").textContent=nf(clickDamage())+"/clic";el("attackPower").textContent="+"+nf(clickDamage());el("dps").textContent=nf(dps())+" DPS";el("autoText").textContent=s.autoLevel?("Niveau "+s.autoLevel+" • Attaques continues"):"Achète ton premier compagnon";el("levelLabel").textContent="Niveau "+s.level;el("xpLabel").textContent=nf(s.xp)+" / "+nf(xpReq())+" XP";el("xpFill").style.width=Math.min(100,100*s.xp/xpReq())+"%";el("zoneTitle").textContent=z.name;el("zoneSubtitle").textContent=z.subtitle.toUpperCase()+" • ZONE "+(s.zone+1);el("monsterName").textContent=m.name;el("monsterType").textContent=isBoss?"👑 BOSS DE ZONE • RÉCOMPENSE RARE":"Monstre sauvage • "+nf(m.xp)+" XP";el("enemyLevel").textContent="NIV. "+Math.max(1,s.zone*25+Math.ceil(m.hp/75));el("bossTag").textContent=isBoss?"👑 COMBAT DE BOSS":"⚔ COMBAT NORMAL";el("bossTag").classList.toggle("boss",isBoss);el("arena").classList.toggle("boss-mode",isBoss);el("hpLabel").textContent=nf(Math.max(0,Math.ceil(s.hp)))+" / "+nf(s.maxHp)+" PV";el("hpFill").style.width=Math.max(0,Math.min(100,100*s.hp/s.maxHp))+"%";el("progressLabel").textContent=s.stage+" / "+totalStages();el("steps").innerHTML=Array.from({length:totalStages()},(_,i)=>'<i class="'+(i<s.stage?"done ":"")+(i===bossStage()?"boss-step":"")+'"></i>').join("");el("tip").textContent=isBoss?"Le boss se dresse devant toi ! Vaincs-le pour avancer.":(bossStage()-s.stage)+" victoire(s) avant le boss de la zone.";el("questText").textContent=isBoss?"Terrasse "+m.name+" !":"Vaincs le boss "+z.boss.name+" pour progresser."}
 function renderPanel(){const p=el("panel");if(tab==="shop"){p.innerHTML='<p class="section-label">AMÉLIORE TA PUISSANCE</p>'+[
  {kind:"click",icon:"⚔️",name:"Maîtrise des armes",desc:"Dégâts par clic • niveau "+s.clickLevel,price:cost("click")},
