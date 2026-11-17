@@ -1,452 +1,489 @@
 {
   "release": "v6.0_3.7.13.17",
   "source": "ledouxm/dofus-sqlite",
-  "total": 50,
-  "incarnamRequested": 26,
-  "incarnamResolved": 26,
-  "incarnamExact": 8,
-  "incarnamFamilySprites": 18,
-  "approximateIncarnam": [
-    "Blue Lilpiwi",
-    "Daredevil Crab",
-    "Fearful Moskito",
-    "Green Lilpiwi",
-    "Immature Blue Larva",
-    "Immature Green Larva",
-    "Immature Orange Larva",
-    "Incarnam Scarecrow",
-    "Pink Lilpiwi",
-    "Prepubescent Chafer",
-    "Purple Lilpiwi",
-    "Red Lilpiwi",
-    "Small Gobball War Chief",
-    "Vulnerable Mush Mush",
-    "Yellow Lilpiwi",
-    "Young Arachnee",
-    "Young Boar",
-    "Lupus Minimus"
-  ],
+  "total": 48,
+  "incarnamRequested": 24,
+  "incarnamResolved": 24,
+  "incarnamExact": 24,
+  "incarnamFamilySprites": 0,
   "unresolvedIncarnam": [],
+  "incarnamTerritories": {
+    "Champs": [
+      979,
+      980,
+      970,
+      981
+    ],
+    "Route des âmes": [
+      3271,
+      3273,
+      3272,
+      3270
+    ],
+    "Pâturages": [
+      973,
+      972,
+      984,
+      971
+    ],
+    "Forêt": [
+      982,
+      4105,
+      4106
+    ],
+    "Lac": [
+      4110,
+      4109,
+      4108
+    ],
+    "Cimetière": [
+      4046,
+      4048,
+      4047,
+      4049,
+      4050
+    ],
+    "Crypte de Kardorim": [
+      4046,
+      4048,
+      4047,
+      4049,
+      4050,
+      4051
+    ]
+  },
   "imported": {
-    "98": {
-      "monsterId": 98,
-      "gfxId": 9,
-      "source": "2x/9.png",
-      "bytes": 13997,
-      "officialNameFr": "Tofu"
-    },
-    "52": {
-      "monsterId": 52,
-      "gfxId": 15,
-      "source": "2x/15.png",
-      "bytes": 12014,
-      "officialNameFr": "Arakne"
-    },
-    "61": {
-      "monsterId": 61,
-      "gfxId": 22,
-      "source": "2x/22.png",
-      "bytes": 15798,
-      "officialNameFr": "Moskito"
-    },
-    "159": {
-      "monsterId": 159,
-      "gfxId": 84,
-      "source": "2x/84.png",
-      "bytes": 18323,
-      "officialNameFr": "Milimulou"
-    },
-    "48": {
-      "monsterId": 48,
-      "gfxId": 14,
-      "source": "2x/14.png",
-      "bytes": 13478,
-      "officialNameFr": "Tournesol Sauvage"
-    },
-    "79": {
-      "monsterId": 79,
-      "gfxId": 33,
-      "source": "2x/33.png",
-      "bytes": 14738,
-      "officialNameFr": "Pissenlit Diabolique"
-    },
-    "59": {
-      "monsterId": 59,
-      "gfxId": 21,
-      "source": "2x/21.png",
-      "bytes": 15169,
-      "officialNameFr": "Champ Champ"
-    },
-    "104": {
-      "monsterId": 104,
-      "gfxId": 54,
-      "source": "2x/54.png",
-      "bytes": 14794,
-      "officialNameFr": "Sanglier"
-    },
-    "134": {
-      "monsterId": 134,
-      "gfxId": 73,
-      "source": "2x/73.png",
-      "bytes": 12400,
-      "officialNameFr": "Boufton Blanc"
-    },
-    "149": {
-      "monsterId": 149,
-      "gfxId": 76,
-      "source": "2x/76.png",
-      "bytes": 11032,
-      "officialNameFr": "Boufton Noir"
-    },
     "36": {
       "monsterId": 36,
       "gfxId": 3,
+      "name": "Bouftou",
+      "officialNameFr": "Bouftou",
       "source": "2x/3.png",
-      "bytes": 12908,
-      "officialNameFr": "Bouftou"
-    },
-    "147": {
-      "monsterId": 147,
-      "gfxId": 74,
-      "source": "2x/74.png",
-      "bytes": 19861,
-      "officialNameFr": "Bouftou Royal"
-    },
-    "103": {
-      "monsterId": 103,
-      "gfxId": 53,
-      "source": "2x/53.png",
-      "bytes": 15615,
-      "officialNameFr": "Prespic"
+      "exact": true,
+      "bytes": 12908
     },
     "47": {
       "monsterId": 47,
       "gfxId": 13,
+      "name": "Abraknyde",
+      "officialNameFr": "Abraknyde",
       "source": "2x/13.png",
-      "bytes": 17381,
-      "officialNameFr": "Abraknyde"
+      "exact": true,
+      "bytes": 17381
     },
-    "102": {
-      "monsterId": 102,
-      "gfxId": 52,
-      "source": "2x/52.png",
-      "bytes": 15769,
-      "officialNameFr": "Mulou"
+    "48": {
+      "monsterId": 48,
+      "gfxId": 14,
+      "name": "Tournesol Sauvage",
+      "officialNameFr": "Tournesol Sauvage",
+      "source": "2x/14.png",
+      "exact": true,
+      "bytes": 13478
     },
-    "173": {
-      "monsterId": 173,
-      "gfxId": 97,
-      "source": "2x/97.png",
-      "bytes": 18594,
-      "officialNameFr": "Abraknyde Ancestral"
+    "52": {
+      "monsterId": 52,
+      "gfxId": 15,
+      "name": "Arakne",
+      "officialNameFr": "Arakne",
+      "source": "2x/15.png",
+      "exact": true,
+      "bytes": 12014
     },
     "55": {
       "monsterId": 55,
       "gfxId": 17,
+      "name": "Gelée Bleuet",
+      "officialNameFr": "Gelée Bleuet",
       "source": "2x/17.png",
-      "bytes": 16196,
-      "officialNameFr": "Gelée Bleuet"
+      "exact": true,
+      "bytes": 16196
     },
     "56": {
       "monsterId": 56,
       "gfxId": 18,
+      "name": "Gelée Menthe",
+      "officialNameFr": "Gelée Menthe",
       "source": "2x/18.png",
-      "bytes": 15798,
-      "officialNameFr": "Gelée Menthe"
+      "exact": true,
+      "bytes": 15798
     },
     "57": {
       "monsterId": 57,
       "gfxId": 19,
+      "name": "Gelée Fraise",
+      "officialNameFr": "Gelée Fraise",
       "source": "2x/19.png",
-      "bytes": 15656,
-      "officialNameFr": "Gelée Fraise"
+      "exact": true,
+      "bytes": 15656
     },
     "58": {
       "monsterId": 58,
       "gfxId": 20,
+      "name": "Gelée Royale Bleuet",
+      "officialNameFr": "Gelée Royale Bleuet",
       "source": "2x/20.png",
-      "bytes": 16801,
-      "officialNameFr": "Gelée Royale Bleuet"
+      "exact": true,
+      "bytes": 16801
     },
-    "96": {
-      "monsterId": 96,
-      "gfxId": 48,
-      "source": "2x/48.png",
-      "bytes": 11528,
-      "officialNameFr": "Tiwabbit"
+    "59": {
+      "monsterId": 59,
+      "gfxId": 21,
+      "name": "Champ Champ",
+      "officialNameFr": "Champ Champ",
+      "source": "2x/21.png",
+      "exact": true,
+      "bytes": 15169
+    },
+    "61": {
+      "monsterId": 61,
+      "gfxId": 22,
+      "name": "Moskito",
+      "officialNameFr": "Moskito",
+      "source": "2x/22.png",
+      "exact": true,
+      "bytes": 15798
     },
     "64": {
       "monsterId": 64,
       "gfxId": 25,
+      "name": "Wabbit",
+      "officialNameFr": "Wabbit",
       "source": "2x/25.png",
-      "bytes": 10399,
-      "officialNameFr": "Wabbit"
+      "exact": true,
+      "bytes": 10399
     },
     "65": {
       "monsterId": 65,
       "gfxId": 26,
+      "name": "Black Wabbit",
+      "officialNameFr": "Black Wabbit",
       "source": "2x/26.png",
-      "bytes": 11875,
-      "officialNameFr": "Black Wabbit"
+      "exact": true,
+      "bytes": 11875
+    },
+    "79": {
+      "monsterId": 79,
+      "gfxId": 33,
+      "name": "Pissenlit Diabolique",
+      "officialNameFr": "Pissenlit Diabolique",
+      "source": "2x/33.png",
+      "exact": true,
+      "bytes": 14738
+    },
+    "96": {
+      "monsterId": 96,
+      "gfxId": 48,
+      "name": "Tiwabbit",
+      "officialNameFr": "Tiwabbit",
+      "source": "2x/48.png",
+      "exact": true,
+      "bytes": 11528
+    },
+    "98": {
+      "monsterId": 98,
+      "gfxId": 9,
+      "name": "Tofu",
+      "officialNameFr": "Tofu",
+      "source": "2x/9.png",
+      "exact": true,
+      "bytes": 13997
+    },
+    "102": {
+      "monsterId": 102,
+      "gfxId": 52,
+      "name": "Mulou",
+      "officialNameFr": "Mulou",
+      "source": "2x/52.png",
+      "exact": true,
+      "bytes": 15769
+    },
+    "103": {
+      "monsterId": 103,
+      "gfxId": 53,
+      "name": "Prespic",
+      "officialNameFr": "Prespic",
+      "source": "2x/53.png",
+      "exact": true,
+      "bytes": 15615
+    },
+    "104": {
+      "monsterId": 104,
+      "gfxId": 54,
+      "name": "Sanglier",
+      "officialNameFr": "Sanglier",
+      "source": "2x/54.png",
+      "exact": true,
+      "bytes": 14794
+    },
+    "134": {
+      "monsterId": 134,
+      "gfxId": 73,
+      "name": "Boufton Blanc",
+      "officialNameFr": "Boufton Blanc",
+      "source": "2x/73.png",
+      "exact": true,
+      "bytes": 12400
+    },
+    "147": {
+      "monsterId": 147,
+      "gfxId": 74,
+      "name": "Bouftou Royal",
+      "officialNameFr": "Bouftou Royal",
+      "source": "2x/74.png",
+      "exact": true,
+      "bytes": 19861
+    },
+    "149": {
+      "monsterId": 149,
+      "gfxId": 76,
+      "name": "Boufton Noir",
+      "officialNameFr": "Boufton Noir",
+      "source": "2x/76.png",
+      "exact": true,
+      "bytes": 11032
+    },
+    "159": {
+      "monsterId": 159,
+      "gfxId": 84,
+      "name": "Milimulou",
+      "officialNameFr": "Milimulou",
+      "source": "2x/84.png",
+      "exact": true,
+      "bytes": 18323
+    },
+    "173": {
+      "monsterId": 173,
+      "gfxId": 97,
+      "name": "Abraknyde Ancestral",
+      "officialNameFr": "Abraknyde Ancestral",
+      "source": "2x/97.png",
+      "exact": true,
+      "bytes": 18594
     },
     "180": {
       "monsterId": 180,
       "gfxId": 101,
+      "name": "Wa Wabbit",
+      "officialNameFr": "Wa Wabbit",
       "source": "2x/101.png",
-      "bytes": 16215,
-      "officialNameFr": "Wa Wabbit"
+      "exact": true,
+      "bytes": 16215
     },
-    "incarnam-blue-lilpiwi": {
-      "monsterId": 491,
-      "gfxId": 275,
-      "source": "2x/275.png",
-      "bytes": 10444,
-      "name": "Blue Lilpiwi",
-      "substitute": "Blue Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Bleu"
+    "970": {
+      "monsterId": 970,
+      "gfxId": 540,
+      "name": "Tofu Chimérique",
+      "officialNameFr": "Tofu Chimérique",
+      "source": "2x/540.png",
+      "exact": true,
+      "bytes": 12406
     },
-    "incarnam-chafer-novice": {
+    "971": {
+      "monsterId": 971,
+      "gfxId": 541,
+      "name": "Bouftou Nuageux",
+      "officialNameFr": "Bouftou Nuageux",
+      "source": "2x/541.png",
+      "exact": true,
+      "bytes": 11224
+    },
+    "972": {
+      "monsterId": 972,
+      "gfxId": 542,
+      "name": "Boufton Pâlichon",
+      "officialNameFr": "Boufton Pâlichon",
+      "source": "2x/542.png",
+      "exact": true,
+      "bytes": 12789
+    },
+    "973": {
+      "monsterId": 973,
+      "gfxId": 543,
+      "name": "Boufton Orageux",
+      "officialNameFr": "Boufton Orageux",
+      "source": "2x/543.png",
+      "exact": true,
+      "bytes": 14210
+    },
+    "979": {
+      "monsterId": 979,
+      "gfxId": 547,
+      "name": "Pissenlit Miroitant",
+      "officialNameFr": "Pissenlit Miroitant",
+      "source": "2x/547.png",
+      "exact": true,
+      "bytes": 10028
+    },
+    "980": {
+      "monsterId": 980,
+      "gfxId": 548,
+      "name": "Rose Vaporeuse",
+      "officialNameFr": "Rose Vaporeuse",
+      "source": "2x/548.png",
+      "exact": true,
+      "bytes": 12263
+    },
+    "981": {
+      "monsterId": 981,
+      "gfxId": 549,
+      "name": "Tournesol Nébuleux",
+      "officialNameFr": "Tournesol Nébuleux",
+      "source": "2x/549.png",
+      "exact": true,
+      "bytes": 11844
+    },
+    "982": {
+      "monsterId": 982,
+      "gfxId": 550,
+      "name": "Chakrobat",
+      "officialNameFr": "Chakrobat",
+      "source": "2x/550.png",
+      "exact": true,
+      "bytes": 10199
+    },
+    "984": {
+      "monsterId": 984,
+      "gfxId": 551,
+      "name": "Bouftor Éthéré",
+      "officialNameFr": "Bouftor Éthéré",
+      "source": "2x/551.png",
+      "exact": true,
+      "bytes": 17621
+    },
+    "3270": {
+      "monsterId": 3270,
+      "gfxId": 920,
+      "name": "Feu Vif",
+      "officialNameFr": "Feu Vif",
+      "source": "2x/920.png",
+      "exact": true,
+      "bytes": 13156
+    },
+    "3271": {
+      "monsterId": 3271,
+      "gfxId": 921,
+      "name": "Feu de Joie",
+      "officialNameFr": "Feu de Joie",
+      "source": "2x/921.png",
+      "exact": true,
+      "bytes": 12302
+    },
+    "3272": {
+      "monsterId": 3272,
+      "gfxId": 922,
+      "name": "Feu Furieux",
+      "officialNameFr": "Feu Furieux",
+      "source": "2x/922.png",
+      "exact": true,
+      "bytes": 13917
+    },
+    "3273": {
+      "monsterId": 3273,
+      "gfxId": 923,
+      "name": "Feu Follet",
+      "officialNameFr": "Feu Follet",
+      "source": "2x/923.png",
+      "exact": true,
+      "bytes": 11863
+    },
+    "4046": {
       "monsterId": 4046,
       "gfxId": 16,
+      "name": "Chafer Débutant",
+      "officialNameFr": "Chafer Débutant",
       "source": "2x/16.png",
-      "bytes": 15337,
-      "name": "Chafer Novice",
       "exact": true,
-      "officialNameFr": "Chafer Débutant"
+      "bytes": 15337
     },
-    "incarnam-chafer-pikeman": {
-      "monsterId": 4049,
-      "gfxId": 178,
-      "source": "2x/178.png",
-      "bytes": 11135,
-      "name": "Chafer Pikeman",
+    "4047": {
+      "monsterId": 4047,
+      "gfxId": 57,
+      "name": "Chafer Furtif",
+      "officialNameFr": "Chafer Furtif",
+      "source": "2x/57.png",
       "exact": true,
-      "officialNameFr": "Chafer Piquier"
+      "bytes": 16310
     },
-    "incarnam-chafer-scout": {
+    "4048": {
       "monsterId": 4048,
       "gfxId": 179,
+      "name": "Chafer Éclaireur",
+      "officialNameFr": "Chafer Éclaireur",
       "source": "2x/179.png",
-      "bytes": 16736,
-      "name": "Chafer Scout",
       "exact": true,
-      "officialNameFr": "Chafer Éclaireur"
+      "bytes": 16736
     },
-    "incarnam-chafer-sergeant": {
+    "4049": {
+      "monsterId": 4049,
+      "gfxId": 178,
+      "name": "Chafer Piquier",
+      "officialNameFr": "Chafer Piquier",
+      "source": "2x/178.png",
+      "exact": true,
+      "bytes": 11135
+    },
+    "4050": {
       "monsterId": 4050,
       "gfxId": 180,
+      "name": "Sergent Chafer",
+      "officialNameFr": "Sergent Chafer",
       "source": "2x/180.png",
-      "bytes": 14089,
-      "name": "Chafer Sergeant",
       "exact": true,
-      "officialNameFr": "Sergent Chafer"
+      "bytes": 14089
     },
-    "incarnam-daredevil-crab": {
-      "monsterId": 63,
-      "gfxId": 24,
-      "source": "2x/24.png",
-      "bytes": 16080,
-      "name": "Daredevil Crab",
-      "substitute": "Crab",
-      "exact": false,
-      "officialNameFr": "Crabe"
-    },
-    "incarnam-fearful-moskito": {
-      "monsterId": 61,
-      "gfxId": 22,
-      "source": "2x/22.png",
-      "bytes": 15798,
-      "name": "Fearful Moskito",
-      "substitute": "Moskito",
-      "exact": false,
-      "officialNameFr": "Moskito"
-    },
-    "incarnam-green-lilpiwi": {
-      "monsterId": 490,
-      "gfxId": 274,
-      "source": "2x/274.png",
-      "bytes": 9664,
-      "name": "Green Lilpiwi",
-      "substitute": "Green Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Vert"
-    },
-    "incarnam-immature-blue-larva": {
-      "monsterId": 31,
-      "gfxId": 1,
-      "source": "2x/1.png",
-      "bytes": 11874,
-      "name": "Immature Blue Larva",
-      "substitute": "Blue Larva",
-      "exact": false,
-      "officialNameFr": "Larve Bleue"
-    },
-    "incarnam-immature-green-larva": {
-      "monsterId": 34,
-      "gfxId": 2,
-      "source": "2x/2.png",
-      "bytes": 11529,
-      "name": "Immature Green Larva",
-      "substitute": "Green Larva",
-      "exact": false,
-      "officialNameFr": "Larve Verte"
-    },
-    "incarnam-immature-orange-larva": {
-      "monsterId": 46,
-      "gfxId": 12,
-      "source": "2x/12.png",
-      "bytes": 14428,
-      "name": "Immature Orange Larva",
-      "substitute": "Orange Larva",
-      "exact": false,
-      "officialNameFr": "Larve Orange"
-    },
-    "incarnam-incarnam-scarecrow": {
-      "monsterId": 1003,
-      "gfxId": 278,
-      "source": "2x/278.png",
-      "bytes": 12390,
-      "name": "Incarnam Scarecrow",
-      "substitute": "Training Scarecrow",
-      "exact": false,
-      "officialNameFr": "Epouvantail d'entraînement"
-    },
-    "incarnam-kardorim": {
+    "4051": {
       "monsterId": 4051,
       "gfxId": 1287,
-      "source": "2x/1287.png",
-      "bytes": 19492,
       "name": "Kardorim",
+      "officialNameFr": "Kardorim",
+      "source": "2x/1287.png",
       "exact": true,
-      "officialNameFr": "Kardorim"
+      "bytes": 19492
     },
-    "incarnam-pink-lilpiwi": {
-      "monsterId": 492,
-      "gfxId": 276,
-      "source": "2x/276.png",
-      "bytes": 11647,
-      "name": "Pink Lilpiwi",
-      "substitute": "Pink Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Rose"
-    },
-    "incarnam-pliplop": {
-      "monsterId": 4108,
-      "gfxId": 1311,
-      "source": "2x/1311.png",
-      "bytes": 16394,
-      "name": "Pliplop",
-      "exact": true,
-      "officialNameFr": "Plikplok"
-    },
-    "incarnam-prepubescent-chafer": {
-      "monsterId": 4046,
-      "gfxId": 16,
-      "source": "2x/16.png",
-      "bytes": 15337,
-      "name": "Prepubescent Chafer",
-      "substitute": "Chafer Novice",
-      "exact": false,
-      "officialNameFr": "Chafer Débutant"
-    },
-    "incarnam-purple-lilpiwi": {
-      "monsterId": 236,
-      "gfxId": 131,
-      "source": "2x/131.png",
-      "bytes": 12758,
-      "name": "Purple Lilpiwi",
-      "substitute": "Purple Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Violet"
-    },
-    "incarnam-purrsnikit": {
+    "4105": {
       "monsterId": 4105,
       "gfxId": 1309,
+      "name": "Ronronchon",
+      "officialNameFr": "Ronronchon",
       "source": "2x/1309.png",
-      "bytes": 13263,
-      "name": "Purrsnikit",
       "exact": true,
-      "officialNameFr": "Ronronchon"
+      "bytes": 13263
     },
-    "incarnam-red-lilpiwi": {
-      "monsterId": 489,
-      "gfxId": 273,
-      "source": "2x/273.png",
-      "bytes": 9736,
-      "name": "Red Lilpiwi",
-      "substitute": "Red Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Rouge"
-    },
-    "incarnam-small-gobball-war-chief": {
-      "monsterId": 148,
-      "gfxId": 75,
-      "source": "2x/75.png",
-      "bytes": 16114,
-      "name": "Small Gobball War Chief",
-      "substitute": "Gobball War Chief",
-      "exact": false,
-      "officialNameFr": "Chef de Guerre Bouftou"
-    },
-    "incarnam-tigrimas": {
+    "4106": {
       "monsterId": 4106,
       "gfxId": 1308,
-      "source": "2x/1308.png",
-      "bytes": 13945,
       "name": "Tigrimas",
+      "officialNameFr": "Tigrimas",
+      "source": "2x/1308.png",
       "exact": true,
-      "officialNameFr": "Tigrimas"
+      "bytes": 13945
     },
-    "incarnam-vulnerable-mush-mush": {
-      "monsterId": 59,
-      "gfxId": 21,
-      "source": "2x/21.png",
-      "bytes": 15169,
-      "name": "Vulnerable Mush Mush",
-      "substitute": "Mush Mush",
-      "exact": false,
-      "officialNameFr": "Champ Champ"
+    "4108": {
+      "monsterId": 4108,
+      "gfxId": 1311,
+      "name": "Plikplok",
+      "officialNameFr": "Plikplok",
+      "source": "2x/1311.png",
+      "exact": true,
+      "bytes": 16394
     },
-    "incarnam-yellow-lilpiwi": {
-      "monsterId": 493,
-      "gfxId": 277,
-      "source": "2x/277.png",
-      "bytes": 10270,
-      "name": "Yellow Lilpiwi",
-      "substitute": "Yellow Piwi",
-      "exact": false,
-      "officialNameFr": "Piou Jaune"
+    "4109": {
+      "monsterId": 4109,
+      "gfxId": 1312,
+      "name": "Petit Gloot",
+      "officialNameFr": "Petit Gloot",
+      "source": "2x/1312.png",
+      "exact": true,
+      "bytes": 15417
     },
-    "incarnam-young-arachnee": {
-      "monsterId": 5226,
-      "gfxId": 1733,
-      "source": "2x/1733.png",
-      "bytes": 13113,
-      "name": "Young Arachnee",
-      "substitute": "Tiny Arachnee",
-      "exact": false,
-      "officialNameFr": "Arakne Minuscule"
-    },
-    "incarnam-young-boar": {
-      "monsterId": 104,
-      "gfxId": 54,
-      "source": "2x/54.png",
-      "bytes": 14794,
-      "name": "Young Boar",
-      "substitute": "Boar",
-      "exact": false,
-      "officialNameFr": "Sanglier"
-    },
-    "incarnam-lupus-minimus": {
-      "name": "Lupus Minimus",
-      "source": "159.png",
-      "monsterId": 159,
-      "gfxId": 84,
-      "exact": false,
-      "substitute": "Milimulou (famille loup)",
-      "bytes": 18323,
-      "officialNameFr": "Milimulou"
+    "4110": {
+      "monsterId": 4110,
+      "gfxId": 1313,
+      "name": "Grand Splatch",
+      "officialNameFr": "Grand Splatch",
+      "source": "2x/1313.png",
+      "exact": true,
+      "bytes": 20658
     }
   }
 }
