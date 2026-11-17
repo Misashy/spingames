@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Importe les PNG DOFUS 3, sans associer une mauvaise image à un ancien nom wiki."""
 import io
+import difflib
 import json
 import pathlib
 import re
@@ -111,7 +112,11 @@ def main():
                 print("OK",name,"=>",mid,"gfx",gfx,flush=True)
                 continue
         unresolved.append(name)
-        print("MISSING",name,": candidats",options[:4],flush=True)
+        normalized=name.casefold().replace("lilpiwi","piwi").replace("immature","young").replace("vulnerable","fragile")
+        approximate=difflib.get_close_matches(normalized, list(by_name), n=8, cutoff=.4)
+        tokens=[t for t in re.findall(r"[a-z]{3,}",normalized) if t not in ("young","blue","red","green","pink","purple","yellow")]
+        keyword=[k for k in by_name if any(t in k for t in tokens)][:12]
+        print("MISSING",name,"suggestions",approximate,"keyword",keyword,flush=True)
 
     manifest={
         "release":RELEASE_TAG,
