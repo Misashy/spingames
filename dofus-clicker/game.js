@@ -166,7 +166,9 @@ function renderHud(){const m=target(),z=zone(),isBoss=s.stage>=bossStage();el("k
 function renderPanel(){const p=el("panel");if(tab==="shop"){p.innerHTML='<p class="section-label">AMÉLIORE TA PUISSANCE</p>'+[
  {kind:"click",icon:"⚔️",name:"Maîtrise des armes",desc:"Dégâts par clic • niveau "+s.clickLevel,price:cost("click")},
  {kind:"auto",icon:"🤝",name:"Compagnon d'armes",desc:"Dégâts automatiques • niveau "+s.autoLevel,price:cost("auto")},
- {kind:"luck",icon:"🍀",name:"Prospection",desc:"Chances de butin • niveau "+s.luckLevel,price:cost("luck")}].map(u=>'<div class="upgrade"><div class="upgrade-emoji">'+u.icon+'</div><div class="upgrade-info"><strong>'+u.name+'</strong><small>'+u.desc+'</small></div><button class="buy" data-buy="'+u.kind+'" '+(s.kamas<u.price?"disabled":"")+'>'+nf(u.price)+' 🪙</button></div>').join("")+'<div class="upgrade-note">💡 Les kamas gagnés pendant les combats servent à acheter des améliorations permanentes.</div>'}
+ {kind:"luck",icon:"🍀",name:"Prospection",desc:"Chances de butin • niveau "+s.luckLevel,price:cost("luck")},
+ {kind:"vitality",icon:"❤️",name:"Vitalité",desc:"+25 PV maximum • niveau "+s.vitalityLevel,price:cost("vitality")},
+ {kind:"tempo",icon:"⏳",name:"Endurance",desc:"+5 secondes par combat • niveau "+s.tempoLevel,price:cost("tempo")}].map(u=>'<div class="upgrade"><div class="upgrade-emoji">'+u.icon+'</div><div class="upgrade-info"><strong>'+u.name+'</strong><small>'+u.desc+'</small></div><button class="buy" data-buy="'+u.kind+'" '+(s.kamas<u.price?"disabled":"")+'>'+nf(u.price)+' 🪙</button></div>').join("")+'<div class="upgrade-note">⚔️ Les monstres contre-attaquent toutes les 3,5 secondes. Tu récupères une partie de ta vie après chaque victoire et tous tes PV à chaque nouveau territoire. Améliore Vitalité et Endurance pour survivre.</div>'}
 else if(tab==="loot"){const entries=Object.entries(s.loot).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);p.innerHTML='<p class="section-label">RESSOURCES RÉCOLTÉES</p>'+(entries.length?entries.map(x=>'<div class="loot-row"><span class="item-icon">📦</span><span>'+x[0]+'</span><strong>× '+nf(x[1])+'</strong></div>').join(""):'<p class="muted">Aucun butin pour le moment. Combat des monstres pour récupérer des ressources.</p>')}
 else{let enemies=ZONES.flatMap(z=>[...z.enemies,z.boss]);const unique=[...new Map(enemies.map(m=>[m.id,m])).values()];p.innerHTML='<p class="section-label">MONSTRES DÉCOUVERTS • '+Object.keys(s.dex).length+'/'+unique.length+'</p>'+unique.map(m=>'<div class="dex-row"><span class="item-icon dex-icon">'+(s.dex[m.id]?'<img src="./assets/monsters/'+encodeURIComponent(String(m.id))+'.png" alt="" loading="lazy" width="34" height="34"><span class="dex-fallback" hidden>'+m.emoji+'</span>':"❔")+'</span><span>'+(s.dex[m.id]?m.name:"Monstre inconnu")+'</span><strong>'+(s.dex[m.id]?"× "+nf(s.dex[m.id]):"—")+'</strong></div>').join("")}
 p.querySelectorAll(".dex-icon img").forEach(img=>img.addEventListener("error",()=>{
@@ -203,7 +205,17 @@ function victory(){
   transitioning=false;
  },350);
 }
-function buy(kind){const price=cost(kind);if(s.kamas<price)return;s.kamas-=price;if(kind==="click")s.clickLevel++;if(kind==="auto")s.autoLevel++;if(kind==="luck")s.luckLevel++;sound(480);render();save()}
+function buy(kind){
+ if(!["click","auto","luck","vitality","tempo"].includes(kind))return;
+ const price=cost(kind);if(s.kamas<price)return;
+ s.kamas-=price;
+ if(kind==="click")s.clickLevel++;
+ if(kind==="auto")s.autoLevel++;
+ if(kind==="luck")s.luckLevel++;
+ if(kind==="vitality"){s.vitalityLevel++;s.playerHp+=25;}
+ if(kind==="tempo"){s.tempoLevel++;s.timeLeft+=5;}
+ sound(480);render();save();
+}
 function setZone(i){if(transitioning||switchingMonster||i<0||i>s.maxZone||i===s.zone)return;s.zone=i;s.stage=0;resetHp();setMonster();render();save()}
 function doAttack(){const crit=Math.random()<(.08+.01*s.luckLevel);const dmg=clickDamage()*(crit?2:1);hit(dmg,true);if(crit)damagePop(dmg,true)}
 el("attack").addEventListener("click",doAttack);el("monsterWrap").addEventListener("click",doAttack);
