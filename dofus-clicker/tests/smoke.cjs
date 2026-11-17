@@ -59,7 +59,7 @@ const source=fs.readFileSync(path.join(root,"game.js"),"utf8");
 const marker='window.addEventListener("pagehide",save);';
 assert.ok(source.includes(marker));
 vm.runInNewContext(source.replace(marker,
- 'window.__testIncarnam = {territories:INCARNAM_TERRITORIES,zones:ZONES};\\n'+marker),sandbox);
+ 'window.__testIncarnam = {territories:INCARNAM_TERRITORIES,zones:ZONES};\n'+marker),sandbox);
 const game=sandbox.window.__testIncarnam;
 assert.equal(game.territories.length,7);
 assert.equal(game.zones[0].enemies.length,28);
