@@ -1,127 +1,229 @@
 {
   "release": "v6.0_3.7.13.17",
   "source": "ledouxm/dofus-sqlite",
-  "total": 24,
+  "total": 50,
+  "incarnamRequested": 26,
+  "incarnamResolved": 8,
+  "unresolvedIncarnam": [
+    "Blue Lilpiwi",
+    "Daredevil Crab",
+    "Fearful Moskito",
+    "Green Lilpiwi",
+    "Immature Blue Larva",
+    "Immature Green Larva",
+    "Immature Orange Larva",
+    "Incarnam Scarecrow",
+    "Lupus Minimus",
+    "Pink Lilpiwi",
+    "Prepubescent Chafer",
+    "Purple Lilpiwi",
+    "Red Lilpiwi",
+    "Small Gobball War Chief",
+    "Vulnerable Mush Mush",
+    "Yellow Lilpiwi",
+    "Young Arachnee",
+    "Young Boar"
+  ],
   "imported": {
     "98": {
+      "monsterId": 98,
       "gfxId": 9,
       "source": "2x/9.png",
       "bytes": 13997
     },
     "52": {
+      "monsterId": 52,
       "gfxId": 15,
       "source": "2x/15.png",
       "bytes": 12014
     },
     "61": {
+      "monsterId": 61,
       "gfxId": 22,
       "source": "2x/22.png",
       "bytes": 15798
     },
     "159": {
+      "monsterId": 159,
       "gfxId": 84,
       "source": "2x/84.png",
       "bytes": 18323
     },
     "48": {
+      "monsterId": 48,
       "gfxId": 14,
       "source": "2x/14.png",
       "bytes": 13478
     },
     "79": {
+      "monsterId": 79,
       "gfxId": 33,
       "source": "2x/33.png",
       "bytes": 14738
     },
     "59": {
+      "monsterId": 59,
       "gfxId": 21,
       "source": "2x/21.png",
       "bytes": 15169
     },
     "104": {
+      "monsterId": 104,
       "gfxId": 54,
       "source": "2x/54.png",
       "bytes": 14794
     },
     "134": {
+      "monsterId": 134,
       "gfxId": 73,
       "source": "2x/73.png",
       "bytes": 12400
     },
     "149": {
+      "monsterId": 149,
       "gfxId": 76,
       "source": "2x/76.png",
       "bytes": 11032
     },
     "36": {
+      "monsterId": 36,
       "gfxId": 3,
       "source": "2x/3.png",
       "bytes": 12908
     },
     "147": {
+      "monsterId": 147,
       "gfxId": 74,
       "source": "2x/74.png",
       "bytes": 19861
     },
     "103": {
+      "monsterId": 103,
       "gfxId": 53,
       "source": "2x/53.png",
       "bytes": 15615
     },
     "47": {
+      "monsterId": 47,
       "gfxId": 13,
       "source": "2x/13.png",
       "bytes": 17381
     },
     "102": {
+      "monsterId": 102,
       "gfxId": 52,
       "source": "2x/52.png",
       "bytes": 15769
     },
     "173": {
+      "monsterId": 173,
       "gfxId": 97,
       "source": "2x/97.png",
       "bytes": 18594
     },
     "55": {
+      "monsterId": 55,
       "gfxId": 17,
       "source": "2x/17.png",
       "bytes": 16196
     },
     "56": {
+      "monsterId": 56,
       "gfxId": 18,
       "source": "2x/18.png",
       "bytes": 15798
     },
     "57": {
+      "monsterId": 57,
       "gfxId": 19,
       "source": "2x/19.png",
       "bytes": 15656
     },
     "58": {
+      "monsterId": 58,
       "gfxId": 20,
       "source": "2x/20.png",
       "bytes": 16801
     },
     "96": {
+      "monsterId": 96,
       "gfxId": 48,
       "source": "2x/48.png",
       "bytes": 11528
     },
     "64": {
+      "monsterId": 64,
       "gfxId": 25,
       "source": "2x/25.png",
       "bytes": 10399
     },
     "65": {
+      "monsterId": 65,
       "gfxId": 26,
       "source": "2x/26.png",
       "bytes": 11875
     },
     "180": {
+      "monsterId": 180,
       "gfxId": 101,
       "source": "2x/101.png",
       "bytes": 16215
+    },
+    "incarnam-chafer-novice": {
+      "monsterId": 4046,
+      "gfxId": 16,
+      "source": "2x/16.png",
+      "bytes": 15337,
+      "name": "Chafer Novice"
+    },
+    "incarnam-chafer-pikeman": {
+      "monsterId": 4049,
+      "gfxId": 178,
+      "source": "2x/178.png",
+      "bytes": 11135,
+      "name": "Chafer Pikeman"
+    },
+    "incarnam-chafer-scout": {
+      "monsterId": 4048,
+      "gfxId": 179,
+      "source": "2x/179.png",
+      "bytes": 16736,
+      "name": "Chafer Scout"
+    },
+    "incarnam-chafer-sergeant": {
+      "monsterId": 4050,
+      "gfxId": 180,
+      "source": "2x/180.png",
+      "bytes": 14089,
+      "name": "Chafer Sergeant"
+    },
+    "incarnam-kardorim": {
+      "monsterId": 4051,
+      "gfxId": 1287,
+      "source": "2x/1287.png",
+      "bytes": 19492,
+      "name": "Kardorim"
+    },
+    "incarnam-pliplop": {
+      "monsterId": 4108,
+      "gfxId": 1311,
+      "source": "2x/1311.png",
+      "bytes": 16394,
+      "name": "Pliplop"
+    },
+    "incarnam-purrsnikit": {
+      "monsterId": 4105,
+      "gfxId": 1309,
+      "source": "2x/1309.png",
+      "bytes": 13263,
+      "name": "Purrsnikit"
+    },
+    "incarnam-tigrimas": {
+      "monsterId": 4106,
+      "gfxId": 1308,
+      "source": "2x/1308.png",
+      "bytes": 13945,
+      "name": "Tigrimas"
     }
   }
 }
