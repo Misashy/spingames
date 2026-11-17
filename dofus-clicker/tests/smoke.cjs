@@ -59,7 +59,7 @@ const source=fs.readFileSync(path.join(root,"game.js"),"utf8");
 const marker='window.addEventListener("pagehide",save);';
 assert.ok(source.includes(marker));
 vm.runInNewContext(source.replace(marker,
- 'window.__testIncarnam = {territories:INCARNAM_TERRITORIES,zones:ZONES};\n'+marker),sandbox);
+ 'window.__testIncarnam = {territories:INCARNAM_TERRITORIES,zones:ZONES,state:s,target,resetHp,renderHud,victory};\n'+marker),sandbox);
 const game=sandbox.window.__testIncarnam;
 assert.equal(game.territories.length,7);
 assert.equal(game.zones[0].enemies.length,28);
@@ -107,5 +107,32 @@ async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
  assert.equal(element("monsterWrap").classList.contains("defeated"),false);
  assert.equal(element("monsterImage").style.display,"block");
  assert.equal(element("monsterFallback").style.display,"none");
- console.log("Smoke test DOFUS Clicker : noms FR, sprites et transition OK.");
+ // Vérifier l'ordre réel de TOUS les territoires, pas seulement les données.
+ let offset=0;
+ for(const [name,ids] of expected){
+  game.state.stage=offset;
+  game.resetHp();
+  game.renderHud();
+  assert.equal(element("zoneTitle").textContent,name);
+  assert.equal(game.target().id,ids[0]);
+  for(let j=0;j<ids.length;j++){
+   game.state.stage=offset+j;
+   game.resetHp();
+   assert.equal(game.target().id,ids[j],"le monstre correspond au territoire courant");
+  }
+  offset+=ids.length;
+ }
+ assert.equal(offset,28);
+ game.state.stage=28;
+ game.resetHp();game.renderHud();
+ assert.equal(game.target().id,4051);
+ assert.equal(element("monsterName").textContent,"Kardorim");
+ assert.equal(element("zoneTitle").textContent,"Crypte de Kardorim");
+ assert.equal(element("bossTag").textContent,"👑 BOSS FINAL");
+ game.victory();
+ assert.equal(game.state.zone,1,"Astrub doit se débloquer après Kardorim");
+ assert.equal(game.state.maxZone,1);
+ assert.equal(game.state.stage,0);
+ console.log("Test DOFUS Clicker OK : 7 territoires, Crypte + 5 Chafers, boss Kardorim, progression vers Astrub.");
+
 })().catch(err=>{console.error(err);process.exitCode=1});
