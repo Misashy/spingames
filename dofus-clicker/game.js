@@ -33,8 +33,8 @@ for (const z of ZONES) {
  }
 }
 const STORAGE="dofus-clicker-v1";
-const DEFAULT={level:1,xp:0,kamas:0,kills:0,clickLevel:0,autoLevel:0,luckLevel:0,zone:0,stage:0,maxZone:0,hp:null,maxHp:null,loot:{},dex:{},bosses:[],last:0};
-function load(){try{const parsed=JSON.parse(localStorage.getItem(STORAGE));if(parsed&&typeof parsed==="object"){const result={...DEFAULT,...parsed};result.kamas=Math.max(0,Number(result.kamas)||0);result.zone=Math.min(ZONES.length-1,Math.max(0,Number(result.zone)||0));result.maxZone=Math.min(ZONES.length-1,Math.max(0,Number(result.maxZone)||0));result.zone=Math.min(result.zone,result.maxZone);result.stage=Math.max(0,Math.min(ZONES[result.zone].enemies.length,Number(result.stage)||0));result.loot=result.loot||{};result.dex=result.dex||{};result.bosses=Array.isArray(result.bosses)?result.bosses:[];return result}}catch(e){}return {...DEFAULT,loot:{},dex:{},bosses:[]}}
+const DEFAULT={level:1,xp:0,kamas:0,kills:0,clickLevel:0,autoLevel:0,luckLevel:0,zone:0,stage:0,maxZone:0,hp:null,maxHp:null,loot:{},dex:{},bosses:[],last:0,incarnamVersion:2};
+function load(){try{const parsed=JSON.parse(localStorage.getItem(STORAGE));if(parsed&&typeof parsed==="object"){const result={...DEFAULT,...parsed};result.kamas=Math.max(0,Number(result.kamas)||0);result.zone=Math.min(ZONES.length-1,Math.max(0,Number(result.zone)||0));result.maxZone=Math.min(ZONES.length-1,Math.max(0,Number(result.maxZone)||0));result.zone=Math.min(result.zone,result.maxZone);result.stage=Math.max(0,Math.min(ZONES[result.zone].enemies.length,Number(result.stage)||0));if(result.incarnamVersion!==2){if(result.zone===0){result.stage=0;result.hp=null;result.maxHp=null;}result.incarnamVersion=2;}result.loot=result.loot||{};result.dex=result.dex||{};result.bosses=Array.isArray(result.bosses)?result.bosses:[];return result}}catch(e){}return {...DEFAULT,loot:{},dex:{},bosses:[]}}
 let s=load(),tab="shop",muted=true,ctx=null,lastFrame=Date.now(),lastSave=0;
 let transitioning=false,switchingMonster=false,monsterRequest=0,victoryTimer=null;
 const spriteCache=new Map();
@@ -44,6 +44,8 @@ const zone=()=>ZONES[s.zone];
 const bossStage=()=>zone().enemies.length;
 const totalStages=()=>bossStage()+1;
 const target=()=>s.stage>=bossStage()?zone().boss:zone().enemies[s.stage%zone().enemies.length];
+const incarnamArea=()=>s.zone!==0?null:(INCARNAM_BOUNDS.find(area=>s.stage<area.start+area.count)||INCARNAM_BOUNDS[INCARNAM_BOUNDS.length-1]);
+const incarnamAreaIndex=()=>Math.max(0,INCARNAM_BOUNDS.indexOf(incarnamArea()));
 const clickDamage=()=>1+2*s.clickLevel+Math.floor((s.level-1)/3);
 const dps=()=>s.autoLevel*1.8*Math.pow(1.16,Math.max(0,s.autoLevel-1));
 const xpReq=()=>Math.floor(20+s.level*s.level*15);
