@@ -48,3 +48,15 @@ Les combats avancent automatiquement dans cet ordre :
 **Compatibilité :** les sauvegardes précédentes conservent niveau, expérience, kamas, améliorations, butin et zones débloquées. Seule l'avancée d'Incarnam repart des Champs pour éviter une ancienne position incohérente après le remplacement de la liste.
 
 **Vérifications :** `node dofus-clicker/tests/smoke.cjs` contrôle les sept territoires, l'ordre exact des Chafers dans la Crypte, Kardorim en dernier, le déblocage d'Astrub, le nom français et le chargement sans clignotement.
+
+## Mode survie : vie + chrono (17 novembre 2026)
+
+- La bannière indique le territoire actuel ; à chaque nouveau territoire ou zone, une transition plein écran s'affiche pendant 1,65 s. La liste des sept territoires met en évidence celui qui est en cours.
+- Chaque combat commence avec 24 secondes (+ temps supplémentaire pour les régions avancées ou les boss), ajustables par l'amélioration Endurance (+5 s par niveau).
+- Un monstre attaque toutes les 3,5 secondes ; ses dégâts augmentent au fil des territoires. La barre de vie du personnage commence à 100 PV, augmente avec le niveau et avec Vitalité (+25 PV par achat).
+- Après une victoire ordinaire, le personnage récupère 35 % de ses PV maximum, sans dépasser le maximum ; au passage dans un nouveau territoire, il est soigné complètement.
+- En cas de chrono écoulé ou de vie à zéro, on revient au premier monstre du territoire en cours ; les niveaux, XP, kamas, améliorations, bestiaire et drops restent acquis.
+- La Crypte est un territoire à part entière : perdre contre Kardorim ramène au premier Chafer de la Crypte, pas au Cimetière. Dans les zones après Incarnam, la défaite ramène au début de la grande zone.
+- Quand un onglet navigateur est masqué, le chrono et les contre-attaques sont en pause ; le chrono restant est sauvegardé en local.
+- Tests automatisés : node dofus-clicker/tests/smoke.cjs et node dofus-clicker/tests/survival.cjs (GitHub Actions).
+
