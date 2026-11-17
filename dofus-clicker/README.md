@@ -3,7 +3,7 @@
 Mini-jeu pour navigateur dans l'univers DOFUS, hébergé sur GitHub Pages sous le chemin /spingames/dofus-clicker/.
 
 ## Première version
-- 6 zones, 20+ monstres et boss, clics de combat, auto-DPS, niveaux, XP et kamas.
+- 6 grandes zones dont Incarnam divisée en 7 territoires, 28 combats de monstres + Kardorim en boss final, clics de combat, auto-DPS, niveaux, XP et kamas.
 - 3 améliorations, butin, bestiaire, sauvegarde locale, audio facultatif.
 - Animations légères CSS (idle, coup, disparition, dégâts) ; **pas encore** les animations squelettiques DOFUS.
 - Images PNG réelles importées dans assets/monsters/<monsterId>.png par le workflow GitHub Actions, avec fallback emoji jusqu'à l'import.
@@ -26,14 +26,25 @@ Si le lancement automatique a échoué, ouvrir Actions > Import DOFUS Clicker sp
 - Ajouter ensuite des animations WebP issues des vrais fichiers du jeu via PyDofus/d3-ts-renderer et une installation DOFUS locale.
 - Missions, équipements, inventaire détaillé, carte, classes, authentification et sauvegarde Supabase.
 
-## Noms authentiques FR / mise à jour du 17 novembre 2026
 
-- `assets/monsters/database.fr.json` : index de 5 135 monstres issu de MonsterData + i18n_fr (noms du client DOFUS 3, version `v6.0_3.7.13.17`).
-- `assets/monsters/catalog.fr.js` : les 50 portraits employés par les zones du prototype et leurs noms FR associés.
-- Chaque portrait provient du `gfxId` du même `MonsterData.id` qui fournit le nom affiché ; ne jamais attribuer au PNG le nom d'un autre monstre.
-- Les 26 combats d'Incarnam viennent d'une catégorie historique du wiki anglophone. Seuls 8 ont une image identique dans la version DOFUS 3 ; les 18 autres utilisent une espèce proche de la base actuelle, **affichée sous son véritable nom français** (ex. variante Blue Lilpiwi → Piou Bleu). Il est donc normal que certains anciens noms aient disparu ou que deux combats historiques correspondent à la même espèce actuelle.
-- Les portraits issus de `images-monster.zip` sont des **images fixes 2x**, pas les sprites squelettiques complets du client. Pour les vraies animations : exporter Bones + Skins + données depuis une installation locale DOFUS et les utiliser avec le moteur `PyDofus/d3-ts-renderer`.
-- Le changement de monstre précharge + décode le PNG suivant et masque le précédent durant une transition de 350 ms, ce qui supprime l'apparition parasite d'un autre monstre ou de l'emoji provisoire.
-- Les tests automatiques `node dofus-clicker/tests/smoke.cjs` vérifient l'identité FR et le changement de cible.
+## Incarnam : progression fidèle aux captures du bestiaire (17 novembre 2026)
 
-Les ajouts ultérieurs doivent choisir les monstres dans `database.fr.json` par identifiant officiel, puis importer les PNG correspondant à leurs `gfxId`, et **non** par similarité de nom.
+Les combats avancent automatiquement dans cet ordre :
+
+| Étape | Territoire | Monstres |
+|---|---|---|
+| 1 | Champs | Pissenlit Miroitant, Rose Vaporeuse, Tofu Chimérique, Tournesol Nébuleux |
+| 2 | Route des âmes | Feu de Joie, Feu Follet, Feu Furieux, Feu Vif |
+| 3 | Pâturages | Boufton Orageux, Boufton Pâlichon, Bouftor Éthéré, Bouftou Nuageux |
+| 4 | Forêt | Chakrobat, Ronronchon, Tigrimas |
+| 5 | Lac | Grand Splatch, Petit Gloot, Plikplok |
+| 6 | Cimetière | Chafer Débutant, Chafer Éclaireur, Chafer Furtif, Chafer Piquier, Sergent Chafer |
+| 7 | Crypte de Kardorim | Les mêmes cinq Chafers **puis Kardorim comme combat final** |
+
+29 rencontres successives (28 monstres + 1 boss), couvrant 24 espèces distinctes.
+
+**Noms et portraits authentiques de DOFUS 3 :** `assets/monsters/database.fr.json` contient les 5 135 noms français et gfxId indexés. `tools/import_sprites.py` télécharge automatiquement les **24 PNG exacts** pour Incarnam depuis la version `v6.0_3.7.13.17`, sans substituts ni traduction manuelle. `assets/monsters/catalog.fr.js` relie les noms et images aux mêmes IDs. Les fichiers PNG sont des portraits fixes avec animation CSS légère, pas les animations squelettiques du client.
+
+**Compatibilité :** les sauvegardes précédentes conservent niveau, expérience, kamas, améliorations, butin et zones débloquées. Seule l'avancée d'Incarnam repart des Champs pour éviter une ancienne position incohérente après le remplacement de la liste.
+
+**Vérifications :** `node dofus-clicker/tests/smoke.cjs` contrôle les sept territoires, l'ordre exact des Chafers dans la Crypte, Kardorim en dernier, le déblocage d'Astrub, le nom français et le chargement sans clignotement.
