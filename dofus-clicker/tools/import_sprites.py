@@ -214,7 +214,7 @@ def main():
     }
     (OUT/"catalog.fr.js").write_text(
         "window.DOFUS_CATALOG_FR = "+
-        json.dumps(localized,ensure_ascii=False,sort_keys=True).replace("</","<\\/")+";\\n",
+        json.dumps(localized,ensure_ascii=False,sort_keys=True).replace("</","<\\/")+";"+chr(10),
         encoding="utf-8"
     )
     # Index de toutes les entrées MonsterData (pas seulement les zones jouables).
@@ -228,7 +228,7 @@ def main():
     (OUT/"database.fr.json").write_text(
         json.dumps({"source":"ledouxm/dofus-sqlite","release":RELEASE_TAG,
                     "count":len(database),"monsters":database},
-                   ensure_ascii=False,separators=(",",":"))+"\\n",
+                   ensure_ascii=False,separators=(",",":"))+chr(10),
         encoding="utf-8"
     )
     print("CATALOG FR:",len(localized),"images, BASE:",len(database),
