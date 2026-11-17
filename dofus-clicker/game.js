@@ -179,10 +179,11 @@ p.querySelectorAll(".dex-icon img").forEach(img=>img.addEventListener("error",()
 function render(){renderHud();renderZones();renderPanel()}
 function sound(freq){if(muted)return;try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();const oscillator=ctx.createOscillator(),gain=ctx.createGain();oscillator.type="triangle";oscillator.frequency.value=freq;gain.gain.setValueAtTime(.04,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start();oscillator.stop(ctx.currentTime+.08)}catch(e){}}
 function damagePop(dmg,crit){const node=document.createElement("span");node.className="damage-pop"+(crit?" crit":"");node.textContent=(crit?"CRITIQUE ! ":"−")+nf(dmg);node.style.left=(45+Math.random()*12)+"%";el("floatingDamage").appendChild(node);node.addEventListener("animationend",()=>node.remove())}
-function hit(dmg,fromClick){if(transitioning||switchingMonster||!Number.isFinite(dmg)||dmg<=0)return;s.hp=Math.max(0,s.hp-dmg);if(fromClick){el("monsterWrap").classList.remove("hit");void el("monsterWrap").offsetWidth;el("monsterWrap").classList.add("hit");damagePop(dmg,false);sound(340)}if(s.hp<=0)victory();else{el("hpFill").style.width=(100*s.hp/s.maxHp)+"%";el("hpLabel").textContent=nf(Math.ceil(s.hp))+" / "+nf(s.maxHp)+" PV"}}
+function hit(dmg,fromClick){if(transitioning||switchingMonster||el("zoneOverlay").hidden===false||!Number.isFinite(dmg)||dmg<=0)return;s.hp=Math.max(0,s.hp-dmg);if(fromClick){el("monsterWrap").classList.remove("hit");void el("monsterWrap").offsetWidth;el("monsterWrap").classList.add("hit");damagePop(dmg,false);sound(340)}if(s.hp<=0)victory();else{el("hpFill").style.width=(100*s.hp/s.maxHp)+"%";el("hpLabel").textContent=nf(Math.ceil(s.hp))+" / "+nf(s.maxHp)+" PV"}}
 function victory(){
  if(transitioning)return;
  transitioning=true;
+ const priorLocation=locationKey();
  const m=target(),boss=s.stage>=bossStage();
  el("monsterWrap").classList.add("defeated");
  s.kills++;s.kamas+=Math.round(m.k*(1+.08*s.luckLevel));s.xp+=m.xp;
@@ -196,15 +197,32 @@ function victory(){
   s.stage=0;
   if(s.zone<ZONES.length-1)s.zone++;
  }else s.stage++;
- resetHp();save();
+ const changedTerritory=priorLocation!==locationKey();
+ if(changedTerritory)s.playerHp=maxPlayerHp();
+ else s.playerHp=Math.min(maxPlayerHp(),s.playerHp+Math.ceil(maxPlayerHp()*.35));
+ resetHp();refreshCombat(changedTerritory);save();
  if(victoryTimer!==null)clearTimeout(victoryTimer);
  victoryTimer=setTimeout(()=>{
   victoryTimer=null;
-  // L'ancien sprite reste caché pendant le chargement du nouveau.
   setMonster();render();save();
   transitioning=false;
+  if(changedTerritory)showTerritoryOverlay("area");
  },350);
 }
+function defeat(reason){
+ if(transitioning)return;
+ transitioning=true;
+ if(victoryTimer!==null){clearTimeout(victoryTimer);victoryTimer=null;}
+ // Même territoire : ne jamais revenir à Champs si on a perdu au Lac,
+ // ni à Incarnam quand on a échoué dans une zone du monde différente.
+ if(s.zone===0)s.stage=incarnamArea().start;
+ else s.stage=0;
+ resetHp();refreshCombat(true);
+ setMonster();render();save();
+ showTerritoryOverlay("defeat",reason);
+ transitioning=false;
+}
+
 function buy(kind){
  if(!["click","auto","luck","vitality","tempo"].includes(kind))return;
  const price=cost(kind);if(s.kamas<price)return;
@@ -216,14 +234,14 @@ function buy(kind){
  if(kind==="tempo"){s.tempoLevel++;s.timeLeft+=5;}
  sound(480);render();save();
 }
-function setZone(i){if(transitioning||switchingMonster||i<0||i>s.maxZone||i===s.zone)return;s.zone=i;s.stage=0;resetHp();setMonster();render();save()}
+function setZone(i){if(transitioning||switchingMonster||i<0||i>s.maxZone||i===s.zone)return;s.zone=i;s.stage=0;resetHp();refreshCombat(true);setMonster();render();save();showTerritoryOverlay("area")}
 function doAttack(){const crit=Math.random()<(.08+.01*s.luckLevel);const dmg=clickDamage()*(crit?2:1);hit(dmg,true);if(crit)damagePop(dmg,true)}
 el("attack").addEventListener("click",doAttack);el("monsterWrap").addEventListener("click",doAttack);
 document.addEventListener("keydown",e=>{if(e.code==="Space"&&!e.repeat&&e.target.tagName!=="BUTTON"&&!["INPUT","TEXTAREA"].includes(e.target.tagName)){e.preventDefault();doAttack()}});
 el("zones").addEventListener("click",e=>{const b=e.target.closest("[data-zone]");if(b)setZone(Number(b.dataset.zone))});
 el("panel").addEventListener("click",e=>{const b=e.target.closest("[data-buy]");if(b)buy(b.dataset.buy)});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(t=>{t.classList.toggle("active",t===b);t.setAttribute("aria-selected",String(t===b))});renderPanel()}));
-el("reset").addEventListener("click",()=>{if(confirm("Recommencer l\'aventure ? Les sauvegardes et ressources seront effacées.")){if(victoryTimer!==null)clearTimeout(victoryTimer);victoryTimer=null;transitioning=false;monsterRequest++;localStorage.removeItem(STORAGE);s={...DEFAULT,loot:{},dex:{},bosses:[]};resetHp();setMonster();render();save()}});
+el("reset").addEventListener("click",()=>{if(confirm("Recommencer l\'aventure ? Les sauvegardes et ressources seront effacées.")){if(victoryTimer!==null)clearTimeout(victoryTimer);victoryTimer=null;transitioning=false;monsterRequest++;localStorage.removeItem(STORAGE);s={...DEFAULT,loot:{},dex:{},bosses:[]};resetHp();refreshCombat(true);if(overlayTimer!==null){clearTimeout(overlayTimer);overlayTimer=null;}el("zoneOverlay").hidden=true;setMonster();render();save()}});
 el("soundToggle").addEventListener("click",()=>{muted=!muted;el("soundToggle").textContent=muted?"🔈 Sons désactivés":"🔊 Sons activés";el("soundToggle").setAttribute("aria-pressed",String(!muted));if(!muted)sound(440)});
 setMonster();render();save();
 setInterval(()=>{const now=Date.now();const elapsed=Math.min(2,(now-lastFrame)/1000);lastFrame=now;const p=dps();if(p>0)hit(p*elapsed,false);if(now-lastSave>2200){lastSave=now;save();if(tab==="shop")renderPanel()}},250);
