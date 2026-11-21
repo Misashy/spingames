@@ -1,0 +1,25 @@
+name: Probe DOFUS data schema for complete idle game
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dofus-idle/tools/probe_schema.py'
+      - '.github/workflows/dofus-idle-probe.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download latest DOFUS 3 SQLite reference
+        run: |
+          curl -fL --retry 3 --connect-timeout 30 \
+            https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18/dofus.sqlite \
+            -o /tmp/dofus.sqlite
+          file /tmp/dofus.sqlite
+          du -h /tmp/dofus.sqlite
+      - name: Print relevant tables and sample records
+        run: python dofus-idle/tools/probe_schema.py
