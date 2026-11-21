@@ -692,7 +692,7 @@ function combatEnemyPanel(){
   E("div",{className:"fd-combat-actions"},
    B(active?"■ Arrêter le combat":"⚔️ Combattre",()=>startCombat(state.selectedMonster),
     active?"fd-danger":"fd-button",!active&&playerLevel()+8<m[1]),
-   B("🎁 Voir les butins",()=>$("#fdCombatLoot")?.scrollIntoView({behavior:"smooth",block:"nearest"}),"fd-secondary"),
+   B("🎁 Voir les butins",()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})},"fd-secondary"),
    B("🎒 Équiper du stuff",()=>runNav("bank"),"fd-secondary")),
   E("div",{id:"fdCombatLoot"},monsterDropsPanel(state.selectedMonster,m)),
   E("div",{className:"fd-log"},E("h3",{},"📜 Journal de combat"),
@@ -706,7 +706,7 @@ function combatMonsterRow(mid,m,zoneId){
   E("span",{},E("strong",{},m[0]),E("small",{},"Niveau de combat "+m[1]+" · ❤️ "+money(m[2])+" PV")));
  row.append(pick,E("div",{className:"fd-monster-buttons"},
   B("Combattre",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",playerLevel()+8<m[1]),
-  B("Butins",()=>{focusMonster(mid,zoneId);$("#fdCombatLoot")?.scrollIntoView({behavior:"smooth",block:"nearest"})},"fd-secondary")));
+  B("Butins",()=>{focusMonster(mid,zoneId);(()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})})()},"fd-secondary")));
  return row;
 }
 function combatZoneCard(id,z){
@@ -889,7 +889,7 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
