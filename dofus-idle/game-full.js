@@ -506,7 +506,7 @@ function zoneView(){
  for(const [id,m] of paginated){
   const selected=String(state.selectedMonster)===id;
   list.append(B("",()=>{state.selectedMonster=id;renderView();save()},"fd-monster-row "+(selected?"active":"")));
-  list.lastChild.append(mobSprite(id),E("div",{},E("strong",{},m[0]),E("small",{},"Niveau "+m[1]+" · "+money(m[2])+" PV · "+m[4].length+" butins")),
+  list.lastChild.append(mobSprite(id),E("div",{},E("strong",{},m[0]),E("small",{},"Niveau "+m[1]+" · "+money(m[2])+" PV · "+(m[4].length+(m[6]||[]).length)+" butins")),
    pill((state.dex[id]||0)+" victoires"));
  }
  const m=world.monsters[String(state.selectedMonster)]||world.monsters["979"];
@@ -533,11 +533,16 @@ function zoneView(){
    B(state.action?.type==="combat"&&String(state.action.id)===String(state.selectedMonster)?"■ Arrêter le combat":"⚔️ Combattre automatiquement",
     ()=>startCombat(String(state.selectedMonster)),"fd-button",playerLevel()+8<m[1]),
    E("h3",{},"Butins et taux de drop"),
-   E("small",{},"Taux de base DOFUS 3 en grade 1, hors conditions de quête."),
+   E("small",{},"Probabilités de base DOFUS 3, grade 1. Les drops sans conditions sont tirés à chaque victoire."),
    E("div",{className:"fd-drops"},...m[4].slice(0,70).map(([iid,rate])=>
     E("div",{className:"fd-drop"},itemSprite(iid,"fd-tiny"),
      E("span",{},itemName(iid)),pill(formatRate(rate),"green")))),
    m[4].length>70?E("small",{},"Seuls les 70 premiers butins sont affichés."):null,
+   (m[6]||[]).length?E("h3",{},"🔒 Drops conditionnels ("+(m[6]||[]).length+")"):null,
+   (m[6]||[]).length?E("small",{},"Taux affichés pour information : critères de quête/classe/événement non simulés."):null,
+   (m[6]||[]).length?E("div",{className:"fd-drops"},
+     ...(m[6]||[]).slice(0,45).map(([iid,rate,condition])=>E("div",{className:"fd-drop conditional",title:condition||"Condition spécifique DOFUS"},
+      itemSprite(iid,"fd-tiny"),E("span",{},itemName(iid)),pill(formatRate(rate),"locked")))):null,
    E("div",{className:"fd-log"},E("h3",{},"Journal"),...state.log.slice(0,8).map(line=>E("p",{},line))))));
 }
 function bestiaryView(){
