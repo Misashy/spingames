@@ -15,3 +15,30 @@ for name in names:
   for row in db.execute(f'SELECT * FROM "{name}" LIMIT 2'):
    out=dict(row)
    print('EXAMPLE',name,json.dumps(out,ensure_ascii=False,default=str)[:1800],flush=True)
+
+print("--- SPECIALIZED LOOKUPS ---",flush=True)
+def dumpquery(label,query,params=(),limit=24):
+ print("QUERY",label,flush=True)
+ try:
+  for row in db.execute(query,params).fetchmany(limit):
+   values=dict(row)
+   for k,v in list(values.items()):
+    if isinstance(v,str) and len(v)>2600:values[k]=v[:2600]+"...(truncated)"
+   print(json.dumps(values,ensure_ascii=False,default=str),flush=True)
+ except Exception as e: print("ERROR",label,str(e),flush=True)
+dumpquery("JOBS", """SELECT j.id,j.iconId,t.value AS name FROM JobData j
+ LEFT JOIN translations t ON t.id=j.nameId AND t.lang='fr' ORDER BY j.id""",limit=50)
+dumpquery("GATHERS", """SELECT s.id,s.parentJobId,s.levelMin,s.gatheredRessourceItem,s.clientDisplay,t.value AS name FROM SkillData s LEFT JOIN translations t ON t.id=s.nameId AND t.lang='fr'
+ WHERE s.gatheredRessourceItem>0 ORDER BY s.parentJobId,s.levelMin""",limit=120)
+dumpquery("RECIPES", """SELECT r.id,r.resultId,r.resultLevel,r.jobId,r.skillId,r.quantities,t.value AS name
+ FROM RecipeData r JOIN ItemData i ON i.id=r.resultId
+ JOIN translations t ON t.id=i.nameId AND t.lang='fr'
+ ORDER BY r.resultLevel LIMIT 25""",limit=25)
+dumpquery("RECIPE_INGREDIENTS", """SELECT rowid,RecipeData_id,target_id FROM RecipeData_ingredientIds_junction LIMIT 20""")
+dumpquery("MONSTER", """SELECT id,nameId,gfxId,grades,drops,globalDrops,subareas FROM MonsterData WHERE id=979""",limit=1)
+dumpquery("MONSTER_2", """SELECT id,nameId,gfxId,grades,drops,globalDrops,subareas FROM MonsterData WHERE id=31""",limit=1)
+dumpquery("SUBAREAS", """SELECT s.id,s.areaId,s.level,t.value name,s.monsters
+ FROM SubAreaData s LEFT JOIN translations t ON t.id=s.nameId AND t.lang='fr'
+ WHERE json_array_length(s.monsters)>0 ORDER BY s.level LIMIT 20""",limit=20)
+dumpquery("ITEM_TYPES", """SELECT typ.id,typ.categoryId,typ.superTypeId,t.value name FROM ItemTypeData typ
+ LEFT JOIN translations t ON t.id=typ.nameId AND t.lang='fr' ORDER BY typ.id""",limit=110)
