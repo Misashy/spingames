@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'dofus-idle/tools/build_full_database.py'
+      - 'dofus-idle/game-full.js'
+      - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-full-data.yml'
 
 permissions:
@@ -33,6 +35,8 @@ jobs:
           test "$(stat -c%s /tmp/dofus.sqlite)" -gt 100000000
       - name: Générer tous les métiers, recettes, ingrédients, taux et zones
         run: python dofus-idle/tools/build_full_database.py
+      - name: Vérifier la syntaxe du moteur complet
+        run: node --check dofus-idle/game-full.js
       - name: Contrôles
         run: |
           python - <<'PY'
