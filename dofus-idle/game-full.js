@@ -493,7 +493,7 @@ function equip(id){
  if(!has(id))return;const slot=gearSlot(id);if(!slot)return;
  if(playerLevel()<itemLevel(id)){toast("Niveau de combat "+itemLevel(id)+" requis pour équiper "+itemName(id)+".");return}
  if(slot in state.equipment){
-  const old=state.equipment[slot];if(old&&!has(old)&&slots()>=bankCap()){toast("Banque pleine.");return}
+  const old=state.equipment[slot];if(old&&!has(old)&&slots()>=bankCap()&&state.bank[id]>1){toast("Banque pleine.");return}
   consume(id);if(old)add(old);state.equipment[slot]=String(id);state.hp=Math.min(maxHp(),state.hp);
   toast(itemName(id)+" équipé.");render();save();
  }
@@ -595,6 +595,7 @@ function focusMonster(id,zoneId){
  if(zone){
   state.selectedZone=String(zid);
   state.selectedRegion=regionFor(zone);
+  state.combatMode=Number(zone[5])>=0?"dungeons":"zones";
   combatOpenZone=String(zid);
  }
  state.selectedMonster=String(id);monsterQuery="";monsterPage=0;state.view="combat";
@@ -739,7 +740,7 @@ function combatZoneCard(id,z){
 function zoneView(){
  const all=regionCatalog();
  const mode=state.combatMode==="dungeons"?"dungeons":"zones";
- const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="zones"||Number(z[5])>=0)])
+ const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="dungeons"?Number(z[5])>=0:Number(z[5])<0)])
   .filter(([name,zones])=>zones.length>0);
  const chosen=regions.find(([name])=>name===state.selectedRegion);
  const outer=E("div",{className:"fd-combat-page"},
