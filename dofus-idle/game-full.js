@@ -340,27 +340,43 @@ function currentActionBox(){
  meter(p,"fd-active-meter"));
 }
 function runNav(view){
- state.view=view;q="";page=0;recipeFilter="all";monsterPage=0;
+ const wasMode=state.combatMode==="dungeons"?"dungeons":"zones";
+ if(view==="dungeons"||view==="combat"){
+  const mode=view==="dungeons"?"dungeons":"zones";
+  state.combatMode=mode;
+  if(wasMode!==mode){state.selectedRegion="";combatOpenZone="";zoneQuery="";monsterQuery="";}
+ }
+ state.view=view==="dungeons"?"combat":view;
+ q="";page=0;recipeFilter="all";monsterPage=0;
  $("#sidebar").classList.remove("open");render();save();
 }
 function sidebar(){
+ // On affiche le combat en premier, au-dessus de la banque et des métiers.
  const groups=[
+  ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"]]],
   ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"]]],
-  ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>[["job:"+id,jobIcon(id),jobName(id)],...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])])],
+  ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
+   [["job:"+id,jobIcon(id),jobName(id)],
+    ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
   ["MÉTIERS DE FABRICATION",Object.keys(core.jobs).filter(id=>!core.gather[id]&&(core.recipes[id]||[]).length>0).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
   ["SPÉCIALISATIONS",Object.keys(core.jobs).filter(id=>!core.gather[id]&&!(core.recipes[id]||[]).length).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
-  ["MONDE",[["combat","⚔️","Zones et monstres"],["bestiary","📘","Bestiaire"],["recipes","🔧","Toutes les recettes"]]]
+  ["CATALOGUE",[["recipes","🔧","Toutes les recettes"]]]
  ];
  const nav=E("div",{className:"fd-nav"});
  for(const [title,entries] of groups){
   const section=E("section",{},E("h3",{},title));
   for(const [view,emoji,label] of entries){
    const id=view.startsWith("job:")?view.split(":")[1]:null;
-   section.append(B("",()=>runNav(view),"fd-nav-entry "+(state.view===view?"active":"")));
-   const button=section.lastChild;
-   button.append(id?jobSprite(id,"fd-menu-icon"):E("span",{className:"fd-menu-icon"},emoji),
-    E("span",{className:"fd-nav-name"},label),
-    id?E("span",{className:"fd-nav-level"},jobLevel(id)+"/200"):null);
+   const selected=(view==="dungeons"&&state.view==="combat"&&state.combatMode==="dungeons")||
+    (view==="combat"&&state.view==="combat"&&state.combatMode!=="dungeons")||
+    (view!=="combat"&&view!=="dungeons"&&state.view===view);
+   const cls="fd-nav-entry "+(selected?"active ":"")+(view.startsWith("craft:")?"fd-nav-sub":"");
+   const button=B("",()=>runNav(view),cls);
+   button.append(id?jobSprite(id,"fd-menu-icon"):E("span",{className:"fd-menu-icon"},emoji));
+   button.append(E("span",{className:"fd-nav-name"},label));
+   // Ne jamais passer une valeur null à Element.append : cela imprime « null ».
+   if(id)button.append(E("span",{className:"fd-nav-level"},jobLevel(id)+"/200"));
+   section.append(button);
   }
   nav.append(section);
  }
@@ -535,6 +551,45 @@ function regionFor(zone){
  if(normal.includes("saharach"))return "Saharach";
  if(normal.includes("cania"))return "Cania";
  return origin;
+}
+// Il n'existe pas de « logo de région » dans nos archives de sprites.
+// On utilise donc le portrait de vraies créatures présentes dans chaque région.
+// Les ids DOFUS ci-dessous sont validés avec world.json (SubAreaData).
+const REGION_MASCOTS={
+ "Incarnam":"4051",       // Kardorim
+ "Amakna":"98",          // Tofu
+ "Île des Wabbits":"180",// Wa Wabbit
+ "Île de Moon":"226",    // Moon
+ "Frigost":"2850",       // Boufmouth
+ "Astrub":"491",         // Piou Bleu
+ "Pandala":"6230",       // Akakwa
+ "Otomaï":"1069",        // Kido
+ "Cania":"287",          // Kanigrou
+ "Saharach":"4621",      // Mantiscore
+ "Bonta":"7738"          // Tofu bontarien
+};
+function regionMascotId(region,zones){
+ const ids=new Set(zones.flatMap(([,z])=>z[3].map(String)));
+ const preferred=REGION_MASCOTS[region];
+ if(preferred&&ids.has(preferred)&&images.monsters[preferred])return preferred;
+ const candidates=zones.flatMap(([,z])=>z[3].map(String));
+ // Choisit un véritable monstre visible dans une sous-zone de la région.
+ return candidates.find(id=>images.monsters[id]&&!/oeuf de pwak|robot pousse-pousse/i.test(world.monsters[id]?.[0]||""))||
+   candidates.find(id=>images.monsters[id])||null;
+}
+function regionArt(region,zones,cls="fd-region-art"){
+ const id=regionMascotId(region,zones);
+ if(!id)return E("span",{className:cls+" fd-region-fallback",title:"Illustration indisponible"},"🗺️");
+ const el=mobSprite(id,cls);
+ el.title="Créature DOFUS : "+world.monsters[id][0]+" · représentative de "+region;
+ return el;
+}
+function zoneArt(zone,cls="fd-zone-art"){
+ const id=zone[3].map(String).find(mid=>images.monsters[mid])||null;
+ if(!id)return E("span",{className:cls+" fd-region-fallback"},"🗺️");
+ const el=mobSprite(id,cls);
+ el.title="Créature DOFUS de cette zone : "+world.monsters[id][0];
+ return el;
 }
 function regionCatalog(){
  const map=new Map();
@@ -716,7 +771,7 @@ function combatZoneCard(id,z){
  const zoneLevel=z[2]||1;
  const card=E("article",{className:"fd-zone-card "+(open?"expanded":"")});
  const head=E("button",{type:"button",className:"fd-zone "+(open?"active":""),onclick:()=>chooseZone(id)});
- head.append(E("span",{className:"fd-zone-emoji"},zoneSymbol(z[0])),
+ head.append(zoneArt(z),
   E("span",{className:"fd-zone-summary"},
    E("strong",{},z[0]||"Zone inconnue"),E("small",{},"Niveau conseillé "+zoneLevel+" · "+z[3].length+" monstres")),
   difficultyChip(zoneLevel),E("span",{className:"fd-chevron"},open?"−":"+"));
@@ -755,7 +810,7 @@ function zoneView(){
   for(const [name,zones] of regions){
    const lvMin=Math.min(...zones.map(([id,z])=>Number(z[2])||1));
    const card=E("button",{className:"fd-region-card",type:"button",onclick:()=>selectRegion(name)});
-   card.append(E("span",{className:"fd-region-icon"},REGIONS_ICONS[name]||"🗺️"),
+   card.append(regionArt(name,zones),
     E("span",{className:"fd-region-body"},E("strong",{},name),E("small",{},zones.length+" zones disponibles · dès le niveau "+lvMin)),
     E("span",{className:"fd-region-chevron"},"›"));
    grid.append(card);
@@ -771,15 +826,15 @@ function zoneView(){
  for(const [id,z] of filtered)cards.append(combatZoneCard(id,z));
  outer.append(E("div",{className:"fd-combat-breadcrumb"},
     B("← Toutes les régions",()=>selectRegion(""),"fd-secondary"),
-    E("strong",{},(REGIONS_ICONS[region]||"🗺️")+" "+region),
+    E("strong",{className:"fd-region-heading"},regionArt(region,zones,"fd-region-breadcrumb-art"),E("span",{},region)),
     pill(money(zones.length)+" zones")),
+  E("div",{className:"fd-battle-sections"},combatPlayerPanel(),combatEnemyPanel()),
   panelHeading(mode==="dungeons"?"🏰 Donjons de "+region:"⚔️ Zones de "+region,
    "Clique sur une zone pour afficher ses véritables monstres, puis choisis Combattre ou Butins.",
    pill(money(filtered.length)+" affichées")),
   E("input",{type:"search",className:"fd-region-search",value:zoneQuery,placeholder:"Rechercher une zone de "+region+"…",
    oninput:e=>{zoneQuery=e.target.value;renderView();const next=$(".fd-region-search");if(next){next.focus();next.setSelectionRange(next.value.length,next.value.length)}}}),
-  cards,
-  E("div",{className:"fd-battle-sections"},combatPlayerPanel(),combatEnemyPanel()));
+  cards);
  return outer;
 }
 function bestiaryView(){
