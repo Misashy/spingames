@@ -36,6 +36,19 @@ Les entrées sans PNG officiel gardent un pictogramme de secours. Les images des
 - Régions et sous-zones par niveau, combats automatiques, loot et bestiaire complet avec recherche.
 - Sauvegarde automatique, export/import JSON et migration des ressources, kamas et niveaux de l'ancienne sauvegarde.
 
+## Interface de combat V3 : régions, zones et stuff
+
+Le nouvel écran de combat utilise une navigation progressive inspirée de la disposition Melvor :
+
+- **Régions** : clique sur Incarnam, Amakna, Île des Wabbits, Île de Moon, Frigost, Astrub, Pandala, Otomaï, Saharach, Cania et les autres zones réellement présentes dans la base DOFUS.
+- **Zones** : chaque région présente ses sous-zones de combat en cartes repliables, par niveau. Cliquer sur une zone révèle ses véritables monstres, leur niveau, leurs PV et les actions « Combattre » et « Butins ».
+- **Donjons** : onglet distinct filtré sur le champ de donjon de la sous-zone (ex. Crypte de Kardorim).
+- **Combat** : un panneau joueur affiche ses PV, statistiques et emplacements de stuff ; un panneau adversaire affiche ses PV, son portrait, les boutons de combat et ses butins.
+- **Drops DOFUS** : les taux d'objets ordinaires et les drops conditionnels restent séparés ; les conditions de quête non simulées n'ouvrent pas droit au butin.
+- **Stuff bonus (mécanique DOFUS IDLE, non officielle)** : à chaque victoire, **3 % de chance** d'obtenir un équipement supplémentaire, ou **5 %** si le monstre se trouve dans un donjon. Le nom et le niveau de l'objet existent dans la base DOFUS, et l'objet est tiré parmi les équipements de craft compatibles avec le niveau du monstre. Le butin arrive dans la Banque ; le personnage doit atteindre le niveau de l'objet pour l'équiper. Le taux et l'association monstre-équipement sont **inventés pour le prototype**, distincts des drops du client.
+- **Sauvegardes conservées** : la clé locale de la version 2 est inchangée, ainsi que les clés de banque et d'équipement ; aucune remise à zéro lors de ce changement d'interface.
+- **Nettoyage d'affichage** : suppression des marqueurs littéraux « null » ou « undefined » quand une traduction est absente.
+
 ## Fidélité et limites
 
 Noms, objets, recettes, quantités, niveaux de ressources, emplacements de monstres et taux de drop de base du premier grade sont extraits des données du client. Le temps de récolte, la vitesse de craft, les XP, les dégâts, les kamas, les bonus d'équipement et l'équilibrage sont adaptés à ce jeu idle : ils ne reproduisent pas les valeurs officielles.
