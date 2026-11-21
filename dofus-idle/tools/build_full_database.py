@@ -120,24 +120,28 @@ def main():
         # Les XP officiels de DOFUS sont trop élevés pour la courbe de ce prototype,
         # on expose le niveau/les PV DOFUS, puis la logique du jeu est adaptée.
         candidate=[]
+        conditional=[]
         for d in as_json(r["drops"],[]):
             iid=str(d.get("objectId"))
             if iid not in items:continue
-            # Une restriction (quête, classe, alignement, etc.) n'est pas interprétée.
-            if (d.get("hasCriterions") or str(d.get("criterions") or "").strip()):
-                qualified_skipped+=1
-                continue
             try:rate=float(d.get("percentDropForGrade1",0))
             except (TypeError,ValueError):continue
             if not 0<rate<=100:continue
-            candidate.append([int(iid),round(rate,4)])
+            # Taux de base: seuls les butins sans restriction sont simulés.
+            criteria=str(d.get("criterions") or "").strip()
+            if d.get("hasCriterions") or criteria:
+                qualified_skipped+=1
+                conditional.append([int(iid),round(rate,4),criteria[:220]])
+            else:
+                candidate.append([int(iid),round(rate,4)])
         candidate.sort(key=lambda d:-d[1])
+        conditional.sort(key=lambda d:-d[1])
         drops_total+=len(candidate)
         # La liste des sous-zones provient de SubAreaData.monsters et MonsterData.subareas.
         for zid in as_json(r["subareas"],[]):
             if str(zid) in zones:locations[mid].add(int(zid))
         monsters[str(mid)]=[trans(r["nameId"],f"Monstre {mid}"),lev,hp,int(r["gfxId"] or 0),
-                            candidate,sorted(locations[mid])]
+                            candidate,sorted(locations[mid]),conditional]
     # Conserver les zones réelles uniquement, éviter d'ajouter les données fantômes.
     for z in zones.values():z[3]=[mid for mid in z[3] if str(mid) in monsters]
     # Prendre aussi les liens MonsterData.subareas qui ne sont pas dans la liste SubAreaData.monsters.
@@ -169,7 +173,7 @@ def main():
           "recipes":sum(map(len,recipes.values())),"monsters":len(monsters),
           "zones":len(zones),"drops":drops_total,
           "ignoredRecipes":ignored_recipes,"conditionalDropsSkipped":qualified_skipped,
-          "rateNote":"Pourcentages DOFUS grade 1, sans bonus de prospection ni conditions de quête.",
+          "rateNote":"Pourcentages de base DOFUS grade 1: drops sans critère simulés; drops conditionnels seulement affichés.",
           "gameplayNote":"La vitesse, les kamas, les points de vie joueur et l'XP idle sont adaptés."}
     jwrite(OUT/"core.json",{"meta":meta,"jobs":jobs,"items":items,"types":item_types,
                              "gather":dict(gather),"recipes":dict(recipes),
