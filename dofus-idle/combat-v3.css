@@ -97,3 +97,61 @@
 @media(max-width:1450px){.fd-combat-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-battle-sections{grid-template-columns:1fr 1fr;gap:12px}.fd-player-layout{grid-template-columns:1fr}}
 @media(max-width:1080px){.fd-region-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-combat-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-battle-sections{grid-template-columns:1fr}.fd-player-layout{grid-template-columns:1fr 1fr}.fd-loot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.fd-region-cards,.fd-combat-zone-grid,.fd-battle-sections{grid-template-columns:1fr}.fd-player-layout{grid-template-columns:1fr}.fd-combat-tabs{gap:5px;padding:8px}.fd-combat-tab{min-width:0;flex:1 1 140px;padding:9px 7px;font-size:11px}.fd-region-icon{font-size:31px}.fd-region-card{min-height:83px;padding:12px}.fd-region-body strong{font-size:14px}.fd-zone{min-height:78px;padding:11px}.fd-zone-emoji{width:42px;flex-basis:42px;font-size:30px}.fd-hp-label{flex-wrap:wrap}.fd-enemy-portrait{width:85px;height:95px}.fd-enemy-hero h2{font-size:16px}.fd-loot-grid{grid-template-columns:1fr}.fd-monster-buttons{width:76px}}
+
+
+/* DOFUS IDLE : pictogrammes issus des vrais portraits des créatures DOFUS.
+   Cadrage des atlas comme les autres sprites du jeu ; aucun emoji sur les zones couvertes. */
+.fd-region-art,
+.fd-zone-art,
+.fd-region-breadcrumb-art{
+ display:grid;
+ place-items:center;
+ flex:none;
+ overflow:hidden;
+ background-color:#192936;
+ border:1px solid #506a7b;
+ border-radius:10px;
+ font-size:28px;
+ background-repeat:no-repeat;
+ background-origin:border-box;
+}
+.fd-region-art{
+ width:72px;
+ height:72px;
+ box-shadow:inset 0 0 0 2px #ffffff0c,0 5px 15px #07152288;
+}
+.fd-zone-art{
+ width:64px;
+ height:64px;
+ border-radius:8px;
+ background-color:#202e39;
+}
+.fd-region-breadcrumb-art{
+ width:34px;
+ height:34px;
+ border-radius:6px;
+}
+.fd-region-heading{display:flex;align-items:center;gap:10px;min-width:0;}
+.fd-region-art img,.fd-zone-art img,.fd-region-breadcrumb-art img{
+ width:100%;
+ height:100%;
+ object-fit:contain;
+}
+.fd-region-fallback{background-image:none!important;}
+.fd-combat-page .fd-battle-sections{
+ margin-top:4px;
+ margin-bottom:22px;
+}
+/* L'exploration des zones reste immédiatement sous le combat, sans descendre
+   les panneaux de PV en dessous des dizaines de zones. */
+.fd-combat-page .fd-combat-zone-grid{margin-top:8px;}
+.fd-nav section:first-child{margin-top:2px;}
+.fd-nav section:first-child h3{color:#84dca8;}
+.fd-nav-sub .fd-menu-icon{opacity:.8;font-size:17px;}
+.fd-nav-sub .fd-nav-name{color:#c1d0dd;font-size:11.8px;}
+@media(max-width:720px){
+ .fd-region-art{width:54px;height:54px;}
+ .fd-zone-art{width:44px;height:44px;}
+ .fd-region-breadcrumb-art{width:30px;height:30px;}
+ .fd-combat-page .fd-battle-sections{margin-bottom:14px;}
+}
