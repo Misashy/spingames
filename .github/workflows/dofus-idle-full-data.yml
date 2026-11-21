@@ -8,6 +8,7 @@ on:
       - 'dofus-idle/tools/build_atlases.py'
       - 'dofus-idle/game-full.js'
       - 'dofus-idle/index.html'
+      - 'dofus-idle/tests/smoke-full.cjs'
       - '.github/workflows/dofus-idle-full-data.yml'
 
 permissions:
@@ -72,6 +73,11 @@ jobs:
                   assert str(item) in c['items'] and 0<pct<=100
           print('VALIDÉ: tous les objets et ingrédients référencés existent')
           PY
+      - name: Tester les interfaces et les données du jeu dans un navigateur simulé
+        run: |
+          mkdir -p /tmp/dofus-idle-test
+          npm install --prefix /tmp/dofus-idle-test --no-audit --no-fund --no-save jsdom@26
+          node dofus-idle/tests/smoke-full.cjs
       - name: Publier uniquement les données DOFUS IDLE
         run: |
           git config user.name "github-actions[bot]"
@@ -79,5 +85,6 @@ jobs:
           git add -A dofus-idle/data dofus-idle/assets/atlases
           if ! git diff --cached --quiet; then
             git commit -m "data(dofus-idle): importer tous les métiers, 4743 recettes, zones et drops"
-            git push
+            git pull --rebase origin main
+          git push
           fi
