@@ -1,0 +1,26 @@
+{
+  "items": {
+    "entityCount": 18492,
+    "withImages": 18488,
+    "uniqueImages": 11767,
+    "atlasCount": 118,
+    "missingGfxCount": 4,
+    "skippedInvalid": []
+  },
+  "monsters": {
+    "entityCount": 5132,
+    "withImages": 5130,
+    "uniqueImages": 2400,
+    "atlasCount": 24,
+    "missingGfxCount": 2,
+    "skippedInvalid": []
+  },
+  "jobs": {
+    "entityCount": 22,
+    "withImages": 22,
+    "uniqueImages": 21,
+    "atlasCount": 1,
+    "missingGfxCount": 0,
+    "skippedInvalid": []
+  }
+}
