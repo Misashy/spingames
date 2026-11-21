@@ -1,0 +1,99 @@
+/* DOFUS IDLE V3 — combats façon panneau Melvor, sans copier les éléments de marque.
+   Régions → zones dépliables → monstres, joueur/stuff et cible côte à côte. */
+.fd-combat-page{max-width:1720px;margin:auto;display:flex;flex-direction:column;gap:12px}
+.fd-combat-tabs{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;background:#202c3a;border:1px solid #394d5c;padding:14px 18px;border-radius:5px;margin:-8px 0 6px}
+.fd-combat-tab{border:1px solid transparent;background:#263442;color:#c7d8e2;min-width:126px;padding:12px 16px;border-radius:5px;font-size:12px;font-weight:800;cursor:pointer}
+.fd-combat-tab:hover{background:#314b5c;border-color:#527083}.fd-combat-tab.active{background:linear-gradient(135deg,#22764a,#299969);color:white;border-color:#3cab7c}
+.fd-region-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fd-region-card{min-height:108px;display:flex;align-items:center;gap:16px;padding:18px 20px;text-align:left;border:1px solid #465f73;border-top:3px solid #619aaf;background:#232d3b;color:#f3f7fa;border-radius:5px;cursor:pointer;transition:transform .12s,border-color .12s}
+.fd-region-card:hover{transform:translateY(-2px);border-color:#65d39a;background:#283d48}
+.fd-region-icon{font-size:43px;flex:none;filter:drop-shadow(0 4px 4px #07171d88)}
+.fd-region-body{display:grid;gap:6px;min-width:0;flex:1}.fd-region-body strong{font-size:17px;line-height:1.22}
+.fd-region-body small{font-size:11px;color:#b3c7d4}.fd-region-chevron{font-size:25px;color:#89a9b8}
+.fd-combat-breadcrumb{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#202c39;border:1px solid #395468;border-radius:6px;padding:12px}
+.fd-combat-breadcrumb strong{font-size:17px;flex:1}.fd-combat-breadcrumb .fd-pill{margin-left:auto}
+.fd-region-search,.fd-zone-monster-search{width:100%;min-height:41px;color:#f7fbff;background:#142637;border:1px solid #547082;border-radius:6px;padding:10px 13px;font-size:12px}
+.fd-region-search:focus,.fd-zone-monster-search:focus{outline:2px solid #73b4c4}
+.fd-combat-zone-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:9px;margin-top:6px}
+.fd-zone-card{min-width:0;border:1px solid #3b4f5d;border-top:3px solid #7aa5bb;background:#232e3c;border-radius:5px;overflow:hidden}
+.fd-zone-card.expanded{border-top-color:#51c78b;box-shadow:0 3px 18px #020a1344}
+.fd-zone{border:0;background:transparent;color:#f2f6f9;display:flex;width:100%;gap:11px;align-items:center;text-align:left;padding:16px 13px;min-height:102px;cursor:pointer}
+.fd-zone:hover{background:#2d3e4c}.fd-zone.active{background:#253e42}
+.fd-zone-emoji{display:grid;place-items:center;flex:0 0 62px;width:62px;height:61px;font-size:41px}
+.fd-zone-summary{display:grid;gap:4px;min-width:0;flex:1}
+.fd-zone-summary strong{font-size:13px;line-height:1.2}
+.fd-zone-summary small{font-size:10px;line-height:1.4;color:#b3c6d3}
+.fd-zone .fd-pill{font-size:9px;padding:4px 6px}
+.fd-difficulty-medium{background:#a26c37;color:#ffeddb}.fd-difficulty-hard{background:#a94a57;color:#fff0f1}
+.fd-chevron{font-weight:900;color:#9fc3db;font-size:18px}
+.fd-zone-monsters{background:#212c3a;padding:6px 8px 12px;border-top:1px solid #4b6676;display:grid;gap:6px;max-height:740px;overflow:auto}
+.fd-zone-monster-head{font-size:10px;font-weight:900;letter-spacing:.5px;color:#abc5d4;display:flex;align-items:center;justify-content:space-between;padding:8px 7px;border-bottom:1px solid #536978}
+.fd-monster-row{display:flex;align-items:center;gap:7px;padding:8px 5px;background:#293747;border:1px solid #435467;border-radius:4px;min-width:0}
+.fd-monster-row.active{background:#29483f;border-color:#60b58a}
+.fd-monster-info{flex:1;min-width:0;display:flex;align-items:center;text-align:left;gap:7px;padding:0;border:0;background:transparent;color:#f7f9fb;cursor:pointer}
+.fd-monster-info>span:nth-child(2){flex:1;display:grid;gap:4px;min-width:0}
+.fd-monster-info strong{font-size:11px;line-height:1.2;overflow-wrap:anywhere}
+.fd-monster-info small{font-size:9.8px;color:#b9cbd5}
+.fd-combat-list-art{height:48px;width:48px;flex-shrink:0;display:grid;place-items:center;font-size:28px}
+.fd-combat-list-art img{width:100%;height:100%;object-fit:contain}
+.fd-monster-buttons{display:grid;gap:4px;width:86px;flex:none}
+.fd-monster-buttons .fd-danger,.fd-monster-buttons .fd-secondary{padding:6px 3px;font-size:10px;border-radius:4px}
+.fd-monster-buttons .fd-danger{background:#b94f5d;border-color:#c76d77}
+.fd-monster-buttons .fd-secondary{background:#496fb2;border-color:#6e99d7}
+.fd-zone-pagination{display:flex;align-items:center;justify-content:center;gap:9px}
+.fd-battle-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;align-items:start}
+.fd-fight-panel{background:#242e3c;border:1px solid #435569;border-top:4px solid #45c786;padding:16px 14px;border-radius:6px;min-width:0;min-height:455px;display:grid;align-content:start;gap:11px}
+.fd-enemy-panel{border-top-color:#df626b}.fd-fight-panel-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fd-fight-panel-title strong{font-size:16px}
+.fd-hp-label{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px}
+.fd-hp-label small{font-size:11px;color:#c1ced8}
+.fd-player-hp,.fd-enemy-hp{height:14px;background:#0e1d28;border:0}
+.fd-player-hp>span{background:linear-gradient(90deg,#209f7e,#3bd4a0)}
+.fd-enemy-hp>span{background:linear-gradient(90deg,#bc505e,#e06d72)}
+.fd-player-layout{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:12px;margin-top:13px}
+.fd-player-layout>div{background:#2d3b4b;border:1px solid #475b6e;border-radius:5px;padding:11px;min-width:0}
+.fd-fight-section-label{background:#485a6c;color:#e9f1f9;font-size:11px;font-weight:800;text-align:center;padding:7px;margin:-11px -11px 12px;border-radius:4px 4px 0 0}
+.fd-combat-equipment{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.fd-combat-gear-slot{background:#233241;border:1px solid #557387;border-radius:6px;color:#c5d7e2;display:grid;gap:5px;place-items:center;min-width:0;min-height:69px;padding:6px 2px;cursor:pointer}
+.fd-combat-gear-slot:hover{border-color:#7ecb9e;background:#2c514a}
+.fd-combat-gear-image{width:36px;height:36px;display:grid;place-items:center;font-size:26px}
+.fd-combat-gear-image img{width:100%;height:100%;object-fit:contain}
+.fd-combat-gear-slot small{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fd-stat{display:flex;justify-content:space-between;gap:7px;border-bottom:1px solid #536374;padding:8px 1px;font-size:11px}
+.fd-stat>span{color:#c4d2df}.fd-stat strong{color:#f1f5f9}
+.fd-wide{width:100%;margin-top:12px}
+.fd-enemy-hero{display:flex;align-items:center;gap:17px;padding:10px 12px;background:#1d2a37;border:1px solid #3f5264;border-radius:5px}
+.fd-enemy-portrait{height:122px;width:128px;flex:none;display:grid;place-items:center;font-size:74px}
+.fd-enemy-portrait img{height:100%;width:100%;object-fit:contain;filter:drop-shadow(0 6px 6px #0006)}
+.fd-enemy-hero h2{font-size:19px;margin:0 0 8px}
+.fd-enemy-hero p{font-size:11px;color:#b9cad5;margin:5px 0}
+.fd-combat-actions{display:flex;gap:8px;flex-wrap:wrap}
+.fd-combat-actions button{flex:1;min-width:120px}
+.fd-combat-empty{padding:80px 25px;text-align:center;color:#adc5d5;font-size:13px}
+.fd-combat-drops{display:grid;gap:10px;margin-top:10px}
+.fd-subtitle{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #577080;padding:8px 0}
+.fd-subtitle strong{font-size:12px}
+.fd-muted{color:#b6c8d3;font-size:11px;line-height:1.5}
+.fd-loot-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:350px;overflow-y:auto}
+.fd-loot-item{display:flex;align-items:center;gap:7px;min-width:0;padding:7px;background:#2e4051;border:1px solid #486073;border-radius:5px}
+.fd-loot-item>div{display:grid;gap:3px;flex:1;min-width:0}
+.fd-loot-item strong{font-size:10.5px;overflow-wrap:anywhere}
+.fd-loot-item small{font-size:9.5px;color:#c1d1d9}
+.fd-loot-item .fd-pill{font-size:9px;padding:4px}
+.fd-loot-art{width:31px;height:31px;flex:none;display:grid;place-items:center;font-size:25px}
+.fd-loot-art img{width:100%;height:100%;object-fit:contain}
+.fd-loot-conditional{padding:10px;background:#252f3d;border:1px dashed #786c63;border-radius:5px}
+.fd-loot-conditional summary{font-size:11px;cursor:pointer;color:#f2d2b0;font-weight:800}
+.fd-loot-conditional .fd-loot-grid{margin-top:10px}
+.fd-loot-bonus{padding:13px;background:#28403c;border:1px solid #487969;border-radius:6px}
+.fd-loot-bonus>strong{font-size:12px;color:#adf0c6}
+.fd-loot-bonus p{font-size:11px;color:#d0e6dc;line-height:1.55;margin:8px 0}
+.fd-loot-examples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.fd-loot-preview{background:#1b3431;border:1px solid #47725b;border-radius:5px;padding:6px}
+.fd-loot-item.conditional{opacity:.78}
+.fd-fight-panel .fd-log{background:#1e2a39;border:1px solid #41566a;border-radius:5px;padding:9px 11px}
+.fd-fight-panel .fd-log h3{font-size:12px;margin:4px 0 8px}
+.fd-fight-panel .fd-log p{font-size:10px;margin:4px 0;padding:6px 0;border-bottom:1px solid #3b5062;color:#d5e1e8}
+@media(max-width:1450px){.fd-combat-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-battle-sections{grid-template-columns:1fr 1fr;gap:12px}.fd-player-layout{grid-template-columns:1fr}}
+@media(max-width:1080px){.fd-region-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-combat-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-battle-sections{grid-template-columns:1fr}.fd-player-layout{grid-template-columns:1fr 1fr}.fd-loot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.fd-region-cards,.fd-combat-zone-grid,.fd-battle-sections{grid-template-columns:1fr}.fd-player-layout{grid-template-columns:1fr}.fd-combat-tabs{gap:5px;padding:8px}.fd-combat-tab{min-width:0;flex:1 1 140px;padding:9px 7px;font-size:11px}.fd-region-icon{font-size:31px}.fd-region-card{min-height:83px;padding:12px}.fd-region-body strong{font-size:14px}.fd-zone{min-height:78px;padding:11px}.fd-zone-emoji{width:42px;flex-basis:42px;font-size:30px}.fd-hp-label{flex-wrap:wrap}.fd-enemy-portrait{width:85px;height:95px}.fd-enemy-hero h2{font-size:16px}.fd-loot-grid{grid-template-columns:1fr}.fd-monster-buttons{width:76px}}
