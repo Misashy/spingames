@@ -320,8 +320,7 @@ function showSources(id){
   for(const [mid,rate] of list.slice(0,45)){
    const monster=world.monsters[String(mid)],loc=monster[5][0],place=world.zones[String(loc)];
    grid.append(B(monster[0]+" · "+formatRate(rate)+" · "+(place?.[0]||"Localisation spéciale"),()=>{
-    state.selectedMonster=String(mid);if(place)state.selectedZone=String(loc);
-    state.view="combat";monsterQuery="";monsterPage=0;closeModal();render();save();
+    closeModal();focusMonster(mid,loc);
    },"fd-source"));
   }
   box.append(grid);
@@ -513,74 +512,280 @@ function shopView(){
    B("Acheter · "+money(price)+" kamas",()=>buyUpgrade(id),"fd-button",lvl>=15||state.kamas<price));
  })));
 }
-function setArea(id){selectedArea=id;monsterQuery="";monsterPage=0;renderView()}
+
+/* Navigation : Continent/Région -> Sous-zones officielles -> Monstres -> Combat.
+   Les noms de zones et compositions proviennent toujours du fichier SubAreaData.
+   Les étiquettes des grandes régions servent seulement à rendre la carte lisible. */
+const REGIONS_FAVORITES=["Incarnam","Amakna","Île des Wabbits","Île de Moon","Frigost","Astrub","Pandala","Otomaï","Saharach","Cania"];
+const REGIONS_ICONS={"Incarnam":"☁️","Amakna":"🌳","Île des Wabbits":"🐰","Île de Moon":"🌴","Frigost":"❄️","Astrub":"🏘️","Pandala":"🎋","Otomaï":"🌺","Saharach":"🏜️","Cania":"🌾"};
+const SLOT_ICONS={weapon:"⚔️",head:"🪖",cape:"🧥",ring:"💍",boots:"🥾",belt:"🧷",neck:"📿",shield:"🛡️"};
+function regionFor(zone){
+ const origin=displayText(zone?.[1]||"");
+ if(!origin)return "Région inconnue";
+ const normal=origin.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+ if(normal.includes("incarnam"))return "Incarnam";
+ if(normal.includes("wabbit"))return "Île des Wabbits";
+ if(normal.includes("frigost"))return "Frigost";
+ if(normal.includes("moon"))return "Île de Moon";
+ if(normal.includes("amakna"))return "Amakna";
+ if(normal.includes("astrub"))return "Astrub";
+ if(normal.includes("pandala"))return "Pandala";
+ if(normal.includes("otomai"))return "Otomaï";
+ if(normal.includes("saharach"))return "Saharach";
+ if(normal.includes("cania"))return "Cania";
+ return origin;
+}
+function regionCatalog(){
+ const map=new Map();
+ for(const [id,z] of Object.entries(world.zones)){
+  if(!Array.isArray(z)||!Array.isArray(z[3])||!z[3].length)continue;
+  const region=regionFor(z);
+  if(!map.has(region))map.set(region,[]);
+  map.get(region).push([id,z]);
+ }
+ for(const zones of map.values())zones.sort((a,b)=>a[1][2]-b[1][2]||String(a[1][0]).localeCompare(String(b[1][0]),"fr"));
+ return [...map.entries()].sort((a,b)=>{
+  const ia=REGIONS_FAVORITES.indexOf(a[0]),ib=REGIONS_FAVORITES.indexOf(b[0]);
+  if(ia>=0||ib>=0)return (ia<0?99:ia)-(ib<0?99:ib);
+  return a[0].localeCompare(b[0],"fr");
+ });
+}
+function zoneSymbol(name){
+ const n=String(name||"").toLowerCase();
+ if(/donjon|crypte|souterrain|grotte|mine|caverne/.test(n))return "🏰";
+ if(/cimetière|tombe|ossement|mort/.test(n))return "🪦";
+ if(/forêt|bois|jungle/.test(n))return "🌲";
+ if(/lac|rivière|plage|mer|baie|marais/.test(n))return "🌊";
+ if(/champ|prairie|pâturage|plaine/.test(n))return "🌾";
+ if(/glace|gel|neige|frigost/.test(n))return "❄️";
+ if(/route|chemin|sentier/.test(n))return "🛤️";
+ if(/village|cité|ville/.test(n))return "🏘️";
+ if(/montagne|falaise|sommet/.test(n))return "⛰️";
+ return "🗺️";
+}
+function difficultyChip(level){
+ if(level<50)return pill("Facile","green");
+ if(level<115)return pill("Normale","fd-difficulty-medium");
+ return pill("Difficile","fd-difficulty-hard");
+}
+function selectRegion(region){
+ if(state.action?.type==="combat")state.action=null;
+ state.selectedRegion=region;
+ combatOpenZone="";
+ zoneQuery="";monsterQuery="";monsterPage=0;
+ render();save();
+}
+function chooseZone(id){
+ if(combatOpenZone===id){combatOpenZone="";monsterQuery="";renderView();return}
+ const zone=world.zones[String(id)];
+ if(!zone)return;
+ combatOpenZone=String(id);state.selectedZone=String(id);
+ monsterPage=0;monsterQuery="";
+ const first=zone[3].find(mid=>world.monsters[String(mid)]);
+ if(first!=null)state.selectedMonster=String(first);
+ if(state.action?.type==="combat"&&String(state.action.id)!==state.selectedMonster)state.action=null;
+ render();save();
+}
+function focusMonster(id,zoneId){
+ const m=world.monsters[String(id)];
+ if(!m)return;
+ let zid=zoneId;
+ if(!world.zones[String(zid)])zid=m[5]?.find(x=>world.zones[String(x)])||"";
+ const zone=world.zones[String(zid)];
+ if(zone){
+  state.selectedZone=String(zid);
+  state.selectedRegion=regionFor(zone);
+  combatOpenZone=String(zid);
+ }
+ state.selectedMonster=String(id);monsterQuery="";monsterPage=0;state.view="combat";
+ render();save();
+}
+function monsterDropsPanel(id,m){
+ const drops=E("div",{className:"fd-combat-drops"});
+ const real=E("div",{className:"fd-loot-grid"});
+ const rates=m[4]||[];
+ for(const [iid,rate] of rates.slice(0,64)){
+  const row=E("div",{className:"fd-loot-item"},
+   itemSprite(iid,"fd-loot-art"),
+   E("div",{},E("strong",{},itemName(iid)),E("small",{},typeName(iid))),
+   pill(formatRate(rate),"green"));
+  real.append(row);
+ }
+ drops.append(E("div",{className:"fd-subtitle"},E("strong",{},"Butins officiels sans conditions"),pill(money(rates.length)+" objets")),
+   E("small",{className:"fd-muted"},"Pourcentages de base du grade 1, avant prospection et modificateurs."));
+ if(real.childNodes.length)drops.append(real);
+ else drops.append(E("p",{className:"fd-muted"},"Aucun butin libre répertorié pour ce monstre."));
+ const conditional=m[6]||[];
+ if(conditional.length){
+  const details=E("details",{className:"fd-loot-conditional"},
+   E("summary",{},"🔒 Voir "+money(conditional.length)+" butins à conditions (quêtes, événements…)"));
+  const grid=E("div",{className:"fd-loot-grid"});
+  for(const [iid,rate,criteria] of conditional.slice(0,64)){
+   grid.append(E("div",{className:"fd-loot-item conditional",title:criteria||"Condition spéciale"},
+    itemSprite(iid,"fd-loot-art"),E("strong",{},itemName(iid)),pill(formatRate(rate),"locked")));
+  }
+  details.append(E("small",{className:"fd-muted"},"Conditions non simulées : ces objets ne tombent pas dans le prototype."),grid);
+  drops.append(details);
+ }
+ const pool=possibleEquipment(m[1]),chance=equipmentChance(m);
+ drops.append(E("div",{className:"fd-loot-bonus"},
+  E("strong",{},"🎁 Stuff bonus DOFUS IDLE · "+chance+" % par victoire"),
+  E("p",{},"Équipement réel de DOFUS adapté au niveau du monstre, mais tirage supplémentaire propre au jeu idle. Ce n'est pas un drop officiel de ce monstre."),
+  E("div",{className:"fd-loot-examples"},
+   ...pool.slice(0,6).map(iid=>E("span",{className:"fd-loot-preview",title:itemName(iid)},itemSprite(iid,"fd-loot-art")))),
+  E("small",{},"Récompenses possibles dans la sélection : "+money(pool.length)+" équipements. Les objets gagnés vont dans la Banque.")));
+ return drops;
+}
+function combatPlayerPanel(){
+ const pv=clamp(state.hp,0,maxHp()),pct=maxHp()?100*pv/maxHp():0;
+ const isRunning=state.action?.type==="combat";
+ const timer=isRunning?Math.max(0,1.65-(state.upgrades.weapon||0)*.025-state.action.progress):0;
+ const equipment=E("div",{className:"fd-combat-equipment"});
+ for(const [slot,id] of Object.entries(state.equipment)){
+  const label=EQUIP_LABELS[slot]||slot;
+  const button=B("",()=>runNav("character"),"fd-combat-gear-slot");
+  button.title=id?label+" : "+itemName(id)+" (ouvrir l'équipement)":label+" : vide (ouvrir l'équipement)";
+  button.append(id?itemSprite(id,"fd-combat-gear-image"):E("span",{className:"fd-combat-gear-image"},SLOT_ICONS[slot]||"◻"),
+   E("small",{},label));
+  equipment.append(button);
+ }
+ return E("section",{className:"fd-fight-panel fd-player-panel"},
+  E("div",{className:"fd-fight-panel-title"},E("strong",{},"🛡️ Ton aventurier"),pill("Niv. "+playerLevel(),"green")),
+  E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(pv)+" / "+money(maxHp())+" PV"),
+   E("small",{},isRunning?"Prochaine attaque : "+timer.toFixed(1)+" s":"Intervalle d'attaque : "+Math.max(.5,1.65-(state.upgrades.weapon||0)*.025).toFixed(2)+" s")),
+  meter(pct,"fd-player-hp"),
+  E("div",{className:"fd-player-layout"},
+   E("div",{className:"fd-player-gear"},
+    E("div",{className:"fd-fight-section-label"},"Équipement"),equipment,
+    B("🎒 Voir ma banque / équiper",()=>runNav("bank"),"fd-secondary fd-wide")),
+   E("div",{className:"fd-player-stats"},
+    E("div",{className:"fd-fight-section-label"},"Statistiques de combat"),
+    E("div",{className:"fd-stat"},E("span",{},"⚔️ Dégâts / coup"),E("strong",{},money(damage()))),
+    E("div",{className:"fd-stat"},E("span",{},"🛡️ Défense"),E("strong",{},money(defense()))),
+    E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},state.classId==="cra"?"16 %":"5 %")),
+    E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
+    E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
+    B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))));
+}
+function combatEnemyPanel(){
+ const m=world.monsters[String(state.selectedMonster)],zone=world.zones[String(state.selectedZone)];
+ const inZone=m&&zone?.[3]?.some(mid=>String(mid)===String(state.selectedMonster));
+ if(!m||!inZone||!combatOpenZone){
+  return E("section",{className:"fd-fight-panel fd-enemy-panel"},
+   E("div",{className:"fd-fight-panel-title"},E("strong",{},"👹 Cible ennemie")),
+   E("div",{className:"fd-combat-empty"},"Sélectionne une zone, puis un monstre pour voir ses caractéristiques et ses butins."));
+ }
+ const active=state.action?.type==="combat"&&String(state.action.id)===String(state.selectedMonster);
+ const enemyHp=active?clamp(state.action.enemyHp,0,m[2]):m[2];
+ const enemyPct=m[2]?100*enemyHp/m[2]:0;
+ return E("section",{className:"fd-fight-panel fd-enemy-panel"},
+  E("div",{className:"fd-fight-panel-title"},E("strong",{},"⚔️ Adversaire : "+m[0]),pill("Niv. "+m[1],"fd-difficulty-hard")),
+  E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(enemyHp)+" / "+money(m[2])+" PV"),
+    E("small",{},active?"Le monstre attaque toutes les 2,8 secondes":"Combat arrêté")),
+  meter(enemyPct,"fd-enemy-hp"),
+  E("div",{className:"fd-enemy-hero"},
+   mobSprite(state.selectedMonster,"fd-enemy-portrait"),
+   E("div",{},E("h2",{},m[0]),
+     E("p",{},"📍 "+zone[0]+" · Niveau "+m[1]),
+     E("p",{},"🏆 "+money(state.dex[String(state.selectedMonster)]||0)+" victoires"),
+     pill("🪙 "+money(Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)))+" / victoire"))),
+  E("div",{className:"fd-combat-actions"},
+   B(active?"■ Arrêter le combat":"⚔️ Combattre",()=>startCombat(state.selectedMonster),
+    active?"fd-danger":"fd-button",!active&&playerLevel()+8<m[1]),
+   B("🎁 Voir les butins",()=>$("#fdCombatLoot")?.scrollIntoView({behavior:"smooth",block:"nearest"}),"fd-secondary"),
+   B("🎒 Équiper du stuff",()=>runNav("bank"),"fd-secondary")),
+  E("div",{id:"fdCombatLoot"},monsterDropsPanel(state.selectedMonster,m)),
+  E("div",{className:"fd-log"},E("h3",{},"📜 Journal de combat"),
+    ...state.log.slice(0,8).map(line=>E("p",{},line))));
+}
+function combatMonsterRow(mid,m,zoneId){
+ const active=String(state.selectedMonster)===String(mid);
+ const row=E("div",{className:"fd-monster-row "+(active?"active":"")});
+ const pick=B("",()=>focusMonster(mid,zoneId),"fd-monster-info");
+ pick.append(mobSprite(mid,"fd-combat-list-art"),
+  E("span",{},E("strong",{},m[0]),E("small",{},"Niveau de combat "+m[1]+" · ❤️ "+money(m[2])+" PV")));
+ row.append(pick,E("div",{className:"fd-monster-buttons"},
+  B("Combattre",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",playerLevel()+8<m[1]),
+  B("Butins",()=>{focusMonster(mid,zoneId);$("#fdCombatLoot")?.scrollIntoView({behavior:"smooth",block:"nearest"})},"fd-secondary")));
+ return row;
+}
+function combatZoneCard(id,z){
+ const open=combatOpenZone===String(id);
+ const zoneLevel=z[2]||1;
+ const card=E("article",{className:"fd-zone-card "+(open?"expanded":"")});
+ const head=E("button",{type:"button",className:"fd-zone "+(open?"active":""),onclick:()=>chooseZone(id)});
+ head.append(E("span",{className:"fd-zone-emoji"},zoneSymbol(z[0])),
+  E("span",{className:"fd-zone-summary"},
+   E("strong",{},z[0]||"Zone inconnue"),E("small",{},"Niveau conseillé "+zoneLevel+" · "+z[3].length+" monstres")),
+  difficultyChip(zoneLevel),E("span",{className:"fd-chevron"},open?"−":"+"));
+ card.append(head);
+ if(open){
+  const matches=z[3].filter(mid=>world.monsters[String(mid)]&&world.monsters[String(mid)][0].toLowerCase().includes(monsterQuery.toLowerCase()));
+  const rows=E("div",{className:"fd-zone-monsters"},E("div",{className:"fd-zone-monster-head"},"MONSTRES DE LA ZONE",pill(money(matches.length))));
+  if(matches.length>20)rows.append(E("input",{className:"fd-zone-monster-search",type:"search",value:monsterQuery,placeholder:"Chercher un monstre de cette zone…",
+   oninput:e=>{monsterQuery=e.target.value;monsterPage=0;renderView();const next=$(".fd-zone-monster-search");if(next){next.focus();next.setSelectionRange(next.value.length,next.value.length)}}}));
+  for(const mid of matches.slice(monsterPage*20,(monsterPage+1)*20)){
+   rows.append(combatMonsterRow(mid,world.monsters[String(mid)],id));
+  }
+  if(!matches.length)rows.append(E("p",{className:"fd-muted"},"Aucun monstre correspondant."));
+  if(matches.length>20)rows.append(E("div",{className:"fd-zone-pagination"},
+   B("←",()=>{monsterPage=Math.max(0,monsterPage-1);renderView()},"fd-mini",monsterPage===0),
+   pill((monsterPage+1)+" / "+Math.max(1,Math.ceil(matches.length/20))),
+   B("→",()=>{monsterPage=Math.min(Math.ceil(matches.length/20)-1,monsterPage+1);renderView()},"fd-mini",(monsterPage+1)*20>=matches.length)));
+  card.append(rows);
+ }
+ return card;
+}
 function zoneView(){
- const allZones=Object.entries(world.zones).filter(([id,z])=>z[3].length>0).sort((a,b)=>a[1][2]-b[1][2]||a[1][0].localeCompare(b[1][0],"fr"));
- const areas=[...new Set(allZones.map(([id,z])=>z[1]))].sort((a,b)=>a.localeCompare(b,"fr"));
- const ql=zoneQuery.toLowerCase();
- const visible=allZones.filter(([id,z])=>(!selectedArea||z[1]===selectedArea)&&(z[0]+" "+z[1]).toLowerCase().includes(ql));
- const box=E("div",{className:"fd-zones"});
- for(const [id,z] of visible.slice(0,130)){
-  box.append(B(z[0]+" · "+z[1]+" · Niv. "+z[2]+" · "+z[3].length+" monstres",
-   ()=>{state.selectedZone=id;state.selectedMonster=String(z[3][0]||state.selectedMonster);monsterQuery="";monsterPage=0;render();save();},
-   "fd-zone "+(state.selectedZone===id?"active":"")));
+ const all=regionCatalog();
+ const mode=state.combatMode==="dungeons"?"dungeons":"zones";
+ const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="zones"||Number(z[5])>=0)])
+  .filter(([name,zones])=>zones.length>0);
+ const chosen=regions.find(([name])=>name===state.selectedRegion);
+ const outer=E("div",{className:"fd-combat-page"},
+  E("div",{className:"fd-combat-tabs"},
+   B("⚔️ Zones de combat",()=>{state.combatMode="zones";state.selectedRegion="";combatOpenZone="";zoneQuery="";render();save()},"fd-combat-tab "+(mode==="zones"?"active":"")),
+   B("🏰 Donjons",()=>{state.combatMode="dungeons";state.selectedRegion="";combatOpenZone="";zoneQuery="";render();save()},"fd-combat-tab "+(mode==="dungeons"?"active":"")),
+   B("📚 Bestiaire",()=>runNav("bestiary"),"fd-combat-tab"),
+   B("🎒 Équipement",()=>runNav("character"),"fd-combat-tab")));
+ if(!chosen){
+  const grid=E("div",{className:"fd-region-cards"});
+  for(const [name,zones] of regions){
+   const lvMin=Math.min(...zones.map(([id,z])=>Number(z[2])||1));
+   const card=E("button",{className:"fd-region-card",type:"button",onclick:()=>selectRegion(name)});
+   card.append(E("span",{className:"fd-region-icon"},REGIONS_ICONS[name]||"🗺️"),
+    E("span",{className:"fd-region-body"},E("strong",{},name),E("small",{},zones.length+" zones disponibles · dès le niveau "+lvMin)),
+    E("span",{className:"fd-region-chevron"},"›"));
+   grid.append(card);
+  }
+  outer.append(panelHeading("🌍 Choisis une région",
+    "Incarnam, Amakna, Île des Wabbits, Moon, Frigost et toutes les régions présentes dans DOFUS 3.",
+    pill(money(regions.length)+" régions")),grid);
+  return outer;
  }
- if(visible.length>130)box.append(E("small",{},"Affichage limité à 130 zones : affine la recherche."));
- const current=world.zones[String(state.selectedZone)]||allZones[0]?.[1];
- const mobs=current?current[3].map(id=>[String(id),world.monsters[String(id)]]).filter(([id,m])=>m):[];
- const candidates=monsterQuery?
-  Object.entries(world.monsters).filter(([id,m])=>m[0].toLowerCase().includes(monsterQuery.toLowerCase())):mobs;
- candidates.sort((a,b)=>a[1][1]-b[1][1]);
- const paginated=candidates.slice(monsterPage*25,(monsterPage+1)*25);
- const list=E("div",{className:"fd-monster-list"});
- for(const [id,m] of paginated){
-  const selected=String(state.selectedMonster)===id;
-  list.append(B("",()=>{state.selectedMonster=id;renderView();save()},"fd-monster-row "+(selected?"active":"")));
-  list.lastChild.append(mobSprite(id),E("div",{},E("strong",{},m[0]),E("small",{},"Niveau "+m[1]+" · "+money(m[2])+" PV · "+(m[4].length+(m[6]||[]).length)+" butins")),
-   pill((state.dex[id]||0)+" victoires"));
- }
- const m=world.monsters[String(state.selectedMonster)]||world.monsters["979"];
- return E("div",{},currentActionBox(),panelHeading("Les zones du Monde des Douze",
- "Sous-zones et monstres associés dans les fichiers du jeu. Choisis une région, une zone et un monstre.",
- pill(money(Object.keys(world.zones).length)+" zones · "+money(Object.keys(world.monsters).length)+" monstres")),
- E("div",{className:"fd-zones-layout"},
-  E("div",{className:"fd-side-panel"},E("h3",{},"🧭 Zones et régions"),
-   E("select",{className:"fd-select",value:selectedArea,onchange:e=>setArea(e.target.value)},
-    E("option",{value:""},"Toutes les régions"),...areas.map(a=>E("option",{value:a},a))),
-   E("input",{className:"fd-search",type:"search",placeholder:"Rechercher une zone...",value:zoneQuery,
-    oninput:e=>{zoneQuery=e.target.value;renderView();const input=$(".fd-side-panel .fd-search");input?.focus()}}),box),
-  E("div",{className:"fd-combat-panel"},E("h3",{},current?current[0]+" · Niv. "+current[2]:"Recherche générale"),
-   E("input",{className:"fd-search",type:"search",value:monsterQuery,placeholder:"Chercher parmi tous les monstres...",
-    oninput:e=>{monsterQuery=e.target.value;monsterPage=0;renderView();const field=$(".fd-combat-panel .fd-search");field?.focus()}}),
-   list,E("div",{className:"fd-pagination"},
-    B("←",()=>{monsterPage--;renderView()},"fd-mini",monsterPage<=0),
-    pill((monsterPage+1)+" / "+Math.max(1,Math.ceil(candidates.length/25))),
-    B("→",()=>{monsterPage++;renderView()},"fd-mini",(monsterPage+1)*25>=candidates.length))),
-  E("div",{className:"fd-monster-detail"},
-   mobSprite(state.selectedMonster,"fd-monster-portrait"),E("h2",{},m[0]),
-   E("p",{},"Niveau "+m[1]+" · "+money(m[2])+" PV · "+m[4].length+" butins"),
-   E("div",{className:"fd-combat-health"},E("span",{},"❤️ "+money(state.hp)+" / "+money(maxHp())+" PV"),meter(100*state.hp/maxHp())),
-   B(state.action?.type==="combat"&&String(state.action.id)===String(state.selectedMonster)?"■ Arrêter le combat":"⚔️ Combattre automatiquement",
-    ()=>startCombat(String(state.selectedMonster)),"fd-button",playerLevel()+8<m[1]),
-   E("h3",{},"Butins et taux de drop"),
-   E("small",{},"Probabilités de base DOFUS 3, grade 1. Les drops sans conditions sont tirés à chaque victoire."),
-   E("div",{className:"fd-drops"},...m[4].slice(0,70).map(([iid,rate])=>
-    E("div",{className:"fd-drop"},itemSprite(iid,"fd-tiny"),
-     E("span",{},itemName(iid)),pill(formatRate(rate),"green")))),
-   m[4].length>70?E("small",{},"Seuls les 70 premiers butins sont affichés."):null,
-   (m[6]||[]).length?E("h3",{},"🔒 Drops conditionnels ("+(m[6]||[]).length+")"):null,
-   (m[6]||[]).length?E("small",{},"Taux affichés pour information : critères de quête/classe/événement non simulés."):null,
-   (m[6]||[]).length?E("div",{className:"fd-drops"},
-     ...(m[6]||[]).slice(0,45).map(([iid,rate,condition])=>E("div",{className:"fd-drop conditional",title:condition||"Condition spécifique DOFUS"},
-      itemSprite(iid,"fd-tiny"),E("span",{},itemName(iid)),pill(formatRate(rate),"locked")))):null,
-   E("div",{className:"fd-log"},E("h3",{},"Journal"),...state.log.slice(0,8).map(line=>E("p",{},line))))));
+ const [region,zones]=chosen;
+ const filtered=zones.filter(([id,z])=>String(z[0]+" "+z[1]).toLowerCase().includes(zoneQuery.toLowerCase()));
+ const cards=E("div",{className:"fd-combat-zone-grid"});
+ for(const [id,z] of filtered)cards.append(combatZoneCard(id,z));
+ outer.append(E("div",{className:"fd-combat-breadcrumb"},
+    B("← Toutes les régions",()=>selectRegion(""),"fd-secondary"),
+    E("strong",{},(REGIONS_ICONS[region]||"🗺️")+" "+region),
+    pill(money(zones.length)+" zones")),
+  panelHeading(mode==="dungeons"?"🏰 Donjons de "+region:"⚔️ Zones de "+region,
+   "Clique sur une zone pour afficher ses véritables monstres, puis choisis Combattre ou Butins.",
+   pill(money(filtered.length)+" affichées")),
+  E("input",{type:"search",className:"fd-region-search",value:zoneQuery,placeholder:"Rechercher une zone de "+region+"…",
+   oninput:e=>{zoneQuery=e.target.value;renderView();const next=$(".fd-region-search");if(next){next.focus();next.setSelectionRange(next.value.length,next.value.length)}}}),
+  cards,
+  E("div",{className:"fd-battle-sections"},combatPlayerPanel(),combatEnemyPanel()));
+ return outer;
 }
 function bestiaryView(){
  const mobs=Object.entries(world.monsters).filter(([id,m])=>m[0].toLowerCase().includes(q.toLowerCase()))
   .sort((a,b)=>a[1][1]-b[1][1]);
  const grid=E("div",{className:"fd-best-grid"});
  for(const [id,m] of mobs.slice(page*54,(page+1)*54)){
-  grid.append(B("",()=>{state.selectedMonster=id;state.selectedZone=String(m[5][0]||state.selectedZone);runNav("combat") },"fd-best-card"));
+  grid.append(B("",()=>{focusMonster(id,m[5][0]||state.selectedZone) },"fd-best-card"));
   grid.lastChild.append(mobSprite(id,"fd-best-art"),E("strong",{},m[0]),E("small",{},"Niv. "+m[1]),pill((state.dex[id]||0)+" 🏆"));
  }
  return E("div",{},panelHeading("Bestiaire complet","Tous les monstres extraits de la base DOFUS 3.",pill(money(mobs.length)+" résultats")),
@@ -676,7 +881,7 @@ async function init(){
     lastRender=t;
     const focus=document.activeElement;
     if(!focus||!["INPUT","SELECT"].includes(focus.tagName)){
-     const scrolls=[".fd-zones",".fd-monster-list",".fd-drops",".fd-source-list"].map(sel=>[sel,$(sel)?.scrollTop||0]);
+     const scrolls=[".fd-zones",".fd-monster-list",".fd-drops",".fd-source-list",".fd-zone-monsters",".fd-loot-grid"].map(sel=>[sel,$(sel)?.scrollTop||0]);
      render();
      for(const [sel,y] of scrolls){const node=$(sel);if(node)node.scrollTop=y}
     }
