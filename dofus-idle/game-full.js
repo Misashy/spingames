@@ -645,7 +645,7 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>structuredClone(state),core,world,levelOf};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
