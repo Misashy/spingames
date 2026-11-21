@@ -1,4 +1,4 @@
-/* DOFUS IDLE v2 : tests moteur/UI avec la vraie base générée. */
+/* DOFUS IDLE v3 : tests métiers, navigation région-zone-monstre, stuff et banque. */
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
@@ -51,15 +51,46 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   all.click();
   assert(w.document.querySelectorAll('.fd-recipe-card').length>0,'catalogue complet non rendu');
   const combat=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Zones et monstres'));
+  assert(combat,'navigation combat absente');
   combat.click();
-  assert(w.document.querySelectorAll('.fd-zone').length>10,'zones absentes');
-  assert(w.document.querySelectorAll('.fd-monster-row').length>0,'monstres de zone absents');
-  const first=w.document.querySelector('.fd-monster-row');first.click();
+  const regions=[...w.document.querySelectorAll('.fd-region-card')];
+  assert(regions.length>=30,'régions absentes');
+  for(const name of ['Incarnam','Amakna','Île des Wabbits','Île de Moon','Frigost']){
+   assert(regions.some(b=>b.textContent.includes(name)),'région manquante : '+name);
+  }
+  const incarnam=regions.find(b=>b.textContent.includes('Incarnam'));
+  incarnam.click();
+  assert(w.document.querySelectorAll('.fd-zone').length>=9,'zones Incarnam absentes');
+  assert.equal(w.document.querySelectorAll('.fd-monster-row').length,0,'les monstres ne doivent apparaître qu’après ouverture');
+  const champs=[...w.document.querySelectorAll('.fd-zone')].find(b=>b.textContent.includes('Champs'));
+  assert(champs,'zone Champs d’Incarnam absente');
+  champs.click();
+  assert(w.document.querySelectorAll('.fd-monster-row').length>=4,'monstres de Champs absents');
+  assert.equal(w.document.querySelectorAll('.fd-fight-panel').length,2,'panneaux de combat manquants');
+  const target=w.document.querySelector('.fd-monster-info');
+  assert(target,'sélecteur de monstre absent');
+  target.click();
   const selected=w.DOFUS_IDLE_FULL.getState().selectedMonster;
-  assert(world.monsters[selected],'selection monstre invalide');
-  const fight=w.document.querySelector('.fd-monster-detail .fd-button');
-  assert(fight,'action combat absente');
-  if(!fight.disabled){fight.click();assert.equal(w.DOFUS_IDLE_FULL.getState().action.type,'combat')}
+  assert(world.monsters[selected],'sélection monstre invalide');
+  assert(w.document.querySelector('.fd-enemy-hp'),'barre de PV monstre manquante');
+  assert(w.document.querySelector('.fd-player-hp'),'barre de PV joueur manquante');
+  assert(w.document.querySelector('.fd-loot-bonus'),'équipements bonus absents');
+  assert(w.document.querySelectorAll('.fd-combat-gear-slot').length>=8,'emplacements de stuff manquants');
+  assert(w.DOFUS_IDLE_FULL.getGearPoolSize()>500,'catalogue de stuff insuffisant');
+  const fight=w.document.querySelector('.fd-monster-buttons .fd-danger:not(:disabled)');
+  assert(fight,'aucun monstre de départ combattable');
+  fight.click();
+  assert.equal(w.DOFUS_IDLE_FULL.getState().action.type,'combat');
+  w.Math.random=()=>0;
+  w.DOFUS_IDLE_FULL.simulateSeconds(20);
+  const state=w.DOFUS_IDLE_FULL.getState();
+  assert(state.kills>=1,'la victoire automatique ne fonctionne pas');
+  assert(Object.keys(state.gearDrops).length>=1,'aucun équipement ne tombe lors du roll bonus forcé');
+  assert(Object.keys(state.gearDrops).every(id=>core.items[id]),'objet de stuff inexistant');
+  assert(!/\bnull\b/i.test(w.document.body.textContent),'mention null visible dans le jeu');
+  const bank=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Banque'));
+  bank.click();
+  assert(w.document.querySelectorAll('.fd-bank-item').length>=1,'butin absent de la banque');
   assert.equal(fail.length,0,'erreurs javascript: '+fail.join(', '));
   console.log('SMOKE SUCCEEDED',{jobs:Object.keys(core.jobs).length,recipes:core.meta.recipes,monsters:Object.keys(world.monsters).length,zones:Object.keys(world.zones).length});
  }finally{dom.window.close()}
