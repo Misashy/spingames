@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202933">
+  <meta name="description" content="Prototype idle DOFUS : récolte, compétences, combats, banque et progression automatique.">
+  <title>DOFUS IDLE — Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+      <div class="brand"><span class="brand-orbit">✦</span><div class="brand-type"><span>LES DOUZE</span><strong>DOFUS <b>IDLE</b></strong><small>PROTOTYPE • MONDE DES DOUZE</small></div></div>
+      <div class="player-mini"><span class="player-avatar">🧙</span><span><b>Aventurier d'Incarnam</b><small id="miniSubtitle">Tout commence ici…</small></span></div>
+      <nav id="menu" aria-label="Compétences et menus"></nav>
+      <div class="sidebar-foot"><span class="save-dot"></span> Sauvegarde locale <span id="buildVersion">v0.1</span></div>
+    </aside>
+    <div class="content-wrap">
+      <div class="mobile-bar"><button id="menuToggle" aria-label="Ouvrir le menu">☰</button><b>DOFUS <span>IDLE</span></b><span id="mobileMoney">0 🪙</span></div>
+      <header class="topbar" id="topbar"></header>
+      <section id="view" class="view" aria-live="polite"></section>
+      <footer class="site-footer">Prototype de jeu indépendant • Interface inspirée des jeux idle de compétences • Version de démonstration • Données conservées sur ce navigateur</footer>
+    </div>
+  </div>
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <div id="modalRoot"></div>
+</body>
+</html>
