@@ -91,6 +91,20 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const bank=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Banque'));
   bank.click();
   assert(w.document.querySelectorAll('.fd-bank-item').length>=1,'butin absent de la banque');
+
+  // Vérifier que la Crypte de Kardorim n'est visible que dans l'onglet Donjons.
+  const againCombat=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Zones et monstres'));
+  againCombat.click();
+  const dungeonTab=[...w.document.querySelectorAll('.fd-combat-tab')].find(b=>b.textContent.includes('Donjons'));
+  assert(dungeonTab,'onglet Donjons manquant');
+  dungeonTab.click();
+  const dungeonRegions=[...w.document.querySelectorAll('.fd-region-card')];
+  const incDungeon=dungeonRegions.find(b=>b.textContent.includes('Incarnam'));
+  assert(incDungeon,'région Incarnam absente des donjons');
+  incDungeon.click();
+  assert([...w.document.querySelectorAll('.fd-zone')].some(b=>b.textContent.includes('Crypte de Kardorim')),
+    'Crypte de Kardorim absente des donjons officiels');
+
   assert.equal(fail.length,0,'erreurs javascript: '+fail.join(', '));
   console.log('SMOKE SUCCEEDED',{jobs:Object.keys(core.jobs).length,recipes:core.meta.recipes,monsters:Object.keys(world.monsters).length,zones:Object.keys(world.zones).length});
  }finally{dom.window.close()}
