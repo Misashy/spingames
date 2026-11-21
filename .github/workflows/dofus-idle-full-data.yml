@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'dofus-idle/tools/build_full_database.py'
+      - 'dofus-idle/tools/build_atlases.py'
       - 'dofus-idle/game-full.js'
       - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-full-data.yml'
@@ -19,7 +20,7 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +36,18 @@ jobs:
           test "$(stat -c%s /tmp/dofus.sqlite)" -gt 100000000
       - name: Générer tous les métiers, recettes, ingrédients, taux et zones
         run: python dofus-idle/tools/build_full_database.py
+      - name: Installer Pillow pour assembler les sprites exacts
+        run: python -m pip install --disable-pip-version-check Pillow
+      - name: Récupérer les PNG de chaque objet, monstre et métier
+        run: |
+          mkdir -p /tmp/dofus-idle-archives
+          BASE="https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18"
+          for kind in item monster job; do
+            curl -fL --retry 4 --connect-timeout 30 \
+              "$BASE/images-$kind.zip" -o "/tmp/dofus-idle-archives/images-$kind.zip"
+          done
+      - name: Composer tous les sprites en atlas optimisés haute définition
+        run: python dofus-idle/tools/build_atlases.py
       - name: Vérifier la syntaxe du moteur complet
         run: node --check dofus-idle/game-full.js
       - name: Contrôles
@@ -63,7 +76,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dofus-idle/data
+          git add -A dofus-idle/data dofus-idle/assets/atlases
           if ! git diff --cached --quiet; then
             git commit -m "data(dofus-idle): importer tous les métiers, 4743 recettes, zones et drops"
             git push
