@@ -1,56 +1,57 @@
-# DOFUS IDLE — Prototype neuf, style jeu de compétences idle
+# DOFUS IDLE — Monde des Douze (version 2)
 
-Prototype **autonome** (indépendant de DOFUS Clicker), conçu pour un hébergement statique sur GitHub Pages. L'interface reprend le principe de Melvor Idle : menu de compétences, cartes de récolte, maîtrise 1–99, progression par métier 1–200, banque, magasin, artisanat et combat automatique.
+Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, recettes et monstres de DOFUS 3.7.14.18. Projet indépendant de dofus-clicker.
 
-## Démarrer
+**Jouer :** https://misashy.github.io/spingames/dofus-idle/
 
-Ouvrir `index.html` dans un navigateur, ou utiliser un serveur local :
+## Données intégrées
 
-```bash
-python -m http.server 8000
-# puis ouvrir http://localhost:8000
-```
+Source : https://github.com/ledouxm/dofus-sqlite/releases/tag/v6.0_3.7.14.18
 
-Les données sont sauvegardées dans `localStorage` sous la clé `dofus-idle-independent-v1`. Aucune inscription ni connexion n'est requise.
+- 22 métiers du client DOFUS (les 23 entrées JobData moins la catégorie technique Base), dont les cinq métiers de récolte, Tailleur, Cordonnier, Bijoutier, Forgeron, Sculpteur, Bricoleur, Façonneur, Chasseur, Forgemage et spécialisations, Éleveur et Bestiologue.
+- 85 récoltes uniques issues des SkillData visibles, avec leurs niveaux minimaux officiels.
+- 4 743 recettes de fabrication issues de RecipeData avec leur objet produit, métier, niveau, et la totalité des ingrédients et quantités.
+- 21 622 objets : union ItemData et WeaponData.
+- 5 135 monstres avec noms FR, niveaux du premier grade, PV, drops et liens de zones.
+- 569 sous-zones avec région, niveau et groupes de monstres tirés de SubAreaData et MonsterData.subareas.
+- 4 922 drops de monstres sans conditions simulés en combat, plus 7 938 drops conditionnels qui sont affichés mais pas tirés.
 
-## Contenu inclus
+## Graphismes
 
-- **5 métiers DOFUS :** Bûcheron, Paysan, Mineur, Pêcheur, Alchimiste ; 40+ activités de récolte.
-- **Paliers DOFUS 3** (p. ex. Frêne niveau 1, Châtaignier 20, Noyer 40, Chêne 60 ; Blé 1, Orge 20, Avoine 40, Houblon 60 ; Fer 1, Cuivre 20, Bronze 40, Kobalte 60 ; Ortie 1, Sauge 20 ; Goujon 1, Greuvette 10).
-- **Maîtrise** distincte pour chaque ressource, niveau de métier 1 à 200, 1 activité en cours à la fois.
-- **Banque :** ressources, vente à l'unité et en masse, objets et équipements.
-- **Magasin :** outils, emplacements de banque, dégâts, défense, bonus kamas.
-- **Atelier :** six recettes de démonstration avec consommation de ressources et fabrication répétée.
-- **Combat :** 24 monstres nommés d'Incarnam et Kardorim, PV, riposte, butin, kamas, équipement et niveaux.
-- **4 classes** : Iop, Crâ, Sacrieur, Eniripsa (bonus idle simplifiés).
-- **Progrès hors ligne** : récolte/fabrication jusqu'à 8h ; les combats se mettent en pause pour éviter des pertes incontrôlées.
-- **Sauvegarde locale** + export/import JSON, et interface adaptée aux écrans mobiles.
+Les images proviennent des archives DOFUS 3 images-item.zip, images-monster.zip, images-job.zip, avec rapprochement par iconId et gfxId — jamais par ressemblance.
+- 18 488 objets avec image officielle.
+- 5 130 monstres avec image officielle.
+- 22 métiers avec image officielle.
+- 143 atlas WebP HD, total d'environ 76 Mo.
 
-## Images DOFUS 3 et données officielles (21 novembre 2026)
+Les entrées sans PNG officiel gardent un pictogramme de secours. Les images des arbres, minerais, poissons et plantes sont les icônes d'inventaire officielles, pas des modèles 3D du décor. Les monstres ont des portraits statiques, pas leurs animations squelettiques.
 
-**Source :** [ledouxm/dofus-sqlite](https://github.com/ledouxm/dofus-sqlite/releases/tag/v6.0_3.7.14.18), extraction du client DOFUS 3 à la version de jeu 3.7.14.18 (tag d'archive \`v6.0_3.7.14.18\`).
+## Fonctionnalités
 
-- Référence complète du jeu : [dofus.sqlite](https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18/dofus.sqlite) (plusieurs centaines de Mo). Elle reste disponible auprès de sa source et n'est **pas** copiée dans GitHub Pages.
-- La commande \`python dofus-idle/tools/import_official_assets.py\` lit les exports complets français \`itemsdata.json\`, \`monstersdata.json\`, \`jobsdata.json\` et \`i18n_fr.json\` et fabrique les **catalogues complets indexés** dans \`assets/database/items.fr.json\`, \`monsters.fr.json\` et \`jobs.fr.json\`.
-- Le programme extrait de \`images-item.zip\`, \`images-monster.zip\` et \`images-job.zip\` **uniquement les PNG nécessaires au prototype**. La totalité de la bibliothèque d'images DOFUS 3 est trop volumineuse pour être dupliquée directement dans les fichiers de ce petit jeu statique.
-- Les ressources de tous les cinq métiers (bois, céréales, minerais, poissons, plantes), objets de banque, butins et équipement obtiennent leur **image officielle d'objet** lorsque le nom est identifiable de manière univoque dans la base française ; les 24 monstres sont identifiés par **MonsterData.id → gfxId**.
-- Pour les vrais **modèles du décor en 3D** (arbres sur la carte, filons de minerais, plants de céréales), les PNG de l'archive \`images-item.zip\` sont **les icônes d'inventaire** et non les modèles interactifs. L'import de ces modèles/animations Unity est un chantier séparé : aucun pictogramme n'est présenté comme un modèle 3D officiel.
-- \`assets/manifest.json\` consigne toutes les correspondances, les iconId/gfxId, le fichier d'origine, ainsi que la liste des ressources restées sans image certaine. Celles-ci conservent un pictogramme de secours : **pas de sprite approximatif**.
-- L'écran se sert de \`assets/catalog.js\`. Le contenu du catalogue est chargé avant \`game.js\`, sans changer les clés de sauvegarde ni la logique du gameplay.
-- L'action GitHub \`.github/workflows/dofus-idle-assets.yml\` construit et valide les fichiers, puis les publie **uniquement** sous \`dofus-idle/assets/\`. Les autres mini-jeux ne sont pas modifiés.
+- Métiers, ressources par niveau, récolte automatique et progression hors ligne jusqu'à huit heures.
+- Fabrication répétée des recettes du client avec vérification de tous les ingrédients.
+- Recherche par nom, filtres de niveau et ingrédients disponibles.
+- Recherche des sources de chaque ingrédient : récoltes, crafts et drops de monstres avec pourcentages.
+- Banque, vente d'objets, équipements, magasin de bonus et niveaux de métiers.
+- Régions et sous-zones par niveau, combats automatiques, loot et bestiaire complet avec recherche.
+- Sauvegarde automatique, export/import JSON et migration des ressources, kamas et niveaux de l'ancienne sauvegarde.
 
-## Véracité des données et limites
+## Fidélité et limites
 
-Les **noms d'espèces** et les premiers **paliers de récolte** reprennent les données DOFUS 3. Les chiffres de gameplay (XP de métiers, temps de récolte, PV, dégâts, chances de butin, prix, composants et bonus des recettes) sont des valeurs **originales du prototype**, pas les valeurs officielles. Certaines recettes ont volontairement été simplifiées, et les noms d'objets peuvent être authentiques mais ne garantissent pas leurs composants officiels. Les autres classes/équipements/professions pourront être intégrés après validation.
+Noms, objets, recettes, quantités, niveaux de ressources, emplacements de monstres et taux de drop de base du premier grade sont extraits des données du client. Le temps de récolte, la vitesse de craft, les XP, les dégâts, les kamas, les bonus d'équipement et l'équilibrage sont adaptés à ce jeu idle : ils ne reproduisent pas les valeurs officielles.
 
-Sources de référence de données consultées (novembre 2026) :
-- https://hantofix.com/ressources/
-- https://hantofix.com/metiers/bucheron/
-- https://hantofix.com/metiers/paysan/
-- https://hantofix.com/metiers/mineur/
-- https://hantofix.com/metiers/pecheur/
-- https://hantofix.com/metiers/alchimiste/
+Les drops ayant des critères de quêtes, classes, événements ou statuts sont montrés comme « conditionnels » avec leur taux de base, mais ne sont pas distribués tant que les règles correspondantes ne sont pas reproduites. Les taux normaux ne simulent pas la prospection ni les modificateurs DOFUS.
 
-**Sprites :** si le prototype est publié comme répertoire frère du DOFUS Clicker existant, il essaie d'afficher les portraits présents dans `../dofus-clicker/assets/monsters/<id>.png`. S'ils n'existent pas ou en local dans le ZIP, des pictogrammes de secours sont affichés. Aucun code ni sauvegarde de DOFUS Clicker n'est repris.
+Les métiers sans recettes normales (forgemagie, élevage, certaines spécialisations) sont référencés et disposent d'un entraînement idle simplifié : le système de runes, élevage, montures et autres fonctionnalités complexes n'est pas une reconstitution intégrale du jeu original.
 
-**Droits :** avant toute distribution publique d'éléments graphiques DOFUS, s'assurer que l'autorisation détenue couvre cette utilisation. Le prototype est fourni sans redistribution de nouveaux assets DOFUS.
+## Maintenance
+
+- tools/build_full_database.py : transforme le SQLite en data/core.json et data/world.json.
+- tools/build_atlases.py : crée les sprites WebP et data/images.json depuis les archives officielles.
+- .github/workflows/dofus-idle-full-data.yml : reconstruction, contrôles de données, tests UI et publication des assets.
+- .github/workflows/dofus-idle-smoke.yml et tests/smoke-full.cjs : vérification des actions métiers, recettes et zones.
+- game-full.js et full.css : nouveau moteur et interface. Les fichiers historiques restent dans le dépôt.
+
+La version DOFUS est épinglée pour éviter de mélanger les identifiants, recettes et images provenant de deux mises à jour différentes.
+
+© Ankama pour les ressources graphiques et données DOFUS, sous réserve des autorisations applicables à leur usage.
