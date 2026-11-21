@@ -6,9 +6,6 @@ on:
     paths:
       - 'dofus-idle/tools/build_full_database.py'
       - 'dofus-idle/tools/build_atlases.py'
-      - 'dofus-idle/game-full.js'
-      - 'dofus-idle/index.html'
-      - 'dofus-idle/tests/smoke-full.cjs'
       - '.github/workflows/dofus-idle-full-data.yml'
 
 permissions:
