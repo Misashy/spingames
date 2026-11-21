@@ -2,19 +2,21 @@
 (() => {
 "use strict";
 const $=s=>document.querySelector(s);
+// Supprime les marqueurs de traduction absents visibles comme « null » dans l'UI.
+const displayText=value=>String(value??"").replace(/\b(?:null|undefined)\b/gi,"").replace(/\s{2,}/g," ").trim();
 const E=(tag,attrs,...children)=>{
  const el=document.createElement(tag);
  for(const [key,value] of Object.entries(attrs||{})){
   if(value===null||value===undefined)continue;
   if(key==="className")el.className=value;
-  else if(key==="text")el.textContent=String(value);
+  else if(key==="text")el.textContent=displayText(value);
   else if(key==="style"&&typeof value==="object")Object.assign(el.style,value);
   else if(key.startsWith("data-"))el.setAttribute(key,String(value));
   else if(key==="disabled")el.disabled=Boolean(value);
   else el[key]=value;
  }
  for(const child of children.flat(Infinity))if(child!==null&&child!==undefined&&child!==false)
-  el.append(child instanceof Node?child:document.createTextNode(String(child)));
+  el.append(child instanceof Node?child:document.createTextNode(displayText(child)));
  return el;
 };
 const B=(text,onclick,cls="fd-button",disabled=false)=>E("button",{type:"button",className:cls,onclick,disabled},text);
@@ -22,6 +24,8 @@ const money=n=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0}).format(M
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const KEY="dofus-idle-full-v2",OLD_KEY="dofus-idle-independent-v1";
 let core=null,world=null,state=null,dropIndex={},lastTick=Date.now(),lastSave=0,lastRender=0;
+let gearPool=[],gearEligibleCache=new Map(),combatOpenZone="";
+const EQUIP_LABELS={weapon:"Arme",head:"Coiffe",cape:"Cape",ring:"Anneau",boots:"Bottes",belt:"Ceinture",neck:"Amulette",shield:"Bouclier"};
 let q="",page=0,zoneQuery="",selectedArea="",monsterQuery="",monsterPage=0,recipeFilter="all",busy=false,images={items:{},monsters:{},jobs:{}};
 const ICONS={"2":"🪓","24":"⛏️","26":"🌿","28":"🌾","36":"🎣","41":"🏹","27":"🧵","15":"👢","16":"💍","11":"⚒️","13":"🏹","60":"🛡️","65":"🗝️","79":"🐴","78":"📖"};
 const GATHER_VERBS={"2":"Couper","24":"Extraire","26":"Cueillir","28":"Faucher","36":"Pêcher"};
@@ -97,14 +101,14 @@ function fresh(){
   playerXp:0,classId:"iop",kills:0,gathered:0,crafted:0,hp:115,
   equipment:{weapon:null,head:null,cape:null,ring:null,boots:null,belt:null,neck:null,shield:null},
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
-  action:null,selectedMonster:"979",selectedZone:"444",unlocked:{},dex:{},log:[],
+  action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",gearDrops:{},unlocked:{},dex:{},log:[],
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
  let raw=null;
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
-  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades}});
+  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{}});
  }
  let s=fresh();
  try{
@@ -159,6 +163,29 @@ function startTraining(job){
  if(state.action?.type==="train"&&state.action.job===String(job)){state.action=null;render();save();return}
  state.action={type:"train",job:String(job),id:0,progress:0};
  toast("Formation "+jobName(job)+" : entraînement idle simplifié.");render();save();
+}
+// Les équipements « surprise » sont un bonus du prototype idle, distinct
+// des butins officiels du monstre et de leurs pourcentages extraits de DOFUS.
+function possibleEquipment(level){
+ const lvl=Math.max(1,Math.floor(Number(level)||1));
+ if(gearEligibleCache.has(lvl))return gearEligibleCache.get(lvl);
+ const ceiling=Math.min(200,lvl+8),floor=Math.max(1,Math.floor(lvl*.55));
+ let pool=gearPool.filter(id=>itemLevel(id)>=floor&&itemLevel(id)<=ceiling);
+ if(!pool.length)pool=gearPool.filter(id=>itemLevel(id)<=ceiling);
+ gearEligibleCache.set(lvl,pool);
+ return pool;
+}
+function equipmentChance(m){
+ return m[5].some(zoneId=>Number(world.zones[String(zoneId)]?.[5])>=0)?5:3;
+}
+function rollEquipment(m,dropped){
+ const pool=possibleEquipment(m[1]),rate=equipmentChance(m);
+ if(!pool.length||Math.random()*100>=rate)return null;
+ const chosen=pool[Math.floor(Math.random()*pool.length)];
+ if(!add(chosen,1))return null;
+ dropped.push(chosen);
+ state.gearDrops[chosen]=(state.gearDrops[chosen]||0)+1;
+ return chosen;
 }
 function startCombat(id){
  const m=world.monsters[String(id)];if(!m)return;
@@ -242,6 +269,8 @@ function victory(m,a){
  for(const [id,rate] of m[4]){
   if(Math.random()*100<rate){if(add(id,1))dropped.push(id)}
  }
+ const bonus=rollEquipment(m,dropped);
+ if(bonus){toast("🎁 Équipement obtenu : "+itemName(bonus)+" ! Va dans la Banque pour l'équiper.");}
  if(dropped.length)state.log.unshift(m[0]+" : "+dropped.map(i=>itemName(i)).slice(0,5).join(", ")+(dropped.length>5?"…":""));
  else state.log.unshift(m[0]+" vaincu : +"+kamas+" kamas");
  state.log=state.log.slice(0,15);
@@ -446,7 +475,7 @@ function bankView(){
     B("Vendre 1",()=>sell(id,1),"fd-mini"),
     B("Tout vendre",()=>sell(id,qty),"fd-mini"),
     B("Sources",()=>showSources(id),"fd-mini"),
-    gearSlot(id)?B("Équiper",()=>equip(id),"fd-mini"):null)));
+    gearSlot(id)?B(playerLevel()<itemLevel(id)?"Niv. "+itemLevel(id)+" requis":"Équiper",()=>equip(id),"fd-mini",playerLevel()<itemLevel(id)):null)));
  }
  return E("div",{},panelHeading("Banque","Tous tes objets de récolte, de craft et les ressources obtenues en combat.",
   pill(slots()+" / "+bankCap()+" emplacements")),
@@ -463,6 +492,7 @@ function sell(id,qty){
 }
 function equip(id){
  if(!has(id))return;const slot=gearSlot(id);if(!slot)return;
+ if(playerLevel()<itemLevel(id)){toast("Niveau de combat "+itemLevel(id)+" requis pour équiper "+itemName(id)+".");return}
  if(slot in state.equipment){
   const old=state.equipment[slot];if(old&&!has(old)&&slots()>=bankCap()){toast("Banque pleine.");return}
   consume(id);if(old)add(old);state.equipment[slot]=String(id);state.hp=Math.min(maxHp(),state.hp);
@@ -569,7 +599,7 @@ function characterView(){
   panelHeading("Équipements","Les bonus de statistiques de ce prototype sont simplifiés.",""),
   E("div",{className:"fd-equipment"},...Object.entries(state.equipment).map(([slot,id])=>
    E("div",{className:"fd-equip-slot"},id?itemSprite(id,"fd-bank-art"):E("span",{className:"fd-bank-art"},"＋"),
-    E("strong",{},slot),E("small",{},id?itemName(id):"Vide"),
+    E("strong",{},EQUIP_LABELS[slot]||slot),E("small",{},id?itemName(id):"Vide"),
     id?B("Retirer",()=>{if(!add(id)){toast("Banque pleine.");return}state.equipment[slot]=null;render();save()},"fd-mini"):null))),
   E("div",{className:"fd-character-actions"},
    B("📦 Exporter sauvegarde",exportSave,"fd-secondary"),
@@ -626,6 +656,10 @@ async function init(){
     if(!dropIndex[iid])dropIndex[iid]=[];dropIndex[iid].push([mid,rate]);
    }
   }
+  // Catalogue des vrais équipements fabriquables : le taux d'obtention bonus
+  // est propre à DOFUS IDLE, les identités et niveaux proviennent du client.
+  gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
+    .filter(id=>core.items[id]&&gearSlot(id)&&itemLevel(id)<=200);
   state=load();offline();state.hp=clamp(Number(state.hp)||maxHp(),1,maxHp());
   $("#menuToggle").onclick=()=>$("#sidebar").classList.toggle("open");
   window.addEventListener("pagehide",save);
