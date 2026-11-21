@@ -26,6 +26,19 @@ Les données sont sauvegardées dans `localStorage` sous la clé `dofus-idle-ind
 - **Progrès hors ligne** : récolte/fabrication jusqu'à 8h ; les combats se mettent en pause pour éviter des pertes incontrôlées.
 - **Sauvegarde locale** + export/import JSON, et interface adaptée aux écrans mobiles.
 
+## Images DOFUS 3 et données officielles (21 novembre 2026)
+
+**Source :** [ledouxm/dofus-sqlite](https://github.com/ledouxm/dofus-sqlite/releases/tag/v6.0_3.7.14.18), extraction du client DOFUS 3 à la version de jeu 3.7.14.18 (tag d'archive \`v6.0_3.7.14.18\`).
+
+- Référence complète du jeu : [dofus.sqlite](https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18/dofus.sqlite) (plusieurs centaines de Mo). Elle reste disponible auprès de sa source et n'est **pas** copiée dans GitHub Pages.
+- La commande \`python dofus-idle/tools/import_official_assets.py\` lit les exports complets français \`itemsdata.json\`, \`monstersdata.json\`, \`jobsdata.json\` et \`i18n_fr.json\` et fabrique les **catalogues complets indexés** dans \`assets/database/items.fr.json\`, \`monsters.fr.json\` et \`jobs.fr.json\`.
+- Le programme extrait de \`images-item.zip\`, \`images-monster.zip\` et \`images-job.zip\` **uniquement les PNG nécessaires au prototype**. La totalité de la bibliothèque d'images DOFUS 3 est trop volumineuse pour être dupliquée directement dans les fichiers de ce petit jeu statique.
+- Les ressources de tous les cinq métiers (bois, céréales, minerais, poissons, plantes), objets de banque, butins et équipement obtiennent leur **image officielle d'objet** lorsque le nom est identifiable de manière univoque dans la base française ; les 24 monstres sont identifiés par **MonsterData.id → gfxId**.
+- Pour les vrais **modèles du décor en 3D** (arbres sur la carte, filons de minerais, plants de céréales), les PNG de l'archive \`images-item.zip\` sont **les icônes d'inventaire** et non les modèles interactifs. L'import de ces modèles/animations Unity est un chantier séparé : aucun pictogramme n'est présenté comme un modèle 3D officiel.
+- \`assets/manifest.json\` consigne toutes les correspondances, les iconId/gfxId, le fichier d'origine, ainsi que la liste des ressources restées sans image certaine. Celles-ci conservent un pictogramme de secours : **pas de sprite approximatif**.
+- L'écran se sert de \`assets/catalog.js\`. Le contenu du catalogue est chargé avant \`game.js\`, sans changer les clés de sauvegarde ni la logique du gameplay.
+- L'action GitHub \`.github/workflows/dofus-idle-assets.yml\` construit et valide les fichiers, puis les publie **uniquement** sous \`dofus-idle/assets/\`. Les autres mini-jeux ne sont pas modifiés.
+
 ## Véracité des données et limites
 
 Les **noms d'espèces** et les premiers **paliers de récolte** reprennent les données DOFUS 3. Les chiffres de gameplay (XP de métiers, temps de récolte, PV, dégâts, chances de butin, prix, composants et bonus des recettes) sont des valeurs **originales du prototype**, pas les valeurs officielles. Certaines recettes ont volontairement été simplifiées, et les noms d'objets peuvent être authentiques mais ne garantissent pas leurs composants officiels. Les autres classes/équipements/professions pourront être intégrés après validation.
