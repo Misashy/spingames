@@ -75,6 +75,16 @@ function sprite(kind,id,emoji="✦",css="fd-icon"){
  const holder=E("span",{className:css});
  const path=images[kind]?.[String(id)];
  if(!path){holder.textContent=emoji;return holder}
+ if(Array.isArray(path)){
+  const atlas=path[0],slot=Number(path[1]);
+  if(typeof atlas==="string"&&Number.isInteger(slot)&&slot>=0&&slot<100){
+   holder.style.backgroundImage='url("'+atlas+'")';
+   holder.style.backgroundSize="1000% 1000%";
+   holder.style.backgroundPosition=(slot%10)*100/9+"% "+Math.floor(slot/10)*100/9+"%";
+   holder.style.backgroundRepeat="no-repeat";
+   return holder;
+  }
+ }
  const img=E("img",{src:path,alt:"",loading:"lazy",decoding:"async"});
  img.onerror=()=>{img.remove();holder.textContent=emoji};
  holder.append(img);return holder;
@@ -227,7 +237,7 @@ function victory(m,a){
  state.kills++;state.dex[String(a.id)]=(state.dex[String(a.id)]||0)+1;
  // Les niveaux et PV des monstres sont ceux de la base; XP et kamas sont adaptés.
  state.playerXp+=Math.max(15,Math.round(17+m[1]*3.2));
- const kamas=Math.round(5+m[1]*1.75);state.kamas+=kamas;state.earned+=kamas;
+ const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1));state.kamas+=kamas;state.earned+=kamas;
  let dropped=[];
  for(const [id,rate] of m[4]){
   if(Math.random()*100<rate){if(add(id,1))dropped.push(id)}
@@ -270,7 +280,11 @@ function showSources(id){
  const list=(dropIndex[id]||[]).slice().sort((a,b)=>b[1]-a[1]);
  const box=E("div",{className:"fd-modal"});
  box.append(E("h2",{},"Comment obtenir : "+itemName(id)));
- if(!list.length)box.append(E("p",{},"Aucun drop inconditionnel répertorié. Cet objet peut s'obtenir par récolte, recette, quête ou événement particulier."));
+ const gatherers=Object.entries(core.gather).flatMap(([job,skills])=>skills.filter(row=>String(row[0])===String(id)).map(row=>[job,row[1]]));
+ for(const [job,req] of gatherers)box.append(B("🌿 Récolte : "+jobName(job)+" niveau "+req,()=>{closeModal();runNav("job:"+job)},"fd-source"));
+ const makers=Object.entries(core.recipes).flatMap(([job,recipes])=>recipes.filter(r=>String(r[0])===String(id)).map(r=>[job,r[1]]));
+ for(const [job,req] of makers.slice(0,6))box.append(B("🔨 Fabrication : "+jobName(job)+" niveau "+req,()=>{closeModal();runNav("craft:"+job)},"fd-source"));
+ if(!list.length&&!gatherers.length&&!makers.length)box.append(E("p",{},"Aucune source directe sans conditions détectée. Il peut s'agir d'un objet de quête ou d'événement."));
  else{
   box.append(E("p",{},"Probabilités de base DOFUS 3 (grade 1), sans prospection ni bonus de combat."));
   const grid=E("div",{className:"fd-source-list"});
@@ -303,7 +317,7 @@ function runNav(view){
 function sidebar(){
  const groups=[
   ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"]]],
-  ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
+  ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>[["job:"+id,jobIcon(id),jobName(id)],...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])])],
   ["MÉTIERS DE FABRICATION",Object.keys(core.jobs).filter(id=>!core.gather[id]&&(core.recipes[id]||[]).length>0).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
   ["SPÉCIALISATIONS",Object.keys(core.jobs).filter(id=>!core.gather[id]&&!(core.recipes[id]||[]).length).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
   ["MONDE",[["combat","⚔️","Zones et monstres"],["bestiary","📘","Bestiaire"],["recipes","🔧","Toutes les recettes"]]]
@@ -324,9 +338,9 @@ function sidebar(){
  $("#menu").replaceChildren(nav);
 }
 function header(){
- const view=state.view,job=view.startsWith("job:")?view.split(":")[1]:null;
+ const view=state.view,job=view.startsWith("job:")||view.startsWith("craft:")?view.split(":")[1]:null;
  const lev=job?levelOf(state.jobs[job]||0):levelOf(state.playerXp);
- const tit=job?jobName(job):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",recipes:"Toutes les recettes",bestiary:"Bestiaire"}[view]||"DOFUS IDLE");
+ const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",recipes:"Toutes les recettes",bestiary:"Bestiaire"}[view]||"DOFUS IDLE");
  const h=E("div",{className:"fd-headline"},job?jobSprite(job,"fd-head-icon"):E("span",{className:"fd-head-icon"},"✦"),
   E("div",{},E("h1",{},tit),E("small",{},"DOFUS IDLE · Monde des Douze")));
  const stats=E("div",{className:"fd-headstats"},
@@ -366,6 +380,7 @@ function gatherView(job){
  }
  return E("div",{},currentActionBox(),
   panelHeading(jobName(job)+" · Toutes les ressources","Récolte répétée automatiquement. Paliers de déblocage issus de DOFUS 3.",pill(skills.length+" ressources")),
+  (core.recipes[job]||[]).length?B("🔨 Voir les "+(core.recipes[job]||[]).length+" recettes de "+jobName(job),()=>runNav("craft:"+job),"fd-secondary"):null,
   searchField("Rechercher une ressource...",q,v=>{q=v;page=0}),
   cards,pagination(filtered.length,40,d=>{page+=d;renderView()}));
 }
@@ -459,7 +474,7 @@ function shopView(){
   ["tool","🪓","Outils améliorés","Récolte plus rapide"],
   ["weapon","⚔️","Force supplémentaire","+6 dégâts"],
   ["armor","🛡️","Résistance","+3 défense"],
-  ["fortune","🪙","Bonne fortune","Réservé aux évolutions futures"]];
+  ["fortune","🪙","Bonne fortune","+10 % kamas par amélioration"]];
  return E("div",{},panelHeading("Magasin d'Enutrof","Bonus permanents financés par les kamas.","🪙 "+money(state.kamas)),
  E("div",{className:"fd-craft-grid"},...defs.map(([id,icon,name,desc])=>{
   const lvl=state.upgrades[id]||0,price=Math.round((id==="bank"?130:170)*Math.pow(id==="bank"?1.8:2.1,lvl));
@@ -477,7 +492,7 @@ function zoneView(){
  const box=E("div",{className:"fd-zones"});
  for(const [id,z] of visible.slice(0,130)){
   box.append(B(z[0]+" · "+z[1]+" · Niv. "+z[2]+" · "+z[3].length+" monstres",
-   ()=>{state.selectedZone=id;monsterQuery="";monsterPage=0;render();save();},
+   ()=>{state.selectedZone=id;state.selectedMonster=String(z[3][0]||state.selectedMonster);monsterQuery="";monsterPage=0;render();save();},
    "fd-zone "+(state.selectedZone===id?"active":"")));
  }
  if(visible.length>130)box.append(E("small",{},"Affichage limité à 130 zones : affine la recherche."));
@@ -570,7 +585,8 @@ function renderView(){
  if(!state)return;
  const v=state.view;
  let node=null;
- if(v.startsWith("job:")){const j=v.split(":")[1];
+ if(v.startsWith("craft:"))node=craftingView(v.split(":")[1]);
+ else if(v.startsWith("job:")){const j=v.split(":")[1];
   node=core.gather[j]?.length?gatherView(j):(core.recipes[j]||[]).length?craftingView(j):specialView(j);
  }else if(v==="bank")node=bankView();
  else if(v==="shop")node=shopView();
@@ -620,7 +636,11 @@ async function init(){
    if(!document.hidden&&t-lastRender>900){
     lastRender=t;
     const focus=document.activeElement;
-    if(!focus||!["INPUT","SELECT"].includes(focus.tagName))render();
+    if(!focus||!["INPUT","SELECT"].includes(focus.tagName)){
+     const scrolls=[".fd-zones",".fd-monster-list",".fd-drops",".fd-source-list"].map(sel=>[sel,$(sel)?.scrollTop||0]);
+     render();
+     for(const [sel,y] of scrolls){const node=$(sel);if(node)node.scrollTop=y}
+    }
     else header();
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
