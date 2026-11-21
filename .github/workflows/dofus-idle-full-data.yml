@@ -1,0 +1,66 @@
+name: Construire DOFUS IDLE complet depuis les données DOFUS 3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dofus-idle/tools/build_full_database.py'
+      - '.github/workflows/dofus-idle-full-data.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dofus-idle-full-data
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Télécharger la base DOFUS 3 officielle extraite
+        run: |
+          curl -fL --retry 4 --connect-timeout 30 \
+            https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18/dofus.sqlite \
+            -o /tmp/dofus.sqlite
+          test "$(stat -c%s /tmp/dofus.sqlite)" -gt 100000000
+      - name: Générer tous les métiers, recettes, ingrédients, taux et zones
+        run: python dofus-idle/tools/build_full_database.py
+      - name: Contrôles
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=Path('dofus-idle/data')
+          c=json.loads((d/'core.json').read_text(encoding='utf8'))
+          w=json.loads((d/'world.json').read_text(encoding='utf8'))
+          assert c['meta']['recipes']>=4500
+          assert len(c['items'])>=21000
+          assert len(c['jobs'])>=20
+          assert len(w['zones'])>=500
+          assert len(w['monsters'])>=5000
+          for recipes in c['recipes'].values():
+              for item,level,ingredients,skill in recipes:
+                  assert str(item) in c['items']
+                  assert all(str(x) in c['items'] and qty>0 for x,qty in ingredients)
+          for mob in w['monsters'].values():
+              for item,pct in mob[4]:
+                  assert str(item) in c['items'] and 0<pct<=100
+          print('VALIDÉ: tous les objets et ingrédients référencés existent')
+          PY
+      - name: Publier uniquement les données DOFUS IDLE
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dofus-idle/data
+          if ! git diff --cached --quiet; then
+            git commit -m "data(dofus-idle): importer tous les métiers, 4743 recettes, zones et drops"
+            git push
+          fi
