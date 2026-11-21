@@ -1,0 +1,63 @@
+name: Importer sprites DOFUS 3 pour DOFUS IDLE
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dofus-idle/tools/import_official_assets.py'
+      - 'dofus-idle/game.js'
+      - 'dofus-idle/index.html'
+      - '.github/workflows/dofus-idle-assets.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dofus-idle-asset-import
+  cancel-in-progress: false
+
+jobs:
+  import-dofus-idle-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Installer Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verifier le code du jeu
+        run: |
+          node --check dofus-idle/game.js
+          python -m py_compile dofus-idle/tools/import_official_assets.py
+      - name: Importer les catalogues complets et les PNG exacts
+        run: python dofus-idle/tools/import_official_assets.py
+      - name: Verifier les correspondances et fichiers PNG
+        run: |
+          node --check dofus-idle/assets/catalog.js
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("dofus-idle/assets")
+          m=json.loads((p/"manifest.json").read_text(encoding="utf-8"))
+          assert m["imported"]["monsters"] == m["needed"]["monsters"] == 24, m["imported"]
+          assert m["fullMonsterCount"] >= 4000 and m["fullItemCount"] >= 10000, m
+          for row in m["assets"]:
+              data=(Path("dofus-idle")/row["file"]).read_bytes()
+              assert data.startswith(b"\x89PNG\r\n\x1a\n"), row
+          print("Validé:",m["imported"],"objets/monstres, base:",m["fullItemCount"],m["fullMonsterCount"])
+          print("Données manquantes conservées en fallback:",len(m["missing"]))
+          PY
+      - name: Publier seulement les assets DOFUS IDLE
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A dofus-idle/assets
+          if ! git diff --cached --quiet; then
+            git commit -m "assets(dofus-idle): importer pictogrammes DOFUS 3 et index officiel complet"
+            git push
+          fi
