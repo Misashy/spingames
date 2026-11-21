@@ -17,7 +17,15 @@ assert((core.recipes['15']||[]).length>500);
 const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 const dom=new JSDOM(html,{url:'https://example.org/spingames/dofus-idle/',runScripts:'outside-only',pretendToBeVisual:true});
 const {window:w}=dom;
-w.DOFUS_IDLE_ASSETS={items:{},monsters:{},jobs:{}};
+// Quelques portraits officiels simulés via leurs coordonnées atlas, dans le
+// même format que data/images.json généré par le client DOFUS 3.
+w.DOFUS_IDLE_ASSETS={items:{},monsters:{
+ "4051":["assets/atlases/monsters/001.webp",23],  // Kardorim
+ "970":["assets/atlases/monsters/003.webp",5],     // monstre de Champs
+ "98":["assets/atlases/monsters/004.webp",11],     // Tofu
+ "180":["assets/atlases/monsters/005.webp",8],     // Wa Wabbit
+ "226":["assets/atlases/monsters/006.webp",4]      // Moon
+},jobs:{}};
 w.fetch=async url=>{
  if(url.includes('core.json'))return {ok:true,json:async()=>core};
  if(url.includes('world.json'))return {ok:true,json:async()=>world};
@@ -42,6 +50,10 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert.equal(w.DOFUS_IDLE_FULL.getState().action.type,'gather');
   const h=w.document.querySelectorAll('.fd-nav-entry');
   assert(h.length>=24,'tous les métiers doivent être présents');
+  assert.equal(w.document.querySelector('.fd-nav h3')?.textContent,'COMBAT','Le combat doit apparaître en premier dans la sidebar');
+  assert(h[0].textContent.includes('Zones et monstres'),'Les zones de combat doivent être le premier bouton');
+  for(const navButton of h)assert(!/\b(?:null|undefined)\b/i.test(navButton.textContent),'Valeur null visible dans le menu: '+navButton.textContent);
+  assert(!/\bnull\b/i.test(w.document.body.textContent),'null visible au chargement initial');
   const tailor=[...h].find(b=>b.textContent.includes('Tailleur'));
   assert(tailor,'tailleur manquant');
   tailor.click();
@@ -59,11 +71,23 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    assert(regions.some(b=>b.textContent.includes(name)),'région manquante : '+name);
   }
   const incarnam=regions.find(b=>b.textContent.includes('Incarnam'));
+  assert(incarnam.querySelector('.fd-region-art'),'Portrait de région manquant');
+  assert(/atlases\/monsters/.test(incarnam.querySelector('.fd-region-art').style.backgroundImage),
+    'Incarnam doit utiliser le sprite DOFUS de Kardorim, et pas un emoji');
   incarnam.click();
   assert(w.document.querySelectorAll('.fd-zone').length>=9,'zones Incarnam absentes');
+  assert(w.document.querySelector('.fd-region-breadcrumb-art'),'Petit portrait de région absent');
+  assert(w.document.querySelectorAll('.fd-zone-art').length>=9,'Portraits de zones manquants');
+  const battle=w.document.querySelector('.fd-battle-sections');
+  const zoneGrid=w.document.querySelector('.fd-combat-zone-grid');
+  assert(battle&&zoneGrid,'Panneaux combat et zones absents');
+  assert(battle.compareDocumentPosition(zoneGrid)&w.Node.DOCUMENT_POSITION_FOLLOWING,
+    'Les panneaux combat doivent se trouver au-dessus des cartes de zones');
   assert.equal(w.document.querySelectorAll('.fd-monster-row').length,0,'les monstres ne doivent apparaître qu’après ouverture');
   const champs=[...w.document.querySelectorAll('.fd-zone')].find(b=>b.textContent.includes('Champs'));
   assert(champs,'zone Champs d’Incarnam absente');
+  assert(/atlases\/monsters/.test(champs.querySelector('.fd-zone-art').style.backgroundImage),
+    'Champs doit utiliser un portrait DOFUS de monstre de la zone');
   champs.click();
   assert(w.document.querySelectorAll('.fd-monster-row').length>=4,'monstres de Champs absents');
   assert.equal(w.document.querySelectorAll('.fd-fight-panel').length,2,'panneaux de combat manquants');
@@ -95,6 +119,8 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   // Vérifier que la Crypte de Kardorim n'est visible que dans l'onglet Donjons.
   const againCombat=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Zones et monstres'));
   againCombat.click();
+  const dungeonSidebar=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.trim()==='🏰Donjons'||b.textContent.includes('Donjons'));
+  assert(dungeonSidebar,'Lien Donjons absent du haut du menu');
   const dungeonTab=[...w.document.querySelectorAll('.fd-combat-tab')].find(b=>b.textContent.includes('Donjons'));
   assert(dungeonTab,'onglet Donjons manquant');
   dungeonTab.click();
