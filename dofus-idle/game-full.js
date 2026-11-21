@@ -176,7 +176,8 @@ function possibleEquipment(level){
  return pool;
 }
 function equipmentChance(m){
- return m[5].some(zoneId=>Number(world.zones[String(zoneId)]?.[5])>=0)?5:3;
+ const zone=world.zones[String(state.selectedZone)];
+ return zone&&zone[3].some(id=>String(id)===String(state.selectedMonster))&&Number(zone[5])>=0?5:3;
 }
 function rollEquipment(m,dropped){
  const pool=possibleEquipment(m[1]),rate=equipmentChance(m);
