@@ -148,7 +148,7 @@ function startBattle(w){
   // Préférences distinctes par classe, retour à l'ancienne configuration.
   selectClass(w,"Iop");
   assert.equal(game.getState().spellPreferences["iop:pression"],false);
-  assert.equal(game.getState().spellCasts,4,"Les quatre sorts manuels doivent être enregistrés");
+  assert.equal(game.getState().spellCasts,5,"Les cinq sorts manuels doivent être enregistrés");
   const stored=JSON.parse(w.localStorage.getItem("dofus-idle-full-v2"));
   assert.equal(stored.achievements["success-0"],21,"Succès ancien perdu au sauvegardage");
   assert.equal(stored.spellPreferences["iop:pression"],false,"Préférences de classe non persistées");
