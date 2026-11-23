@@ -1416,7 +1416,7 @@ function sidebar(){
  // On affiche le combat en premier, au-dessus de la banque et des métiers.
  const groups=[
   ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"]]],
-  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"]]],
+  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"],["quests","📜","Quêtes"]]],
   ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
    [["job:"+id,jobIcon(id),jobName(id)],
     ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
@@ -2536,6 +2536,124 @@ function exportSave(){
  const url=URL.createObjectURL(blob);const a=E("a",{href:url,download:"dofus-idle-save-v2.json"});
  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+
+/* Carnet de quêtes de DOFUS IDLE : aventures construites avec les vraies
+   régions, sous-zones, monstres et donjons, mais scénarios et XP adaptés. */
+let questCatalog=[],questRegion="all",questSearch="",questPage=0;
+function buildQuestCatalog(){
+ const result=[];
+ for(const [region,zones] of regionCatalog()){
+  const ordered=zones.slice().sort((a,b)=>a[1][2]-b[1][2]);
+  const normal=ordered.filter(([,z])=>Number(z[5])<0);
+  const dungeons=ordered.filter(([id,z])=>Number(z[5])>=0&&dungeonRoomList(id).length>=2);
+  if(!normal.length&&!dungeons.length)continue;
+  const start=region==="Incarnam"?(normal.find(([,z])=>/champs/i.test(z[0]))||normal[0]):normal[0];
+  const later=normal.find(([id])=>id!==start?.[0])||normal[0];
+  const key=achievementKey(region).replace(/\s+/g,"-");
+  const chain=[];
+  if(start){
+   chain.push(["visitZone:"+start[0],1,"Découvrir "+start[1][0],
+    "Explore "+start[1][0]+", dans la région "+region+"."]);
+   const mid=start[1][3].map(String).filter(id=>world.monsters[id])
+    .sort((a,b)=>world.monsters[a][1]-world.monsters[b][1])[0];
+   if(mid)chain.push(["monster:"+mid,5,"Première chasse : "+world.monsters[mid][0],
+    "Vaincs cinq "+world.monsters[mid][0]+"."]);
+  }
+  if(later?.[0]!==start?.[0])chain.push(["visitZone:"+later[0],1,
+   "Explorer "+later[1][0],"Découvre une seconde sous-zone : "+later[1][0]+"."]);
+  if(dungeons.length){
+   const dungeon=dungeons[0];
+   chain.push(["dungeonClear:"+dungeon[0],1,"Vaincre le boss de "+dungeon[1][0],
+    "Termine le donjon "+dungeon[1][0]+" et bats son boss final."]);
+  }
+  for(let i=0;i<chain.length;i++){
+   const [metric,target,title,desc]=chain[i];
+   const prev=i?result[result.length-1]?.id:null;
+   // La chaîne doit rester dans la même région : pas de prérequis
+   // inter-région ; les joueurs sont libres d'explorer toutes les zones.
+   const id="quest-"+key+"-"+i;
+   result.push({id,region,metric,target,title,desc,prev:i?("quest-"+key+"-"+(i-1)):null,
+    kamas:75+(i+1)*60+(ordered[0]?.[1][2]||1)*7,
+    xp:80+(i+1)*80+(ordered[0]?.[1][2]||1)*8,
+    final:i===chain.length-1});
+  }
+ }
+ questCatalog=result;
+}
+function questValue(q){
+ if(q.metric.startsWith("dungeonClear:"))return Number(state.dungeonClears?.[q.metric.slice(13)])||0;
+ return achievementValue(q.metric);
+}
+function questUnlocked(q){return !q.prev||!!state.questClaims?.[q.prev]}
+function claimQuest(qid){
+ const q=questCatalog.find(x=>x.id===qid);
+ if(!q||state.questClaims[qid]||!questUnlocked(q)||questValue(q)<q.target)return;
+ state.questClaims[qid]=Date.now();
+ state.kamas+=q.kamas;state.earned+=q.kamas;state.playerXp+=q.xp;
+ if(q.final){
+  const name="Explorateur de "+q.region;
+  if(!state.unlockedTitles.includes(name))state.unlockedTitles.push(name);
+  toast("🎖️ Nouveau titre : "+name);
+ }
+ toast("📜 Quête accomplie : "+q.title+" · +"+q.xp+" XP / +"+q.kamas+" kamas");
+ render();save();
+}
+function questsView(){
+ const all=questCatalog,completed=all.filter(q=>state.questClaims[q.id]).length;
+ const search=achievementKey(questSearch);
+ const matched=all.filter(q=>(questRegion==="all"||questRegion===q.region)&&
+  (!search||achievementKey(q.title+" "+q.desc+" "+q.region).includes(search)));
+ matched.sort((a,b)=>{
+  const status=q=>state.questClaims[q.id]?3:questUnlocked(q)&&questValue(q)>=q.target?0:
+   questUnlocked(q)?1:2;
+  return status(a)-status(b)||a.region.localeCompare(b.region,"fr");
+ });
+ const pageCount=Math.max(1,Math.ceil(matched.length/24));
+ questPage=Math.min(Math.max(0,questPage),pageCount-1);
+ const root=E("div",{className:"fd-adventure-page"},
+  panelHeading("📜 Carnet de quêtes","Des parcours régionaux construits à partir des vrais monstres et donjons du jeu. Les scénarios et récompenses sont propres à DOFUS IDLE.",
+   pill(money(completed)+" / "+money(all.length)+" quêtes")),
+  E("section",{className:"fd-adventure-summary"},
+   pill("🌍 "+new Set(all.map(q=>q.region)).size+" régions"),
+   pill("📜 "+money(completed)+" terminées"),
+   pill("🏆 "+money(all.filter(q=>questUnlocked(q)&&questValue(q)>=q.target&&!state.questClaims[q.id]).length)+" récompenses prêtes"),
+   meter(all.length?completed*100/all.length:0)));
+ const filter=E("div",{className:"fd-adventure-filters"},
+  E("input",{type:"search",className:"fd-quest-search",value:questSearch,
+   placeholder:"Chercher une quête, un monstre ou une région…",oninput:e=>{
+    questSearch=e.target.value;questPage=0;renderView();
+    const i=$(".fd-quest-search");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+   }}),
+  E("select",{className:"fd-select",value:questRegion,onchange:e=>{questRegion=e.target.value;questPage=0;renderView()}},
+   E("option",{value:"all"},"Toutes les régions"),
+   ...[...new Set(all.map(q=>q.region))].sort((a,b)=>a==="Incarnam"?-1:b==="Incarnam"?1:a.localeCompare(b,"fr"))
+    .map(region=>E("option",{value:region},region))));
+ root.append(filter);
+ const grid=E("div",{className:"fd-adventure-grid"});
+ for(const q of matched.slice(questPage*24,(questPage+1)*24)){
+  const v=questValue(q),claimed=!!state.questClaims[q.id],unlocked=questUnlocked(q);
+  const ready=unlocked&&!claimed&&v>=q.target;
+  grid.append(E("article",{className:"fd-quest-card "+(claimed?"done":ready?"ready":!unlocked?"locked":""),
+   "data-quest-id":q.id},
+   E("div",{className:"fd-quest-card-header"},E("strong",{},q.title),pill(q.region)),
+   E("p",{},q.desc),
+   E("small",{},claimed?"✓ Quête terminée":!unlocked?"🔒 Termine l'étape précédente":
+    ready?"🎁 Récompense disponible":"En cours"),
+   meter(v/q.target*100),
+   E("small",{},money(Math.min(v,q.target))+" / "+q.target),
+   E("div",{className:"fd-quest-rewards"},pill("✨ "+money(q.xp)+" XP"),pill("🪙 "+money(q.kamas)+" kamas"),
+    q.final?pill("🎖️ Titre de région"):null),
+   B(claimed?"✓ Terminée":ready?"🎁 Récupérer":"Objectif en cours",
+    ()=>claimQuest(q.id),"fd-button",!ready)));
+ }
+ root.append(grid,
+  E("div",{className:"fd-achievement-pages"},
+   B("← Précédent",()=>{questPage--;renderView()},"fd-secondary",questPage===0),
+   pill("Page "+(questPage+1)+" / "+pageCount),
+   B("Suivant →",()=>{questPage++;renderView()},"fd-secondary",questPage>=pageCount-1)));
+ return root;
+}
+
 function renderView(){
  if(!state)return;
  const v=state.view;
@@ -2549,6 +2667,7 @@ function renderView(){
  else if(v==="bestiary")node=bestiaryView();
  else if(v==="recipes")node=craftingView(null,true);
  else if(v==="achievements")node=achievementsView();
+ else if(v==="quests")node=questsView();
  else node=characterView();
  $("#view").replaceChildren(node);
 }
@@ -2615,7 +2734,7 @@ async function init(){
     state.regionZoneCount[region]=(state.regionZoneCount[region]||0)+1;
    }
   }
-  buildAchievementCatalog();
+  buildAchievementCatalog();buildQuestCatalog();
   offline();state.hp=clamp(Number(state.hp)||maxHp(),1,maxHp());
   $("#menuToggle").onclick=()=>$("#sidebar").classList.toggle("open");
   window.addEventListener("pagehide",save);
