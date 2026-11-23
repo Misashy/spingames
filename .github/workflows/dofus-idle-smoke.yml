@@ -11,6 +11,9 @@ on:
       - 'dofus-idle/tests/equipment-v7.cjs'
       - 'dofus-idle/tests/spells-v8.cjs'
       - 'dofus-idle/tests/adventure-v9.cjs'
+      - 'dofus-idle/tests/v10-v12.cjs'
+      - 'dofus-idle/cloud-config.js'
+      - 'dofus-idle/v10-v12.css'
       - 'dofus-idle/assets/spells/catalog.json'
       - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-smoke.yml'
@@ -35,3 +38,4 @@ jobs:
           node dofus-idle/tests/equipment-v7.cjs
           node dofus-idle/tests/spells-v8.cjs
           node dofus-idle/tests/adventure-v9.cjs
+          node dofus-idle/tests/v10-v12.cjs
