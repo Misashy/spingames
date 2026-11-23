@@ -31,6 +31,139 @@ const ICONS={"2":"🪓","24":"⛏️","26":"🌿","28":"🌾","36":"🎣","41":"
 const GATHER_VERBS={"2":"Couper","24":"Extraire","26":"Cueillir","28":"Faucher","36":"Pêcher"};
 const MAGE_NAMES=["mage","bestiologue","éleveur"];
 const LEVEL_MAX=200;
+
+const STAT_DEFS=[
+ ["vitalite","❤️","Vitalité","Augmente les points de vie."],
+ ["sagesse","🔮","Sagesse","Augmente l'expérience gagnée."],
+ ["force","🪨","Force","Améliore les dégâts terrestres et le corps à corps."],
+ ["intelligence","🔥","Intelligence","Améliore les dégâts de feu et les soins."],
+ ["chance","💧","Chance","Améliore les dégâts d'eau et la prospection."],
+ ["agilite","🌪️","Agilité","Améliore les dégâts d'air et les critiques."]
+];
+const CLASS_META=[
+ ["iop","Iop","⚔️","Guerrier","Frappe de mêlée puissante","force",10],
+ ["cra","Crâ","🏹","Archer","Attaques précises à distance","agilite",9],
+ ["sacrieur","Sacrieur","🩸","Berserker","Plus de vitalité","force",11],
+ ["eniripsa","Eniripsa","💚","Soigneur","Régénération accrue","intelligence",7],
+ ["feca","Féca","🛡️","Protecteur","Réduction des dégâts reçus","intelligence",1],
+ ["osamodas","Osamodas","🐉","Invocateur","Meilleure régénération","intelligence",2],
+ ["enutrof","Enutrof","🪙","Chercheur de trésors","Kamas supplémentaires","chance",3],
+ ["sram","Sram","🗡️","Assassin","Critiques plus fréquents","agilite",4],
+ ["xelor","Xélor","⌛","Maître du temps","Attaques plus rapides","intelligence",5],
+ ["ecaflip","Ecaflip","🎲","Joueur","Coups critiques puissants","chance",6],
+ ["sadida","Sadida","🌿","Gardien des plantes","Régénération passive","force",10],
+ ["pandawa","Pandawa","🍶","Combattant","Résistance accrue","chance",12],
+ ["roublard","Roublard","💣","Artificier","Dégâts supplémentaires","intelligence",13],
+ ["zobal","Zobal","🎭","Mascarade","Bonus défensif","agilite",14],
+ ["steamer","Steamer","⚙️","Technicien","Bonus polyvalent","chance",15],
+ ["eliotrope","Eliotrope","🌀","Voyageur des portails","Attaques plus rapides","intelligence",16],
+ ["huppermage","Huppermage","✨","Élémentaliste","Maîtrise des quatre éléments","intelligence",17],
+ ["ouginak","Ouginak","🐺","Traqueur","Dégâts en mêlée","force",18],
+ ["forgelance","Forgelance","🔱","Lancier","Bonus de défense et d'attaque","force",20]
+];
+const CLASS_BY_ID=Object.fromEntries(CLASS_META.map(c=>[c[0],c]));
+function statValue(key){return Math.max(0,Math.floor(Number(state.characteristics?.[key])||0))}
+function statCost(key,value){
+ if(key==="vitalite")return 1;
+ if(key==="sagesse")return 3;
+ return 1+Math.min(4,Math.floor(value/100));
+}
+function statsSpent(){
+ return STAT_DEFS.reduce((total,[key])=>{
+  const n=statValue(key);
+  if(key==="vitalite")return total+n;
+  if(key==="sagesse")return total+n*3;
+  let cost=0;for(let i=0;i<n;i++)cost+=statCost(key,i);
+  return total+cost;
+ },0);
+}
+function availableStats(){return Math.max(0,(playerLevel()-1)*5-statsSpent())}
+function spendStat(key,count=1){
+ if(!STAT_DEFS.some(x=>x[0]===key))return;
+ let got=0;
+ while(count-->0){
+  const c=statCost(key,statValue(key));
+  if(availableStats()<c)break;
+  state.characteristics[key]=(state.characteristics[key]||0)+1;got++;
+ }
+ if(got){toast("Caractéristique améliorée : +"+got+" "+STAT_DEFS.find(x=>x[0]===key)[2]);render();save()}
+}
+function resetStats(){
+ if(!statsSpent())return;
+ if(!confirm("Réinitialiser tous les points de caractéristiques ? Cette action est gratuite dans ce prototype."))return;
+ state.characteristics={};state.hp=Math.min(state.hp,maxHp());render();save();
+}
+function changeClass(id){
+ if(!CLASS_BY_ID[id]||state.classId===id)return;
+ state.classId=id;state.classSelected=true;
+ state.hp=clamp(state.hp,1,maxHp());
+ toast("Nouvelle classe : "+CLASS_BY_ID[id][1]);
+ render();save();
+}
+function classArt(id,cls="fd-class-art"){
+ const icon=CLASS_BY_ID[id];
+ const asset=window.DOFUS_IDLE_CLASS_ASSETS?.[id];
+ if(!asset)return E("span",{className:cls+" fd-class-emoji"},icon?.[2]||"🧙");
+ return E("img",{className:cls,src:asset,alt:"Classe "+icon[1],loading:"lazy",onerror:e=>{e.target.replaceWith(E("span",{className:cls+" fd-class-emoji"},icon[2]))}});
+}
+const ACHIEVEMENTS=[
+ ["combat","Premier combat","Remporter son premier combat","kills",1,60,25],
+ ["combat","Apprenti combattant","Vaincre 25 monstres","kills",25,300,150],
+ ["combat","Chasseur aguerri","Vaincre 100 monstres","kills",100,800,400],
+ ["combat","Terreur des monstres","Vaincre 500 monstres","kills",500,2500,1200],
+ ["combat","Combattant légendaire","Vaincre 2 000 monstres","kills",2000,6500,3000],
+ ["exploration","Premiers pas","Découvrir une zone de combat","zones",1,120,60],
+ ["exploration","Explorateur","Explorer 10 zones différentes","zones",10,650,250],
+ ["exploration","Tour du Monde des Douze","Explorer 50 zones","zones",50,2500,1200],
+ ["exploration","Voyageur des Douze","Visiter 5 régions","regions",5,1200,500],
+ ["exploration","Grand voyageur","Visiter 15 régions","regions",15,4000,2000],
+ ["metiers","Mes premières ressources","Récolter 10 ressources","gather",10,100,50],
+ ["metiers","Récolteur assidu","Récolter 250 ressources","gather",250,750,350],
+ ["metiers","Maître de la récolte","Récolter 2 000 ressources","gather",2000,3500,1500],
+ ["metiers","Premier objet fabriqué","Fabriquer un équipement ou objet","craft",1,120,80],
+ ["metiers","Artisan reconnu","Fabriquer 100 objets","craft",100,800,350],
+ ["metiers","Grand artisan","Fabriquer 1 000 objets","craft",1000,4500,1700],
+ ["personnage","Nouveau départ","Atteindre le niveau 5","level",5,150,70],
+ ["personnage","Vétéran","Atteindre le niveau 25","level",25,750,300],
+ ["personnage","Héros du Monde des Douze","Atteindre le niveau 100","level",100,6000,3000],
+ ["personnage","Légende vivante","Atteindre le niveau 200","level",200,20000,10000],
+ ["personnage","Premier entraînement","Distribuer 5 points de caractéristiques","stats",5,180,80],
+ ["personnage","Maîtrise des caractéristiques","Distribuer 100 points","stats",100,1200,500],
+ ["butin","Premier trésor","Obtenir un butin de monstre","loot",1,160,80],
+ ["butin","Collectionneur","Obtenir 100 objets de monstres","loot",100,900,450],
+ ["butin","Chasseur d'équipement","Obtenir son premier équipement bonus","gear",1,500,200],
+ ["butin","Roi du butin","Obtenir 25 équipements bonus","gear",25,4500,2000],
+ ["butin","Connaisseur","Vaincre 25 espèces de monstres différentes","species",25,1500,650]
+].map(([cat,title,desc,metric,target,kamas,xp],index)=>({id:"success-"+index,cat,title,desc,metric,target,kamas,xp}));
+const ACH_GROUPS={combat:"⚔️ Combat",exploration:"🧭 Exploration",metiers:"🪓 Métiers",personnage:"🧙 Personnage",butin:"🎁 Butins"};
+function achievementValue(metric){
+ if(metric==="kills")return state.kills||0;
+ if(metric==="zones")return Object.keys(state.visitedZones||{}).length;
+ if(metric==="regions")return Object.keys(state.visitedRegions||{}).length;
+ if(metric==="gather")return state.gathered||0;
+ if(metric==="craft")return state.crafted||0;
+ if(metric==="level")return playerLevel();
+ if(metric==="stats")return statsSpent();
+ if(metric==="loot")return state.lootCount||0;
+ if(metric==="gear")return Object.values(state.gearDrops||{}).reduce((s,n)=>s+(Number(n)||0),0);
+ if(metric==="species")return Object.values(state.dex||{}).filter(n=>Number(n)>0).length;
+ return 0;
+}
+function achievementReached(a){return achievementValue(a.metric)>=a.target}
+function claimAchievement(id){
+ const a=ACHIEVEMENTS.find(x=>x.id===id);
+ if(!a||state.achievements[id]||!achievementReached(a))return;
+ state.achievements[id]=Date.now();
+ state.kamas+=a.kamas;state.earned+=a.kamas;state.playerXp+=a.xp;
+ toast("🏆 Succès obtenu : "+a.title+" ! +"+a.kamas+" kamas, +"+a.xp+" XP");
+ render();save();
+}
+function visitZone(id){
+ const z=world.zones[String(id)];if(!z)return;
+ state.visitedZones[String(id)]=true;
+ state.visitedRegions[regionFor(z)]=true;
+}
+
 const now=()=>Date.now();
 function xpNeed(l){return Math.round(42+17*Math.pow(l,1.62))}
 function levelOf(total){
@@ -40,7 +173,7 @@ function levelOf(total){
 }
 function jobLevel(id){return levelOf(state.jobs[id]||0).level}
 function playerLevel(){return levelOf(state.playerXp).level}
-function maxHp(){return Math.ceil((105+playerLevel()*8+(state.upgrades.armor||0)*12)* (state.classId==="sacrieur"?1.35:1)+equippedBonus("hp"))}
+function maxHp(){return Math.ceil((105+playerLevel()*8+(state.upgrades.armor||0)*12+statValue("vitalite"))*(state.classId==="sacrieur"?1.35:1)+equippedBonus("hp"))}
 function equippedBonus(type){
  let n=0;for(const id of Object.values(state.equipment)){if(!id)continue;
   const item=core.items[id];if(!item)continue;
@@ -50,8 +183,8 @@ function equippedBonus(type){
   if(type==="def"&&slot!=="weapon")n+=Math.ceil(item[2]*.11);
  }return n;
 }
-function damage(){return Math.ceil((9+playerLevel()*2.2+(state.upgrades.weapon||0)*6+equippedBonus("atk"))*(state.classId==="iop"?1.2:1))}
-function defense(){return Math.floor(playerLevel()*.4+equippedBonus("def")+(state.upgrades.armor||0)*3)}
+function damage(){const focus=CLASS_BY_ID[state.classId]?.[5]||"force";const elemental=statValue(focus);return Math.ceil((9+playerLevel()*2.2+elemental*.16+(state.upgrades.weapon||0)*6+equippedBonus("atk"))*(state.classId==="iop"?1.2:state.classId==="ouginak"?1.15:1))}
+function defense(){return Math.floor(playerLevel()*.4+statValue("agilite")*.07+equippedBonus("def")+(state.upgrades.armor||0)*3+(state.classId==="feca"?5:0))}
 function bankCap(){return 150+(state.upgrades.bank||0)*100}
 function slots(){return Object.keys(state.bank).filter(i=>state.bank[i]>0).length}
 function has(id,n=1){return Number(state.bank[id]||0)>=n}
@@ -101,14 +234,15 @@ function fresh(){
   playerXp:0,classId:"iop",kills:0,gathered:0,crafted:0,hp:115,
   equipment:{weapon:null,head:null,cape:null,ring:null,boots:null,belt:null,neck:null,shield:null},
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
-  action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",gearDrops:{},unlocked:{},dex:{},log:[],
+  action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
+  pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
  let raw=null;
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
-  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{}});
+  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{}});
  }
  let s=fresh();
  try{
@@ -183,7 +317,7 @@ function rollEquipment(m,dropped){
  const pool=possibleEquipment(m[1]),rate=equipmentChance(m);
  if(!pool.length||Math.random()*100>=rate)return null;
  const chosen=pool[Math.floor(Math.random()*pool.length)];
- if(!add(chosen,1))return null;
+ if(!queueLoot(chosen,1))return null;
  dropped.push(chosen);
  state.gearDrops[chosen]=(state.gearDrops[chosen]||0)+1;
  return chosen;
@@ -192,6 +326,7 @@ function startCombat(id){
  const m=world.monsters[String(id)];if(!m)return;
  if(playerLevel()+8<m[1]){toast("Niveau de combat conseillé : "+m[1]+".");return}
  if(state.action?.type==="combat"&&state.action.id===Number(id)){state.action=null;render();save();return}
+ if(Object.keys(state.pendingLoot||{}).filter(k=>state.pendingLoot[k]>0).length>=250){toast("Butin temporaire plein. Récupère, vends ou jette les objets.");return}
  state.selectedMonster=String(id);state.action={type:"combat",id:Number(id),progress:0,enemyHp:m[2],enemyTick:0};
  if(state.hp<=0)state.hp=maxHp();
  toast("Combat contre "+m[0]);render();save();
@@ -247,15 +382,16 @@ function tick(dt){
   let changed=false;
   let attacks=Math.min(10,Math.floor(a.progress/second));a.progress-=attacks*second;
   while(attacks-- && state.action){
-   const hit=damage()*(Math.random()<(state.classId==="cra"?.16:.05)?1.7:1);
+   const crit=.05+(state.classId==="cra"?.11:state.classId==="sram"?.09:0)+statValue("agilite")*.00015;
+   const hit=damage()*(Math.random()<crit?(state.classId==="ecaflip"?2:1.7):1);
    a.enemyHp-=hit;changed=true;
    if(a.enemyHp<=0)victory(m,a);
   }
   while(a.enemyTick>=2.8&&state.action){
    a.enemyTick-=2.8;
-   const enemyDmg=Math.max(1,Math.round(m[1]*.65+4)-defense());
+   const enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-defense());
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
-   if(state.hp<=0){state.action=null;state.hp=maxHp();state.log.unshift("Défaite face à "+m[0]+".");toast("Défaite : tente un monstre moins puissant.")}
+   if(state.hp<=0){state.action=null;state.hp=maxHp();state.log.unshift({kind:"defeat",monsterId:String(a.id),monsterName:m[0]});toast("Défaite : tente un monstre moins puissant.")}
   }
   return changed;
  }
