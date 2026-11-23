@@ -96,3 +96,5 @@ def main():
  print("SET 1",sets["1"][0],sets["1"][1],sets["1"][2][:3],flush=True)
  print("EFFECT SAMPLE",{k:effects.get(k) for k in ["118","125","111","128","138","115","174"]},flush=True)
 if __name__=="__main__":main()
+
+# Données client épinglées : validation du référentiel V7.
