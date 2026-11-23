@@ -83,6 +83,34 @@ function startBattle(w){
   assert(w.document.querySelector(".fd-spell-card[data-spell-id='pression'].unlocked"),"Sort de niveau 1 absent");
   assert(!game.castSpell("pression"),"Un sort ne peut pas se lancer hors combat");
   assert(game.getState().spellCasts===0,"Le test hors combat ne doit pas compter un sort");
+  // À bas niveau, le premier sort automatique doit réellement se lancer.
+  startBattle(w);
+  w.Math.random=()=>0.99;
+  game.simulateSeconds(2.15);
+  if(game.getState().spellCasts===0&&game.getState().action?.respawnRemaining){
+   game.simulateSeconds(1.9);
+   game.simulateSeconds(.3);
+  }
+  assert(game.getState().spellCastsById["iop:pression"]>=1,
+   "Pression doit être lancé automatiquement dès le niveau 1");
+  const initialCasts=game.getState().spellCasts;
+  const button=w.document.querySelector('.fd-spell-card[data-spell-id="pression"] .fd-spell-auto');
+  assert(button?.textContent.includes("ON"),"Automatisation active par défaut");
+  button.click();
+  assert(game.getState().spellPreferences["iop:pression"]===false,"Sort non désactivé");
+  selectClass(w,"Crâ");
+  selectClass(w,"Iop");
+  navigation(w,"Zones et monstres");
+  if(game.getState().action?.respawnRemaining)game.simulateSeconds(2);
+  const beforeDisabled=game.getState().spellCasts;
+  game.simulateSeconds(2.15);
+  if(game.getState().action?.respawnRemaining){
+   game.simulateSeconds(1.9);
+   game.simulateSeconds(.3);
+  }
+  assert.equal(game.getState().spellCasts,beforeDisabled,
+   "Un sort désactivé ne doit pas être utilisé automatiquement");
+  assert(initialCasts>=1,"Compteur automatique non enregistré");
   assert.equal(session.errors.length,0,"Erreurs JS au niveau 1 : "+session.errors.join(" ; "));
   session.dom.window.close();
   session=null;
