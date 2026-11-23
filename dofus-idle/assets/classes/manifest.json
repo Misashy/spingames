@@ -1,0 +1,140 @@
+{
+  "source": "ledouxm/dofus-sqlite",
+  "version": "v6.0_3.7.14.18",
+  "breedCount": 19,
+  "sources": {
+    "feca": {
+      "id": 1,
+      "portraitSource": "heads/big/Head_10.png",
+      "emblemSource": "logo_transparent_1.png",
+      "portraitBytes": 5188,
+      "emblemBytes": 4588
+    },
+    "osamodas": {
+      "id": 2,
+      "portraitSource": "heads/big/Head_20.png",
+      "emblemSource": "logo_transparent_2.png",
+      "portraitBytes": 5552,
+      "emblemBytes": 4042
+    },
+    "enutrof": {
+      "id": 3,
+      "portraitSource": "heads/big/Head_30.png",
+      "emblemSource": "logo_transparent_3.png",
+      "portraitBytes": 7320,
+      "emblemBytes": 3708
+    },
+    "sram": {
+      "id": 4,
+      "portraitSource": "heads/big/Head_40.png",
+      "emblemSource": "logo_transparent_4.png",
+      "portraitBytes": 6512,
+      "emblemBytes": 3522
+    },
+    "xelor": {
+      "id": 5,
+      "portraitSource": "heads/big/Head_50.png",
+      "emblemSource": "logo_transparent_5.png",
+      "portraitBytes": 6614,
+      "emblemBytes": 3060
+    },
+    "ecaflip": {
+      "id": 6,
+      "portraitSource": "heads/big/Head_60.png",
+      "emblemSource": "logo_transparent_6.png",
+      "portraitBytes": 4480,
+      "emblemBytes": 4982
+    },
+    "eniripsa": {
+      "id": 7,
+      "portraitSource": "heads/big/Head_70.png",
+      "emblemSource": "logo_transparent_7.png",
+      "portraitBytes": 5824,
+      "emblemBytes": 4144
+    },
+    "iop": {
+      "id": 8,
+      "portraitSource": "heads/big/Head_80.png",
+      "emblemSource": "logo_transparent_8.png",
+      "portraitBytes": 5772,
+      "emblemBytes": 4842
+    },
+    "cra": {
+      "id": 9,
+      "portraitSource": "heads/big/Head_90.png",
+      "emblemSource": "logo_transparent_9.png",
+      "portraitBytes": 8316,
+      "emblemBytes": 4132
+    },
+    "sadida": {
+      "id": 10,
+      "portraitSource": "heads/big/Head_100.png",
+      "emblemSource": "logo_transparent_10.png",
+      "portraitBytes": 5454,
+      "emblemBytes": 4146
+    },
+    "sacrieur": {
+      "id": 11,
+      "portraitSource": "heads/big/Head_110.png",
+      "emblemSource": "logo_transparent_11.png",
+      "portraitBytes": 5570,
+      "emblemBytes": 4300
+    },
+    "pandawa": {
+      "id": 12,
+      "portraitSource": "heads/big/Head_120.png",
+      "emblemSource": "logo_transparent_12.png",
+      "portraitBytes": 4806,
+      "emblemBytes": 3068
+    },
+    "roublard": {
+      "id": 13,
+      "portraitSource": "heads/big/Head_130.png",
+      "emblemSource": "logo_transparent_13.png",
+      "portraitBytes": 6418,
+      "emblemBytes": 3632
+    },
+    "zobal": {
+      "id": 14,
+      "portraitSource": "heads/big/Head_140.png",
+      "emblemSource": "logo_transparent_14.png",
+      "portraitBytes": 5890,
+      "emblemBytes": 4594
+    },
+    "steamer": {
+      "id": 15,
+      "portraitSource": "heads/big/Head_150.png",
+      "emblemSource": "logo_transparent_15.png",
+      "portraitBytes": 5532,
+      "emblemBytes": 3820
+    },
+    "eliotrope": {
+      "id": 16,
+      "portraitSource": "heads/big/Head_160.png",
+      "emblemSource": "logo_transparent_16.png",
+      "portraitBytes": 7180,
+      "emblemBytes": 4174
+    },
+    "huppermage": {
+      "id": 17,
+      "portraitSource": "heads/big/Head_170.png",
+      "emblemSource": "logo_transparent_17.png",
+      "portraitBytes": 6062,
+      "emblemBytes": 2808
+    },
+    "ouginak": {
+      "id": 18,
+      "portraitSource": "heads/big/Head_180.png",
+      "emblemSource": "logo_transparent_18.png",
+      "portraitBytes": 5260,
+      "emblemBytes": 7496
+    },
+    "forgelance": {
+      "id": 20,
+      "portraitSource": "heads/big/Head_200.png",
+      "emblemSource": "logo_transparent_20.png",
+      "portraitBytes": 6376,
+      "emblemBytes": 5974
+    }
+  }
+}
