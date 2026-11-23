@@ -66,7 +66,7 @@ function startBattle(w){
   for(const id of allClasses){
    const spells=game.getClassSpells(id);
    assert.equal(spells.length,3,"Trois sorts requis : "+id);
-   assert.deepEqual(spells.map(sp=>sp[3]),[1,15,45],"Paliers attendus : "+id);
+   assert.deepEqual(Array.from(spells,sp=>Number(sp[3])),[1,15,45],"Paliers attendus : "+id);
    assert(new Set(spells.map(sp=>sp[0])).size===3,"Doublon de sorts : "+id);
    for(const sp of spells){
     assert(sp[1]&&sp[2]&&sp[7]&&sp[4]>=6,"Sort incomplet : "+id);
@@ -119,7 +119,7 @@ function startBattle(w){
   selectClass(w,"Eniripsa");
   assert.equal(game.getState().classId,"eniripsa","Changement de classe impossible");
   assert.equal(game.getState().action.spellClass,"eniripsa","Sorts Iop non réinitialisés");
-  assert.deepEqual(game.getState().action.spellCooldowns,{},"Anciens cooldowns conservés après changement de classe");
+  assert.equal(Object.keys(game.getState().action.spellCooldowns).length,0,"Anciens cooldowns conservés après changement de classe");
   navigation(w,"Zones et monstres");
   if(game.getState().action.respawnRemaining)game.simulateSeconds(2.2);
   const initialHp=game.getState().hp;
