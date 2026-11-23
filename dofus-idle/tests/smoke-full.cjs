@@ -73,6 +73,9 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   for(const name of ['Incarnam','Amakna','Île des Wabbits','Île de Moon','Frigost']){
    assert(regions.some(b=>b.textContent.includes(name)),'région manquante : '+name);
   }
+  assert(regions[0].textContent.includes('Incarnam'),'Incarnam doit être la première région');
+  assert(regions[0].textContent.includes('Commencer ici'),'Incarnam doit être indiquée pour débuter');
+  assert(regions[0].textContent.includes('Premiers combats dès le niveau'),'niveau minimum régional non affiché');
   const regionLevels=regions.map(b=>Number(b.textContent.match(/niveau (\d+)/i)?.[1]||0));
   assert(regionLevels.every((x,i)=>i===0||regionLevels[i-1]<=x),'régions non triées par niveau croissant');
   const incarnam=regions.find(b=>b.textContent.includes('Incarnam'));
@@ -81,6 +84,10 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     'Incarnam doit utiliser le sprite DOFUS de Kardorim, et pas un emoji');
   incarnam.click();
   assert(w.document.querySelectorAll('.fd-zone').length>=9,'zones Incarnam absentes');
+  assert(w.document.querySelector('.fd-combat-rule')?.textContent.includes("jusqu'au niveau 9"),
+    "la règle des +8 niveaux doit être expliquée au niveau 1");
+  assert([...w.document.querySelectorAll('.fd-zone')].every(b=>b.textContent.includes('Premiers combats dès le niveau')),
+    'Chaque zone doit afficher le niveau minimum de combat');
   assert(w.document.querySelector('.fd-combat-sort select'),'sélecteur de tri des niveaux absent');
   const zoneLvls=[...w.document.querySelectorAll('.fd-zone')].map(b=>Number(b.textContent.match(/Niveau conseillé (\d+)/)?.[1]||0));
   assert(zoneLvls.every((x,i)=>!i||zoneLvls[i-1]<=x),'zones non triées par niveau');
@@ -98,6 +105,8 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     'Champs doit utiliser un portrait DOFUS de monstre de la zone');
   champs.click();
   assert(w.document.querySelectorAll('.fd-monster-row').length>=4,'monstres de Champs absents');
+  assert([...w.document.querySelectorAll('.fd-monster-row')].every(row=>row.textContent.includes('Ton niveau minimum')),
+   'Chaque monstre doit expliquer son niveau minimum');
   assert.equal(w.document.querySelectorAll('.fd-fight-panel').length,2,'panneaux de combat manquants');
   const target=w.document.querySelector('.fd-monster-info');
   assert(target,'sélecteur de monstre absent');
@@ -113,6 +122,16 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert(fight,'aucun monstre de départ combattable');
   fight.click();
   assert.equal(w.DOFUS_IDLE_FULL.getState().action.type,'combat');
+  w.Math.random=()=>0.99; // coup normal garanti
+  w.DOFUS_IDLE_FULL.simulateSeconds(1.7);
+  assert(w.document.querySelector('.fd-combat-damage-enemy.is-normal'),
+   'Le coup normal doit afficher des dégâts flottants');
+  assert(/^−[0-9]+$/.test(w.document.querySelector('.fd-combat-damage-enemy.is-normal')?.textContent||''),
+   'Le coup normal doit afficher −12 ou une autre valeur numérique');
+  w.Math.random=()=>0; // coup critique garanti
+  w.DOFUS_IDLE_FULL.simulateSeconds(1.7);
+  assert(w.document.querySelector('.fd-combat-damage-enemy.is-critical')?.textContent.includes('COUP CRITIQUE'),
+   'Un critique doit être plus visible et explicitement indiqué');
   w.Math.random=()=>0;
   w.DOFUS_IDLE_FULL.simulateSeconds(20);
   const state=w.DOFUS_IDLE_FULL.getState();
@@ -154,6 +173,35 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert(claim,'aucun succès de combat prêt à récupérer');
   claim.click();
   assert(Object.keys(w.DOFUS_IDLE_FULL.getState().achievements).length>=1,'récompense de succès non conservée');
+
+  // Vérifier que l'on explique précisément les monstres trop forts.
+  const regionsAgain=[...w.document.querySelectorAll('.fd-region-card')];
+  assert(regionsAgain[0].textContent.includes('Incarnam'),'Incarnam doit rester première après navigation');
+  const amakna=regionsAgain.find(b=>b.textContent.includes('Amakna'));
+  assert(amakna,'Amakna absente de la sélection');
+  amakna.click();
+  const highZones=[...w.document.querySelectorAll('.fd-zone')]
+   .filter(b=>Number(b.textContent.match(/Niveau conseillé (\\d+)/)?.[1])>=25);
+  assert(highZones.length>0,'Aucune zone de niveau élevé disponible pour tester le blocage');
+  highZones[highZones.length-1].click();
+  const locked=[...w.document.querySelectorAll('.fd-monster-row')].find(row=>
+   row.querySelector('.fd-monster-buttons .fd-danger')?.disabled);
+  assert(locked,'Le blocage par niveau doit être visible sur les monstres élevés');
+  const gate=locked.querySelector('.fd-monster-buttons .fd-danger');
+  assert(/Niv. \\d+ requis/.test(gate.textContent),'Le bouton doit préciser le niveau minimum');
+  locked.querySelector('.fd-monster-info').click();
+  assert(w.document.querySelector('.fd-fight-level-info.is-locked'),'Explication de niveau requis absente du panneau adversaire');
+  assert(w.document.querySelector('.fd-combat-actions .fd-button:disabled'),'Combattre doit rester indisponible sous le niveau minimum');
+  // Même en ordre décroissant, Incarnam doit rester la première région.
+  const back=[...w.document.querySelectorAll('.fd-combat-breadcrumb button')][0];
+  back.click();
+  const order=w.document.querySelector('.fd-combat-sort select');
+  order.value='desc';order.dispatchEvent(new w.Event('change',{bubbles:true}));
+  assert(w.document.querySelector('.fd-region-card').textContent.includes('Incarnam'),
+   'Incarnam doit rester en première position avec le tri décroissant');
+  // Remettre l'ordre croissant pour le test des donjons.
+  const restore=w.document.querySelector('.fd-combat-sort select');
+  restore.value='asc';restore.dispatchEvent(new w.Event('change',{bubbles:true}));
 
   // Vérifier que la Crypte de Kardorim n'est visible que dans l'onglet Donjons.
   const againCombat=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Zones et monstres'));
