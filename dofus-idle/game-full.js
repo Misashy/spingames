@@ -313,8 +313,12 @@ function claimAchievement(id){
 }
 function visitZone(id){
  const z=world.zones[String(id)];if(!z)return;
+ const region=regionFor(z);
+ if(!state.visitedZones[String(id)]){
+  state.regionZoneCount[region]=(state.regionZoneCount[region]||0)+1;
+ }
  state.visitedZones[String(id)]=true;
- state.visitedRegions[regionFor(z)]=true;
+ state.visitedRegions[region]=true;
 }
 
 const now=()=>Date.now();
@@ -494,6 +498,8 @@ function processPending(mode,id=null){
    kamas+=n*itemValue(itemId);
   }else if(mode!=="discard")return;
   moved+=n;delete state.pendingLoot[itemId];
+  if(mode==="bank")state.itemsBanked=(state.itemsBanked||0)+n;
+  if(mode==="sell")state.itemsSold=(state.itemsSold||0)+n;
  }
  if(mode==="sell"){state.kamas+=kamas;state.earned+=kamas}
  toast(moved?mode==="bank"?"🎒 "+money(moved)+" objets rangés en banque":
@@ -582,6 +588,7 @@ function trainingTick(job){
 }
 function tick(dt){
  if(!state.action||dt<=0)return false;
+ state.totalSeconds=(Number(state.totalSeconds)||0)+dt;
  const a=state.action; a.progress+=dt;
  if(a.type==="gather"){
   const seconds=actionCost(a);const n=Math.min(10000,Math.floor(a.progress/seconds));
@@ -602,6 +609,9 @@ function tick(dt){
    if(!has(a.id)&&slots()>=bankCap()){state.action=null;toast("Banque pleine.");break}
    for(const [id,qty] of r[2])consume(id,qty);
    add(a.id,1);crafted++;state.crafted++;
+   const recipeKey=a.job+":"+a.id;
+   state.craftedRecipes[recipeKey]=(state.craftedRecipes[recipeKey]||0)+1;
+   state.jobCraftCount[a.job]=(state.jobCraftCount[a.job]||0)+1;
   }
   if(crafted){state.jobs[a.job]=(state.jobs[a.job]||0)+crafted*expGain(r[1])*2}
   if(!state.action)toast("Fabrication terminée (ressources épuisées).");
@@ -638,6 +648,9 @@ function tick(dt){
 function victory(m,a){
  const previousLevel=playerLevel();
  state.kills++;state.dex[String(a.id)]=(state.dex[String(a.id)]||0)+1;
+ const zoneId=String(state.selectedZone||"");
+ if(world.zones[zoneId]?.[3]?.some(mid=>String(mid)===String(a.id)))
+  state.zoneKills[zoneId]=(state.zoneKills[zoneId]||0)+1;
  // L'identité et les taux de drop viennent de DOFUS ; progression adaptée à l'idle.
  const baseXp=Math.max(15,Math.round(17+m[1]*3.2));
  state.playerXp+=Math.round(baseXp*(1+statValue("sagesse")*.002));
@@ -888,6 +901,7 @@ function bankView(){
 function sell(id,qty){
  if(!has(id))return;const count=Math.min(qty,state.bank[id]);consume(id,count);
  const earn=count*itemValue(id);state.kamas+=earn;state.earned+=earn;
+ state.itemsSold=(state.itemsSold||0)+count;
  toast("Vendu : "+money(count)+" × "+itemName(id)+" · +"+money(earn)+" kamas");render();save();
 }
 function equip(id){
@@ -1448,7 +1462,18 @@ async function init(){
   // est propre à DOFUS IDLE, les identités et niveaux proviennent du client.
   gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
     .filter(id=>core.items[id]&&gearSlot(id)&&itemLevel(id)<=200);
-  state=load();offline();state.hp=clamp(Number(state.hp)||maxHp(),1,maxHp());
+  state=load();
+  // Migration non destructive de l'historique d'exploration v4 vers les
+  // compteurs régionaux ; les valeurs déjà enregistrées sont conservées.
+  if(!Object.keys(state.regionZoneCount||{}).length){
+   for(const zid of Object.keys(state.visitedZones||{})){
+    const z=world.zones[zid];if(!z)continue;
+    const region=regionFor(z);
+    state.regionZoneCount[region]=(state.regionZoneCount[region]||0)+1;
+   }
+  }
+  buildAchievementCatalog();
+  offline();state.hp=clamp(Number(state.hp)||maxHp(),1,maxHp());
   $("#menuToggle").onclick=()=>$("#sidebar").classList.toggle("open");
   window.addEventListener("pagehide",save);
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
