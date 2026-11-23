@@ -15,3 +15,5 @@ with zipfile.ZipFile(io.BytesIO(contents)) as z:
  print("ZIP TOTAL",len(names),"SAMPLE",names[:160],flush=True)
  print("PATH COUNTS",collections.Counter(x.split("/")[0] for x in names).most_common(30),flush=True)
  print("SMALL 300",names[-80:],flush=True)
+
+# Audit déclenché pour validation des visuels de classes.
