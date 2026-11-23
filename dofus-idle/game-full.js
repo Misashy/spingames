@@ -921,7 +921,7 @@ function monsterDropsPanel(id,m){
   E("p",{},"Équipement réel de DOFUS adapté au niveau du monstre, mais tirage supplémentaire propre au jeu idle. Ce n'est pas un drop officiel de ce monstre."),
   E("div",{className:"fd-loot-examples"},
    ...pool.slice(0,6).map(iid=>E("span",{className:"fd-loot-preview",title:itemName(iid)},itemSprite(iid,"fd-loot-art")))),
-  E("small",{},"Récompenses possibles dans la sélection : "+money(pool.length)+" équipements. Les objets gagnés vont dans la Banque.")));
+  E("small",{},"Récompenses possibles : "+money(pool.length)+" équipements. Les objets arrivent dans le butin temporaire sous Ton aventurier.")));
  return drops;
 }
 function combatPlayerPanel(){
