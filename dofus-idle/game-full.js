@@ -1160,6 +1160,15 @@ function startDungeon(zoneId){
  if(state.hp<=0)state.hp=maxHp();
  toast("🏰 "+z[0]+" : salle 1 / "+rooms.length);render();save();
 }
+function abandonDungeon(){
+ const a=state.action;
+ if(!a?.dungeonRun)return;
+ if(!confirm("Abandonner ce parcours de donjon ? La progression des salles en cours sera perdue, mais les objets et récompenses déjà obtenus restent conservés."))return;
+ state.action=null;
+ toast("🏰 Parcours abandonné. Tu peux recommencer le donjon.");
+ render();save();
+}
+
 function dungeonVictory(a,m){
  const d=a.dungeonRun;if(!d||d.completed)return;
  if(d.index===d.rooms.length-1){
@@ -2124,6 +2133,8 @@ function combatEnemyPanel(){
  const enemyHp=knockedOut?0:active?clamp(state.action.enemyHp,0,m[2]):m[2];
  const enemyPct=m[2]?100*enemyHp/m[2]:0;
  const minimum=minimumCombatLevel(m),allowed=canFight(m);
+ const dungeonMode=state.combatMode==="dungeons"&&Number(zone[5])>=0;
+ const dungeonCurrent=state.action?.dungeonRun?.zoneId===String(state.selectedZone);
  return E("section",{className:"fd-fight-panel fd-enemy-panel"},
   E("div",{className:"fd-fight-panel-title"},E("strong",{},"⚔️ Adversaire : "+m[0]),pill("Niv. "+m[1],"fd-difficulty-hard")),
   E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(enemyHp)+" / "+money(m[2])+" PV"),
@@ -2148,8 +2159,12 @@ function combatEnemyPanel(){
     "Ton aventurier est niveau "+playerLevel()+". Ce monstre est niveau "+m[1]+
     " : il te manque "+(minimum-playerLevel())+" niveau(x). Commence par les monstres d'Incarnam.")),
   E("div",{className:"fd-combat-actions"},
-   B(active?"■ Arrêter le combat":allowed?"⚔️ Combattre":"🔒 Niveau "+minimum+" requis",()=>startCombat(state.selectedMonster),
-    active?"fd-danger":"fd-button",!active&&!allowed),
+   B(dungeonMode?(dungeonCurrent?(state.action?.dungeonRun?.completed?"✓ Donjon terminé":"■ Abandonner le donjon"):
+    playerLevel()>=dungeonRequiredLevel(state.selectedZone)?"▶ Entrer dans le donjon":"🔒 Niveau "+dungeonRequiredLevel(state.selectedZone)+" requis"):
+    active?"■ Arrêter le combat":allowed?"⚔️ Combattre":"🔒 Niveau "+minimum+" requis",
+    ()=>dungeonMode?(dungeonCurrent?abandonDungeon():startDungeon(state.selectedZone)):startCombat(state.selectedMonster),
+    active||dungeonCurrent?"fd-danger":"fd-button",
+    dungeonMode?(dungeonCurrent?!!state.action?.dungeonRun?.completed:playerLevel()<dungeonRequiredLevel(state.selectedZone)):!active&&!allowed),
    B("🎁 Voir les butins",()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})},"fd-secondary"),
    B("🎒 Équiper du stuff",()=>runNav("bank"),"fd-secondary")),
   E("div",{id:"fdCombatLoot"},monsterDropsPanel(state.selectedMonster,m)),
@@ -2158,6 +2173,8 @@ function combatEnemyPanel(){
 }
 function combatMonsterRow(mid,m,zoneId){
  const active=String(state.selectedMonster)===String(mid);
+ const isDungeon=state.combatMode==="dungeons"&&Number(world.zones[String(zoneId)]?.[5])>=0;
+ const dungeonRunning=!!state.action?.dungeonRun&&state.action.dungeonRun.zoneId===String(zoneId)&&!state.action.dungeonRun.completed;
  const row=E("div",{className:"fd-monster-row "+(active?"active":"")});
  const pick=B("",()=>focusMonster(mid,zoneId),"fd-monster-info");
  const minimum=minimumCombatLevel(m);
@@ -2166,9 +2183,18 @@ function combatMonsterRow(mid,m,zoneId){
    E("small",{},"Monstre niveau "+m[1]+" · ❤️ "+money(m[2])+" PV"),
    E("small",{className:"fd-combat-min-level "+(canFight(m)?"is-available":"is-locked")},
     (canFight(m)?"✅ Accessible":"🔒 Verrouillé")+" · Ton niveau minimum : "+minimum)));
- row.append(pick,E("div",{className:"fd-monster-buttons"},
-  B(canFight(m)?"Combattre":"Niv. "+minimum+" requis",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",!canFight(m)),
-  B("Butins",()=>{focusMonster(mid,zoneId);(()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})})()},"fd-secondary")));
+ if(isDungeon){
+  pick.disabled=dungeonRunning;
+  row.append(pick,E("div",{className:"fd-monster-buttons"},
+   B(dungeonRunning?"Parcours en cours":playerLevel()<dungeonRequiredLevel(zoneId)?
+    "Niv. "+dungeonRequiredLevel(zoneId)+" requis":"▶ Commencer le donjon",
+    ()=>startDungeon(zoneId),"fd-danger",dungeonRunning||playerLevel()<dungeonRequiredLevel(zoneId)),
+   B("Butins",()=>focusMonster(mid,zoneId),"fd-secondary",dungeonRunning)));
+ }else{
+  row.append(pick,E("div",{className:"fd-monster-buttons"},
+   B(canFight(m)?"Combattre":"Niv. "+minimum+" requis",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",!canFight(m)),
+   B("Butins",()=>{focusMonster(mid,zoneId);(()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})})()},"fd-secondary")));
+ }
  return row;
 }
 function combatZoneCard(id,z){
