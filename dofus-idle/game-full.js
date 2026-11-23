@@ -27,6 +27,7 @@ let core=null,world=null,state=null,dropIndex={},lastTick=Date.now(),lastSave=0,
 let gearPool=[],gearEligibleCache=new Map(),combatOpenZone="";
 const EQUIP_LABELS={weapon:"Arme",head:"Coiffe",cape:"Cape",ring:"Anneau",boots:"Bottes",belt:"Ceinture",neck:"Amulette",shield:"Bouclier"};
 let q="",page=0,zoneQuery="",selectedArea="",monsterQuery="",monsterPage=0,recipeFilter="all",busy=false,images={items:{},monsters:{},jobs:{}};
+let bankCategory="all",bankType="all",bankSort="name";
 const ICONS={"2":"🪓","24":"⛏️","26":"🌿","28":"🌾","36":"🎣","41":"🏹","27":"🧵","15":"👢","16":"💍","11":"⚒️","13":"🏹","60":"🛡️","65":"🗝️","79":"🐴","78":"📖"};
 const GATHER_VERBS={"2":"Couper","24":"Extraire","26":"Cueillir","28":"Faucher","36":"Pêcher"};
 const MAGE_NAMES=["mage","bestiologue","éleveur"];
@@ -966,14 +967,96 @@ function specialView(job){
    B(state.action?.type==="train"&&state.action.job===job?"■ Arrêter l'entraînement":"Entraînement automatique (kamas → XP)",()=>startTraining(job),"fd-button"),
    E("small",{},"Les activités d'élevage, de forgemagie et de spécialisation ne reproduisent pas encore toutes les mécaniques d'Ankama.")));
 }
+/* Banque : les catégories et sous-types viennent exactement de
+   ItemTypeData.categoryId / ItemTypeData.nameId (version DOFUS 3)
+   et du typeId porté par chaque ItemData/WeaponData. */
+const BANK_CATEGORIES=[
+ ["all","Tous","🧰"],
+ ["equipment","Équipements","🛡️"],
+ ["consumable","Consommables","🧪"],
+ ["resource","Ressources","🌿"],
+ ["quest","Objets de quête","📜"],
+ ["cosmetic","Cosmétiques","🎭"],
+ ["other","Autres","📦"]
+];
+const BANK_CATEGORY_BY_ID={"0":"equipment","1":"consumable","2":"resource","3":"quest","4":"cosmetic"};
+function bankItemTypeId(id){return String(core.items[String(id)]?.[3]??0)}
+function bankItemCategory(id){
+ const type=core.types[bankItemTypeId(id)];
+ const category=type?.[1];
+ return BANK_CATEGORY_BY_ID[String(category)]||"other";
+}
+function bankSearchText(text){
+ return String(text??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+function bankSortItems(a,b){
+ if(bankSort==="level-asc")return itemLevel(a)-itemLevel(b)||itemName(a).localeCompare(itemName(b),"fr");
+ if(bankSort==="level-desc")return itemLevel(b)-itemLevel(a)||itemName(a).localeCompare(itemName(b),"fr");
+ if(bankSort==="quantity")return (state.bank[b]||0)-(state.bank[a]||0)||itemName(a).localeCompare(itemName(b),"fr");
+ if(bankSort==="value")return itemValue(b)-itemValue(a)||itemName(a).localeCompare(itemName(b),"fr");
+ if(bankSort==="type")return typeName(a).localeCompare(typeName(b),"fr")||itemName(a).localeCompare(itemName(b),"fr");
+ return itemName(a).localeCompare(itemName(b),"fr");
+}
 function bankView(){
- const keys=Object.keys(state.bank).filter(id=>state.bank[id]>0&&core.items[id]&&itemName(id).toLowerCase().includes(q.toLowerCase()));
- keys.sort((a,b)=>itemName(a).localeCompare(itemName(b),"fr"));
+ const owned=Object.keys(state.bank).filter(id=>state.bank[id]>0&&core.items[id]);
+ const categoryCounts=Object.fromEntries(BANK_CATEGORIES.map(([key])=>[key,0]));
+ categoryCounts.all=owned.length;
+ for(const id of owned)categoryCounts[bankItemCategory(id)]++;
+ // Si une catégorie a été vidée en vendant les derniers objets,
+ // garder le filtre permet de voir un état vide explicite plutôt que
+ // de changer de catégorie sans que le joueur le demande.
+ const tabs=E("div",{className:"fd-bank-tabs",role:"group","aria-label":"Catégories de la banque"});
+ for(const [key,label,icon] of BANK_CATEGORIES){
+  if(key!=="all"&&!categoryCounts[key])continue;
+  const active=bankCategory===key;
+  const button=B("",()=>{
+   bankCategory=key;bankType="all";page=0;renderView();
+  },"fd-bank-tab "+(active?"active":""));
+  button.setAttribute("data-bank-category",key);
+  button.setAttribute("aria-pressed",active?"true":"false");
+  button.append(E("span",{className:"fd-bank-tab-icon"},icon),
+   E("span",{className:"fd-bank-tab-label"},label),
+   E("span",{className:"fd-bank-tab-count"},money(categoryCounts[key]||0)));
+  tabs.append(button);
+ }
+ const withinCategory=owned.filter(id=>bankCategory==="all"||bankItemCategory(id)===bankCategory);
+ const counts=new Map();
+ for(const id of withinCategory){
+  const typeId=bankItemTypeId(id);
+  counts.set(typeId,(counts.get(typeId)||0)+1);
+ }
+ const types=[...counts].sort((a,b)=>typeNameForId(a[0]).localeCompare(typeNameForId(b[0]),"fr"));
+ if(bankType!=="all"&&!counts.has(bankType))bankType="all";
+ const typeSelect=E("select",{className:"fd-select fd-bank-type",value:bankType,
+  "aria-label":"Filtrer par type exact DOFUS",onchange:e=>{
+   bankType=e.target.value;page=0;renderView();
+  }},E("option",{value:"all"},"Tous les types ("+money(withinCategory.length)+")"));
+ for(const [typeId,count] of types)typeSelect.append(E("option",{value:typeId},
+  typeNameForId(typeId)+" ("+money(count)+")"));
+ const sortSelect=E("select",{className:"fd-select fd-bank-sort",value:bankSort,
+  "aria-label":"Trier les objets de la banque",onchange:e=>{
+   bankSort=e.target.value;page=0;renderView();
+  }},
+   E("option",{value:"name"},"Nom : A → Z"),
+   E("option",{value:"type"},"Type DOFUS : A → Z"),
+   E("option",{value:"level-asc"},"Niveau : croissant"),
+   E("option",{value:"level-desc"},"Niveau : décroissant"),
+   E("option",{value:"quantity"},"Quantité : décroissante"),
+   E("option",{value:"value"},"Valeur : décroissante"));
+ const search=bankSearchText(q.trim());
+ const keys=withinCategory.filter(id=>
+  (bankType==="all"||bankItemTypeId(id)===bankType)&&
+  (!search||bankSearchText(itemName(id)+" "+typeName(id)).includes(search)));
+ keys.sort(bankSortItems);
+ const totalPages=Math.max(1,Math.ceil(keys.length/45));
+ page=Math.max(0,Math.min(page,totalPages-1));
  const cards=E("div",{className:"fd-bank-grid"});
  for(const id of keys.slice(page*45,(page+1)*45)){
   const qty=state.bank[id];
-  cards.append(E("article",{className:"fd-bank-item"},itemSprite(id,"fd-bank-art"),
-   E("strong",{},itemName(id)),E("small",{},typeName(id)+" · Niveau "+itemLevel(id)),
+  cards.append(E("article",{className:"fd-bank-item","data-bank-item-id":String(id)},
+   itemSprite(id,"fd-bank-art"),
+   E("strong",{},itemName(id)),
+   E("small",{},typeName(id)+" · Niveau "+itemLevel(id)),
    pill("× "+money(qty)+" · 🪙 "+itemValue(id)+"/u"),
    E("div",{className:"fd-bank-actions"},
     B("Vendre 1",()=>sell(id,1),"fd-mini"),
@@ -981,14 +1064,34 @@ function bankView(){
     B("Sources",()=>showSources(id),"fd-mini"),
     gearSlot(id)?B(playerLevel()<itemLevel(id)?"Niv. "+itemLevel(id)+" requis":"Équiper",()=>equip(id),"fd-mini",playerLevel()<itemLevel(id)):null)));
  }
- return E("div",{},panelHeading("Banque","Tous tes objets de récolte, de craft et les ressources obtenues en combat.",
-  pill(slots()+" / "+bankCap()+" emplacements")),
-  searchField("Rechercher un objet ou une ressource...",q,v=>{q=v;page=0}),
-  cards,E("div",{className:"fd-pagination"},
-  B("← Précédent",()=>{page--;renderView()},"fd-secondary",page<=0),
-  pill("Page "+(page+1)+" / "+Math.max(1,Math.ceil(keys.length/45))),
-  B("Suivant →",()=>{page++;renderView()},"fd-secondary",(page+1)*45>=keys.length)));
+ const filters=E("div",{className:"fd-bank-controls"},
+  E("div",{className:"fd-bank-search-wrap"},
+   E("label",{},"🔎 Recherche"),
+   searchField("Nom d'objet ou type DOFUS...",q,v=>{q=v;page=0})),
+  E("div",{className:"fd-bank-control"},
+   E("label",{},"📂 Type d'objet"),typeSelect),
+  E("div",{className:"fd-bank-control"},
+   E("label",{},"⇅ Trier par"),sortSelect));
+ const chosen=BANK_CATEGORIES.find(([key])=>key===bankCategory);
+ const summary=E("div",{className:"fd-bank-summary"},
+  E("strong",{},chosen?chosen[2]+" "+chosen[1]:"🧰 Tous"),
+  E("span",{},money(keys.length)+" type(s) d'objet"+(search?" correspondant à la recherche":"")),
+  bankCategory!=="all"||bankType!=="all"||q?B("↺ Afficher tout",()=>{
+    bankCategory="all";bankType="all";bankSort="name";q="";page=0;renderView();
+   },"fd-secondary fd-bank-reset"):null);
+ return E("div",{className:"fd-bank-page"},
+  panelHeading("🎒 Banque","Retrouve tes équipements, ressources, consommables et objets de quête selon les catégories et types officiels DOFUS.",
+   pill(slots()+" / "+bankCap()+" emplacements")),
+  tabs,filters,summary,
+  keys.length?cards:E("div",{className:"fd-bank-empty"},
+   "Aucun objet dans cette sélection. Essaie l'onglet Tous ou supprime les filtres."),
+  E("div",{className:"fd-pagination"},
+   B("← Précédent",()=>{page--;renderView()},"fd-secondary",page<=0),
+   pill("Page "+(page+1)+" / "+totalPages),
+   B("Suivant →",()=>{page++;renderView()},"fd-secondary",page>=totalPages-1)));
 }
+function typeNameForId(typeId){return displayText(core.types[String(typeId)]?.[0])||"Autre type d'objet"}
+
 function sell(id,qty){
  if(!has(id))return;const count=Math.min(qty,state.bank[id]);consume(id,count);
  const earn=count*itemValue(id);state.kamas+=earn;state.earned+=earn;
