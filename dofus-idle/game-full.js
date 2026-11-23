@@ -1261,7 +1261,7 @@ function equipmentDetails(id,slotChoice=preferredGearSlot(id)){
  if(candidate.length>1){
   modal.append(E("label",{className:"fd-equip-choice"},"Emplacement",
    E("select",{className:"fd-select",value:slot,onchange:e=>equipmentDetails(id,e.target.value)},
-    ...candidate.map(k=>E("option",{value:k},EQUIP_LABELS[k]||k))));
+    ...candidate.map(k=>E("option",{value:k},EQUIP_LABELS[k]||k)))));
  }
  modal.append(E("p",{className:"fd-muted"},"Remplace : "+(state.equipment[slot]?itemName(state.equipment[slot]):"Emplacement vide")));
  const bonuses=E("div",{className:"fd-equipment-effects"});
