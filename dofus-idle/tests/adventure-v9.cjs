@@ -107,6 +107,28 @@ const nav=(label)=>{
   const abandon=[...w.document.querySelectorAll(".fd-enemy-panel .fd-combat-actions button")]
    .find(b=>b.textContent.includes("Abandonner le donjon"));
   assert(abandon,"Le donjon actif doit montrer un bouton d'abandon explicite");
+  // Recharger la page avec une sauvegarde de donjon en cours :
+  // la zone et le monstre courant doivent rester visibles.
+  const midSave=JSON.stringify(g.getState());
+  const refresh=new JSDOM(html,{url:"https://example.org/spingames/dofus-idle/",
+   runScripts:"outside-only",pretendToBeVisual:true});
+  try{
+   const rw=refresh.window;
+   rw.DOFUS_IDLE_ASSETS={items:{},monsters:{},jobs:{}};
+   rw.localStorage.setItem("dofus-idle-full-v2",midSave);
+   rw.confirm=()=>true;rw.fetch=w.fetch;
+   rw.eval(fs.readFileSync(path.join(root,"game-full.js"),"utf8"));
+   await pause(275);
+   const recovered=rw.DOFUS_IDLE_FULL?.getState();
+   assert.equal(recovered?.action?.dungeonRun?.zoneId,"447",
+    "Sauvegarde du donjon perdue après actualisation");
+   assert.equal(recovered?.action?.dungeonRun?.index,0,
+    "La salle courante du donjon doit être restaurée");
+   assert(rw.document.querySelector('.fd-dungeon-panel[data-dungeon-id="447"]'),
+    "La zone du donjon restauré doit s'ouvrir automatiquement après actualisation");
+   assert(rw.document.querySelector(".fd-enemy-panel .fd-enemy-hero"),
+    "L'ennemi en cours doit rester visible après actualisation");
+  }finally{refresh.window.close()}
   w.Math.random=()=>0;
   for(let i=0;i<rooms.length*5;i++){
    g.simulateSeconds(3.4);
