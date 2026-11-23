@@ -1281,7 +1281,7 @@ function equipmentDetails(id,slotChoice=preferredGearSlot(id)){
   for(let n=2;n<=setInfo[1].length;n++){
    const lines=setInfo[2]?.[n-1]||[];
    if(!lines.length)continue;
-   const div=E("div",{className:"fd-set-tier "+(n===count?"active":""),E("strong",{},n+" pièces"+(n===count?" — bonus actif":"")));
+   const div=E("div",{className:"fd-set-tier "+(n===count?"active":"")},E("strong",{},n+" pièces"+(n===count?" — bonus actif":"")));
    div.append(E("small",{},lines.map(statTooltip).join(" · ")));
    setBlock.append(div);
   }
