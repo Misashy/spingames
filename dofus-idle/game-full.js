@@ -24,8 +24,9 @@ const money=n=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0}).format(M
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const KEY="dofus-idle-full-v2",OLD_KEY="dofus-idle-independent-v1";
 let core=null,world=null,state=null,dropIndex={},lastTick=Date.now(),lastSave=0,lastRender=0;
+let equipmentData=null;
 let gearPool=[],gearEligibleCache=new Map(),combatOpenZone="";
-const EQUIP_LABELS={weapon:"Arme",head:"Coiffe",cape:"Cape",ring:"Anneau",boots:"Bottes",belt:"Ceinture",neck:"Amulette",shield:"Bouclier"};
+const EQUIP_LABELS={weapon:"Arme",head:"Coiffe",cape:"Cape",ring:"Anneau 1",ring2:"Anneau 2",boots:"Bottes",belt:"Ceinture",neck:"Amulette",shield:"Bouclier",pet:"Familier",mount:"Monture",dofus1:"Dofus / Trophée 1",dofus2:"Dofus / Trophée 2",dofus3:"Dofus / Trophée 3",dofus4:"Dofus / Trophée 4",dofus5:"Dofus / Trophée 5",dofus6:"Dofus / Trophée 6"};
 let q="",page=0,zoneQuery="",selectedArea="",monsterQuery="",monsterPage=0,recipeFilter="all",busy=false,images={items:{},monsters:{},jobs:{}};
 let bankCategory="all",bankType="all",bankSort="name";
 const ICONS={"2":"🪓","24":"⛏️","26":"🌿","28":"🌾","36":"🎣","41":"🏹","27":"🧵","15":"👢","16":"💍","11":"⚒️","13":"🏹","60":"🛡️","65":"🗝️","79":"🐴","78":"📖"};
@@ -368,15 +369,102 @@ function levelOf(total){
 function jobLevel(id){return levelOf(state.jobs[id]||0).level}
 function playerLevel(){return levelOf(state.playerXp).level}
 function maxHp(){return Math.ceil((105+playerLevel()*8+(state.upgrades.armor||0)*12+statValue("vitalite"))*(state.classId==="sacrieur"?1.35:1)+equippedBonus("hp"))}
-function equippedBonus(type){
- let n=0;for(const id of Object.values(state.equipment)){if(!id)continue;
-  const item=core.items[id];if(!item)continue;
-  const slot=gearSlot(id);
-  if(type==="atk"&&slot==="weapon")n+=Math.ceil(item[2]*.36);
-  if(type==="hp"&&slot!=="weapon")n+=Math.ceil(item[2]*.6);
-  if(type==="def"&&slot!=="weapon")n+=Math.ceil(item[2]*.11);
- }return n;
+/* Référentiel de jets du client DOFUS 3 — valeur médiane, sans jet aléatoire.
+   L'ID est celui de l'effet/action officiel, sa caractéristique provient de EffectData. */
+const CHARACTERISTIC_KEYS={
+ "1":"ap","10":"force","11":"vitalite","12":"sagesse","13":"chance",
+ "14":"agilite","15":"intelligence","18":"critical","19":"range","23":"mp",
+ "25":"power","48":"prospection","44":"initiative"
+};
+const BONUS_LABELS={vitalite:"Vitalité",force:"Force",intelligence:"Intelligence",
+ chance:"Chance",agilite:"Agilité",sagesse:"Sagesse",power:"Puissance",
+ critical:"Coups critiques",ap:"PA",mp:"PM",range:"PO",prospection:"Prospection",
+ initiative:"Initiative",damage:"Dommages",damageFire:"Dommages Feu",
+ damageWater:"Dommages Eau",damageEarth:"Dommages Terre",damageAir:"Dommages Air",
+ damageNeutral:"Dommages Neutre",resistance:"Résistance fixe",
+ resistancePct:"Résistance %",healing:"Soins"};
+function gearEffectKey(effectId){
+ const def=equipmentData?.effects?.[String(effectId)];
+ if(!def)return null;
+ const char=CHARACTERISTIC_KEYS[String(def[1])];
+ if(char)return char;
+ const name=String(def[0]||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ if(name.includes("dommages")){
+  if(/poussee|piege|critique|sort|arme|melee|distance/.test(name))return null;
+  if(/feu/.test(name))return "damageFire";
+  if(/eau/.test(name))return "damageWater";
+  if(/terre/.test(name))return "damageEarth";
+  if(/air/.test(name))return "damageAir";
+  if(/neutre/.test(name))return "damageNeutral";
+  if(!name.includes("%"))return "damage";
+ }
+ if(/resistance/.test(name)){
+  if(/poussee|critique|melee|distance|sort|arme/.test(name))return null;
+  return name.includes("%")?"resistancePct":"resistance";
+ }
+ if(/soins/.test(name))return "healing";
+ return null;
 }
+function gearEffectValue(line){
+ const [eid,lo,hi]=line;
+ let min=Number(lo)||0,max=Number(hi)||min;
+ if(max<min)[min,max]=[max,min];
+ const sign=equipmentData?.effects?.[String(eid)]?.[2]==="-"?-1:1;
+ return Math.round((min+max)/2)*sign;
+}
+function gearStatsFor(equipment){
+ const stats={},setCounts={},detail=[];
+ const addLine=(line,source)=>{
+  const key=gearEffectKey(line[0]);const amount=gearEffectValue(line);
+  if(key&&amount)stats[key]=(stats[key]||0)+amount;
+  detail.push({line,source,key,value:amount});
+ };
+ for(const [slot,rawId] of Object.entries(equipment||{})){
+  const id=String(rawId||"");
+  if(!id||!core.items[id])continue;
+  const entry=equipmentData?.items?.[id];
+  if(!entry)continue;
+  for(const line of entry[1]||[])addLine(line,slot);
+  const setId=Number(entry[0]);
+  if(setId>=0&&(equipmentData.sets?.[String(setId)])){
+   if(!setCounts[setId])setCounts[setId]=new Set();
+   setCounts[setId].add(id);
+  }
+ }
+ const sets=[];
+ for(const [setId,ids] of Object.entries(setCounts)){
+  const def=equipmentData.sets[setId];if(!def)continue;
+  const count=ids.size,bonuses=def[2]?.[count-1]||[];
+  sets.push({id:setId,name:def[0],count,total:def[1].length,bonuses,items:def[1]});
+  // Chaque palier est un bonus total : ne pas cumuler les paliers inférieurs.
+  if(count>=2)for(const line of bonuses)addLine(line,"set:"+setId);
+ }
+ return {stats,sets,detail};
+}
+function currentGearStats(){return gearStatsFor(state?.equipment||{}).stats}
+function gearStat(name){return Number(currentGearStats()[name]||0)}
+function equippedBonus(type){
+ const gear=currentGearStats();
+ if(type==="hp")return Number(gear.vitalite||0);
+ if(type==="atk")return Number(gear.damage||0)+Number(gear.power||0)*.08;
+ if(type==="def")return Number(gear.resistance||0)+Number(gear.resistancePct||0)*.25;
+ return 0;
+}
+function equippedSetInfo(){return gearStatsFor(state.equipment).sets}
+function statTooltip(line){
+ const [effectId,lo,hi]=line;
+ const def=equipmentData?.effects?.[String(effectId)];
+ const name=def?.[0]||"Effet n°"+effectId;
+ const symbol=def?.[2]==="-"?"−":"+";
+ const range=lo===hi?String(lo):String(lo)+" à "+String(hi);
+ return symbol+" "+range+" "+name;
+}
+function itemEffects(id){return equipmentData?.items?.[String(id)]?.[1]||[]}
+function itemSetInfo(id){
+ const sid=equipmentData?.items?.[String(id)]?.[0];
+ return sid!=null&&sid>=0?equipmentData?.sets?.[String(sid)]:null;
+}
+
 function damage(){const focus=CLASS_BY_ID[state.classId]?.[5]||"force";const elemental=statValue(focus);return Math.ceil((9+playerLevel()*2.2+elemental*.16+(state.upgrades.weapon||0)*6+equippedBonus("atk"))*(state.classId==="iop"?1.2:state.classId==="ouginak"?1.15:1))}
 function defense(){return Math.floor(playerLevel()*.4+statValue("agilite")*.07+equippedBonus("def")+(state.upgrades.armor||0)*3+(state.classId==="feca"?5:0))}
 function bankCap(){return 150+(state.upgrades.bank||0)*100}
@@ -399,9 +487,24 @@ function gearSlot(id){
  if(/ceinture/.test(n))return "belt";
  if(/amulette/.test(n))return "neck";
  if(/bouclier/.test(n))return "shield";
- if(/épée|dague|arc|baguette|bâton|hache|marteau|pelle|faux|arme/.test(n))return "weapon";
+ if(/dofus|trophée|trophee|prysmaradite/.test(n))return "dofus1";
+ if(/familier|montilier/.test(n))return "pet";
+ if(/monture/.test(n))return "mount";
+ if(/épée|dague|arc|baguette|bâton|hache|marteau|pelle|faux|arme|pioche/.test(n))return "weapon";
  return "";
 }
+function availableGearSlots(id){
+ const slot=gearSlot(id);
+ if(!slot)return [];
+ if(slot==="ring")return ["ring","ring2"];
+ if(slot==="dofus1")return ["dofus1","dofus2","dofus3","dofus4","dofus5","dofus6"];
+ return [slot];
+}
+function preferredGearSlot(id){
+ const slots=availableGearSlots(id);
+ return slots.find(x=>!state.equipment[x])||slots[0]||"";
+}
+
 function sprite(kind,id,emoji="✦",css="fd-icon"){
  const holder=E("span",{className:css});
  const path=images[kind]?.[String(id)];
@@ -426,7 +529,7 @@ function jobSprite(id,cls="fd-icon"){return sprite("jobs",id,jobIcon(id),cls)}
 function fresh(){
  return {version:2,view:"job:2",jobs:{},mastery:{},bank:{},kamas:150,earned:150,
   playerXp:0,classId:"iop",kills:0,gathered:0,crafted:0,hp:115,
-  equipment:{weapon:null,head:null,cape:null,ring:null,boots:null,belt:null,neck:null,shield:null},
+  equipment:{weapon:null,head:null,cape:null,ring:null,ring2:null,boots:null,belt:null,neck:null,shield:null,pet:null,mount:null,dofus1:null,dofus2:null,dofus3:null,dofus4:null,dofus5:null,dofus6:null},
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
@@ -1144,7 +1247,7 @@ function shopView(){
    Les étiquettes des grandes régions servent seulement à rendre la carte lisible. */
 const REGIONS_FAVORITES=["Incarnam","Amakna","Île des Wabbits","Île de Moon","Frigost","Astrub","Pandala","Otomaï","Saharach","Cania"];
 const REGIONS_ICONS={"Incarnam":"☁️","Amakna":"🌳","Île des Wabbits":"🐰","Île de Moon":"🌴","Frigost":"❄️","Astrub":"🏘️","Pandala":"🎋","Otomaï":"🌺","Saharach":"🏜️","Cania":"🌾"};
-const SLOT_ICONS={weapon:"⚔️",head:"🪖",cape:"🧥",ring:"💍",boots:"🥾",belt:"🧷",neck:"📿",shield:"🛡️"};
+const SLOT_ICONS={weapon:"⚔️",head:"🪖",cape:"🧥",ring:"💍",ring2:"💍",boots:"🥾",belt:"🧷",neck:"📿",shield:"🛡️",pet:"🐾",mount:"🐎",dofus1:"🥚",dofus2:"🥚",dofus3:"🥚",dofus4:"🥚",dofus5:"🥚",dofus6:"🥚"};
 function regionFor(zone){
  const origin=displayText(zone?.[1]||"");
  if(!origin)return "Région inconnue";
