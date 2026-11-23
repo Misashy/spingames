@@ -70,3 +70,5 @@ def main():
  for k,v in catalog.items():
   if v['mapping']!='exact':print('NON_EXACT',k,v.get('name'),'->',v.get('officialName'),v['mapping'])
 if __name__=='__main__':main()
+
+# Client 3.7.14.18 : images originales vérifiées par nom.
