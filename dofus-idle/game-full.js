@@ -135,23 +135,176 @@ const ACHIEVEMENTS=[
  ["butin","Roi du butin","Obtenir 25 équipements bonus","gear",25,4500,2000],
  ["butin","Connaisseur","Vaincre 25 espèces de monstres différentes","species",25,1500,650]
 ].map(([cat,title,desc,metric,target,kamas,xp],index)=>({id:"success-"+index,cat,title,desc,metric,target,kamas,xp}));
-const ACH_GROUPS={combat:"⚔️ Combat",exploration:"🧭 Exploration",metiers:"🪓 Métiers",personnage:"🧙 Personnage",butin:"🎁 Butins"};
+const ACH_GROUPS={
+ combat:"⚔️ Combats",bestiaire:"🐉 Bestiaire",exploration:"🧭 Exploration",
+ metiers:"🪓 Métiers",recolte:"🌿 Récoltes",artisanat:"🔨 Artisanat",
+ personnage:"🧙 Personnage",butin:"🎁 Butins",equipements:"🛡️ Équipements",economie:"🪙 Économie"
+};
+
+/* Succès générés depuis les données du client DOFUS 3.
+   Les 27 ID existants sont conservés, les nouveaux IDs sont stables et
+   les récompenses/conditions sont conçues pour DOFUS IDLE, non officielles. */
+let achievementCatalog=[...ACHIEVEMENTS];
+let achievementCategory="all",achievementStatus="all",achievementSort="progress";
+let achievementQuery="",achievementPage=0;
+const ACH_PAGE_SIZE=32;
+const achievementNum=x=>Math.max(0,Math.floor(Number(x)||0));
+const achievementKey=x=>String(x).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function achievementObject(id,cat,title,desc,metric,target,kamas,xp,points=1){
+ return {id,cat,title,desc,metric,target,kamas,xp,points};
+}
+function buildAchievementCatalog(){
+ const all=[...ACHIEVEMENTS];
+ const push=(id,cat,title,desc,metric,target,kamas,xp,points)=>
+  all.push(achievementObject(id,cat,title,desc,metric,target,kamas,xp,points));
+ // Progressions globales toujours accessibles, y compris sur anciens profils.
+ for(const [metric,cat,label,thresholds] of [
+  ["kills","combat","Victoire",[5,10,50,250,1000,5000,10000,25000]],
+  ["species","bestiaire","Créatures différentes vaincues",[5,10,50,100,250,500,1000,2500,5000]],
+  ["zones","exploration","Sous-zones découvertes",[5,25,100,200,350,500]],
+  ["regions","exploration","Régions visitées",[2,10,20,40]],
+  ["gather","recolte","Ressources récoltées",[25,100,500,1000,5000,25000,100000]],
+  ["craft","artisanat","Objets fabriqués",[5,25,50,250,500,2500,10000]],
+  ["loot","butin","Objets obtenus en combat",[10,50,250,500,1000,5000,25000]],
+  ["gear","equipements","Équipements bonus obtenus",[2,5,10,50,100,250]],
+  ["sold","economie","Objets vendus",[10,100,500,2500,10000]],
+  ["banked","economie","Butins rangés en banque",[10,100,500,2500,10000]],
+  ["time","personnage","Heures d'activité",[1,5,10,25,50,100,250,500]],
+  ["level","personnage","Niveau de personnage",[10,50,75,125,150,175]],
+  ["stats","personnage","Points de caractéristiques utilisés",[20,50,250,500,900]],
+  ["recipesKnown","artisanat","Recettes différentes fabriquées",[1,10,25,50,100,250,500,1000,2500,4500]],
+  ["resourcesKnown","recolte","Types de ressources récoltées",[1,5,10,25,50,85]],
+  ["equipped","equipements","Emplacements d'équipement équipés",[1,2,4,6,8]]
+ ]){
+  for(const target of thresholds){
+   const numericTarget=metric==="time"?target*3600:target;
+   push("extra-"+metric+"-"+target,cat,label+" : "+target+(metric==="time"?" h":""),
+    "Atteindre "+target+(metric==="time"?" heure(s) d'activité":" — "+label.toLowerCase())+".",
+    metric,numericTarget,Math.min(5000,80+target*4),Math.min(2500,40+target*2),target>=100?10:target>=25?5:2);
+  }
+ }
+ // Chaque métier a ses propres objectifs de niveau et de fabrication.
+ for(const [jid,job] of Object.entries(core.jobs)){
+  for(const level of [5,10,20,40,60,80,100,125,150,175,200]){
+   push("job-level-"+jid+"-"+level,"metiers",job[0]+" · Niveau "+level,
+    "Atteindre le niveau "+level+" de "+job[0]+".","job:"+jid,level,
+    level*24,level*12,level>=150?15:level>=80?8:3);
+  }
+  if(core.recipes[jid]?.length){
+   for(const n of [1,10,50,100,500]){
+    push("job-craft-"+jid+"-"+n,"artisanat",job[0]+" · "+n+" fabrications",
+     "Fabriquer "+n+" objets avec le métier "+job[0]+".","jobCraft:"+jid,n,
+     Math.min(6000,80+n*8),Math.min(3000,35+n*4),n>=100?10:3);
+   }
+  }
+ }
+ // 85 ressources récoltables, avec 4 paliers de maîtrise chacune.
+ const resourceJobs=new Map();
+ for(const [jid,rows] of Object.entries(core.gather)){
+  for(const row of rows)if(!resourceJobs.has(String(row[0])))resourceJobs.set(String(row[0]),jid);
+ }
+ for(const [iid,jid] of resourceJobs){
+  const name=itemName(iid),job=jobName(jid),level=itemLevel(iid);
+  for(const count of [1,25,250,1000]){
+   push("resource-"+iid+"-"+count,"recolte",name+" · "+count+" récoltes",
+    "Récolter "+count+" fois "+name+" ("+job+").","harvest:"+iid,count,
+    Math.min(2500,50+level*2+count),Math.min(1500,25+level+Math.round(count/2)),count>=250?8:2);
+  }
+ }
+ // Le bestiaire complet, avec des paliers de chasse pour chaque monstre.
+ for(const [mid,m] of Object.entries(world.monsters)){
+  if(!m?.[0])continue;
+  for(const count of [1,10,50]){
+   const title=count===1?m[0]+" · Première victoire":m[0]+" · "+count+" victoires";
+   push("monster-"+mid+"-"+count,"bestiaire",title,
+    "Vaincre "+count+" fois "+m[0]+" (niveau "+m[1]+").","monster:"+mid,count,
+    Math.min(3500,60+Math.round(m[1]*1.5)+count*8),
+    Math.min(2000,30+Math.round(m[1])+(count*3)),count>=50?10:count>=10?5:2);
+  }
+ }
+ // Explore et maîtrise les sous-zones réellement utilisées dans le jeu.
+ const regions=new Map();
+ for(const [zid,z] of Object.entries(world.zones)){
+  if(!z?.[3]?.length)continue;
+  const region=regionFor(z);
+  if(!regions.has(region))regions.set(region,[]);
+  regions.get(region).push(zid);
+  push("zone-visit-"+zid,"exploration","Découvrir : "+z[0],
+   "Visiter "+z[0]+" dans "+region+".","visitZone:"+zid,1,
+   50+z[2]*2,35+z[2],2);
+  for(const count of [10,50]){
+   push("zone-fight-"+zid+"-"+count,"exploration",z[0]+" · "+count+" victoires",
+    "Remporter "+count+" combats dans "+z[0]+".","zoneKills:"+zid,count,
+    Math.min(3000,120+z[2]*3+count*4),Math.min(1800,60+z[2]*2+count*2),count>=50?10:5);
+  }
+ }
+ for(const [region,zones] of regions){
+  for(const n of [1,Math.min(5,zones.length),zones.length]){
+   if(n<1)continue;
+   push("region-zones-"+achievementKey(region)+"-"+n,"exploration",
+    region+" · "+n+" zone"+(n>1?"s":""),
+    "Découvrir "+n+" zone(s) de "+region+".","regionZones:"+region,n,
+    Math.min(5000,120+n*100),Math.min(2500,60+n*50),n===zones.length?12:3);
+  }
+ }
+ // Chaque recette réelle offre au moins une réussite. Les anciennes
+ // sauvegardes n'avaient qu'un total, ces succès spécifiques commencent
+ // donc à compter lors des nouvelles fabrications.
+ for(const [jid,recipes] of Object.entries(core.recipes)){
+  for(const [itemId,level] of recipes){
+   const key=jid+":"+itemId;
+   push("recipe-first-"+jid+"-"+itemId,"artisanat","Premier craft : "+itemName(itemId),
+    "Fabriquer "+itemName(itemId)+" avec "+jobName(jid)+" (niveau "+level+").",
+    "recipe:"+key,1,Math.min(600,45+level*3),Math.min(400,25+level*2),2);
+  }
+ }
+ const ids=new Set();
+ achievementCatalog=all.filter(a=>{
+  if(ids.has(a.id))return false;
+  ids.add(a.id);
+  a.search=achievementKey(a.title+" "+a.desc+" "+(ACH_GROUPS[a.cat]||a.cat));
+  a.points=a.points||Math.max(1,Math.min(10,Math.ceil(a.target/100)));
+  return true;
+ });
+}
+
 function achievementValue(metric){
- if(metric==="kills")return state.kills||0;
+ if(metric.startsWith("monster:"))return achievementNum(state.dex?.[metric.slice(8)]);
+ if(metric.startsWith("job:"))return jobLevel(metric.slice(4));
+ if(metric.startsWith("jobCraft:"))return achievementNum(state.jobCraftCount?.[metric.slice(9)]);
+ if(metric.startsWith("harvest:"))return achievementNum(state.mastery?.[metric.slice(8)]);
+ if(metric.startsWith("recipe:"))return achievementNum(state.craftedRecipes?.[metric.slice(7)]);
+ if(metric.startsWith("visitZone:"))return state.visitedZones?.[metric.slice(10)]?1:0;
+ if(metric.startsWith("zoneKills:"))return achievementNum(state.zoneKills?.[metric.slice(10)]);
+ if(metric.startsWith("regionZones:")){
+  const name=metric.slice(12);
+  return achievementNum(state.regionZoneCount?.[name]||
+   Object.keys(state.visitedZones||{}).filter(zid=>world.zones[zid]&&regionFor(world.zones[zid])===name).length);
+ }
+ if(metric==="kills")return achievementNum(state.kills);
  if(metric==="zones")return Object.keys(state.visitedZones||{}).length;
  if(metric==="regions")return Object.keys(state.visitedRegions||{}).length;
- if(metric==="gather")return state.gathered||0;
- if(metric==="craft")return state.crafted||0;
+ if(metric==="gather")return achievementNum(state.gathered);
+ if(metric==="craft")return achievementNum(state.crafted);
  if(metric==="level")return playerLevel();
  if(metric==="stats")return statsSpent();
- if(metric==="loot")return state.lootCount||0;
- if(metric==="gear")return Object.values(state.gearDrops||{}).reduce((s,n)=>s+(Number(n)||0),0);
- if(metric==="species")return Object.values(state.dex||{}).filter(n=>Number(n)>0).length;
+ if(metric==="loot")return achievementNum(state.lootCount);
+ if(metric==="gear")return Object.values(state.gearDrops||{}).reduce((s,n)=>s+achievementNum(n),0);
+ if(metric==="species")return Object.values(state.dex||{}).filter(n=>achievementNum(n)>0).length;
+ if(metric==="sold")return achievementNum(state.itemsSold);
+ if(metric==="banked")return achievementNum(state.itemsBanked);
+ if(metric==="time")return Math.floor(Number(state.totalSeconds)||0);
+ if(metric==="recipesKnown")return Object.values(state.craftedRecipes||{}).filter(n=>achievementNum(n)>0).length;
+ if(metric==="resourcesKnown")return Object.values(state.mastery||{}).filter(n=>achievementNum(n)>0).length;
+ if(metric==="equipped")return Object.values(state.equipment||{}).filter(Boolean).length;
  return 0;
 }
 function achievementReached(a){return achievementValue(a.metric)>=a.target}
+function achievementsScore(){return achievementCatalog.reduce((sum,a)=>sum+(state.achievements?.[a.id]?(a.points||1):0),0)}
+function achievementsClaimed(){return achievementCatalog.reduce((n,a)=>n+(state.achievements?.[a.id]?1:0),0)}
+
 function claimAchievement(id){
- const a=ACHIEVEMENTS.find(x=>x.id===id);
+ const a=achievementCatalog.find(x=>x.id===id);
  if(!a||state.achievements[id]||!achievementReached(a))return;
  state.achievements[id]=Date.now();
  state.kamas+=a.kamas;state.earned+=a.kamas;state.playerXp+=a.xp;
@@ -236,13 +389,15 @@ function fresh(){
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
+  craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
  let raw=null;
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
-  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{}});
+  return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
+  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{}});
  }
  let s=fresh();
  try{
