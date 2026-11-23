@@ -1075,6 +1075,104 @@ function emitDamageNumber(target,amount,critical=false,spellName=""){
  setTimeout(()=>pop.remove(),1500);
 }
 
+
+/* Donjons DOFUS IDLE : les identités et monstres viennent des sous-zones réelles,
+   les salles, attaques spéciales et récompenses supplémentaires sont du gameplay idle. */
+function dungeonRoomList(zoneId){
+ const z=world.zones[String(zoneId)];if(!z)return [];
+ const ids=[...new Set(z[3].map(String))].filter(id=>world.monsters[id]&&world.monsters[id][1]>0);
+ const level=Number(z[2])||1;
+ const pool=ids.filter(id=>world.monsters[id][1]<=level+16);
+ const usable=pool.length>=2?pool:ids;
+ if(usable.length<2)return [];
+ const boss=usable.slice().sort((a,b)=>Math.abs(world.monsters[a][1]-level)-Math.abs(world.monsters[b][1]-level)||world.monsters[b][1]-world.monsters[a][1])[0];
+ return [...usable.filter(id=>id!==boss).sort((a,b)=>world.monsters[a][1]-world.monsters[b][1]).slice(0,4),boss];
+}
+function dungeonRequiredLevel(zoneId){
+ const rooms=dungeonRoomList(zoneId);return rooms.length?minimumCombatLevel(world.monsters[String(rooms[rooms.length-1])]):1;
+}
+function isDungeonBoss(a=state.action){
+ return !!a?.dungeonRun&&!a.dungeonRun.completed&&a.dungeonRun.index===a.dungeonRun.rooms.length-1;
+}
+function startDungeon(zoneId){
+ const id=String(zoneId),z=world.zones[id],rooms=dungeonRoomList(id);
+ if(!z||Number(z[5])<0||rooms.length<2)return;
+ if(playerLevel()<dungeonRequiredLevel(id)){toast("🔒 Niveau "+dungeonRequiredLevel(id)+" requis pour ce boss.");return}
+ if(pendingEntries().length>=250){toast("Poche de butin pleine : libère de la place.");return}
+ if(state.action?.type==="combat"&&!confirm("Abandonner ton combat et commencer "+z[0]+" ?"))return;
+ const m=world.monsters[String(rooms[0])];if(!m)return;
+ state.view="combat";state.combatMode="dungeons";
+ state.selectedZone=id;state.selectedRegion=regionFor(z);state.selectedMonster=String(rooms[0]);
+ combatOpenZone=id;visitZone(id);
+ state.action={type:"combat",id:Number(rooms[0]),progress:0,enemyHp:m[2],enemyTick:0,
+  spellClass:state.classId,spellCooldowns:{},spellBuffs:{},spellShield:0,spellDot:null,
+  spellClock:0,spellHistory:[],spellGlobalTimer:0,
+  dungeonRun:{zoneId:id,rooms,index:0,completed:false,specialClock:0,bossPhase:"normal"}};
+ if(state.hp<=0)state.hp=maxHp();
+ toast("🏰 "+z[0]+" : salle 1 / "+rooms.length);render();save();
+}
+function dungeonVictory(a,m){
+ const d=a.dungeonRun;if(!d||d.completed)return;
+ if(d.index===d.rooms.length-1){
+  d.completed=true;
+  state.dungeonClears=state.dungeonClears||{};
+  state.dungeonClears[d.zoneId]=(Number(state.dungeonClears[d.zoneId])||0)+1;
+  state.dungeonLastClear=d.zoneId;
+  const xp=80+m[1]*12,kamas=60+m[1]*10;
+  state.playerXp+=xp;state.kamas+=kamas;state.earned+=kamas;
+  const drops=(m[4]||[]).filter(([id,rate])=>core.items[String(id)]&&rate>0).sort((a,b)=>a[1]-b[1]);
+  if(drops[0]&&queueLoot(drops[0][0],1))toast("🎁 Ressource du boss en bonus : "+itemName(drops[0][0]));
+  toast("🏆 Donjon terminé : "+world.zones[d.zoneId][0]+" · +"+xp+" XP, +"+kamas+" kamas");
+ }else{
+  d.index++;toast("🏰 Salle "+(d.index+1)+"/"+d.rooms.length);
+ }
+ d.specialClock=0;d.bossPhase="normal";
+}
+function dungeonBossSpecial(a,m,dt){
+ if(!isDungeonBoss(a)||a.enemyHp<=0)return false;
+ const d=a.dungeonRun;d.specialClock=(d.specialClock||0)+dt;
+ d.bossPhase=d.specialClock<5?"bouclier":a.enemyHp/m[2]<=.35?"enrage":"normal";
+ if(d.specialClock<8)return false;
+ d.specialClock=0;
+ const shield=Math.min(Number(a.spellShield)||0,Math.ceil(m[1]*.35)+10);
+ const attack=Math.max(1,Math.round(m[1]*.36+11));
+ const damage=Math.max(0,Math.round(attack*(d.bossPhase==="enrage"?1.5:1))-shield);
+ a.spellShield=Math.max(0,(a.spellShield||0)-shield);
+ state.hp=Math.max(0,state.hp-damage);
+ emitSpellFloat("player","ATTAQUE DU BOSS −"+damage,"💢");
+ if(state.hp<=0){
+  state.action=null;state.hp=maxHp();
+  toast("💀 Défaite dans "+world.zones[d.zoneId][0]+".");
+ }
+ return true;
+}
+function dungeonRoomPanel(id,zone){
+ const rooms=dungeonRoomList(id),action=state.action,run=action?.dungeonRun;
+ const active=run?.zoneId===String(id);
+ const root=E("section",{className:"fd-dungeon-panel","data-dungeon-id":String(id)},
+  E("h3",{},"🏰 Salles du donjon : "+zone[0]),
+  E("p",{className:"fd-muted"},"Monstres DOFUS authentiques, boss à bouclier et enrage, récompenses bonus propres au mode idle."),
+  E("div",{className:"fd-dungeon-meta"},pill(rooms.length+" salles"),pill("Niv. "+dungeonRequiredLevel(id)+" minimum"),
+   pill((state.dungeonClears?.[String(id)]||0)+" donjon(s) terminé(s)")));
+ const list=E("div",{className:"fd-dungeon-rooms"});
+ for(let i=0;i<rooms.length;i++){
+  const mid=rooms[i],m=world.monsters[String(mid)],boss=i===rooms.length-1;
+  list.append(E("div",{className:"fd-dungeon-room "+(active&&run.index===i?"active":"")+
+   (active&&run.index>i?" cleared":"")},
+   mobSprite(mid,"fd-dungeon-mob-art"),
+   E("div",{},E("strong",{},(boss?"👑 BOSS · ":"Salle "+(i+1)+" · ")+m[0]),
+    E("small",{},"Niveau "+m[1]+" · "+money(m[2])+" PV")),
+   E("span",{},active&&run.index>i?"✓":active&&run.index===i?"⚔️":boss?"🏆":"")));
+ }
+ root.append(list);
+ if(active)root.append(E("strong",{className:"fd-dungeon-status"},
+  run.completed?"🏆 Boss vaincu !":"Salle "+(run.index+1)+"/"+run.rooms.length+
+  (isDungeonBoss(action)?" · Phase "+run.bossPhase:"")));
+ else root.append(B(playerLevel()<dungeonRequiredLevel(id)?"🔒 Niveau "+dungeonRequiredLevel(id)+" requis":
+  "▶ Commencer le parcours",()=>startDungeon(id),"fd-button fd-dungeon-start",playerLevel()<dungeonRequiredLevel(id)));
+ return root;
+}
+
 function startCombat(id){
  const m=world.monsters[String(id)];if(!m)return;
  if(!canFight(m)){toast("🔒 "+m[0]+" (niveau "+m[1]+") : niveau "+minimumCombatLevel(m)+" minimum pour combattre. Ton aventurier est niveau "+playerLevel()+". Commence par Incarnam.");return}
