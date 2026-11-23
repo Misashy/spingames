@@ -1,0 +1,25 @@
+/* Banque DOFUS — catégories officielles ItemTypeData + sous-types */
+.fd-bank-page{max-width:1700px;margin:0 auto 38px}
+.fd-bank-tabs{display:flex;align-items:stretch;gap:9px;flex-wrap:wrap;margin:13px 0 19px;padding:12px;background:#1c2c39;border:1px solid #3d5262;border-radius:8px}
+.fd-bank-tab{display:flex;align-items:center;justify-content:center;gap:8px;min-height:45px;padding:10px 13px;border:1px solid #526c7c;border-bottom:3px solid #526c7c;border-radius:6px;background:#293c4c;color:#e5edf4;font-size:12px;font-weight:800;cursor:pointer;transition:background .14s,border-color .14s}
+.fd-bank-tab:hover{background:#35576a;border-color:#85b69f}
+.fd-bank-tab.active{background:linear-gradient(135deg,#247e57,#2c7159);border-color:#81dca9;color:#fff;box-shadow:0 2px 10px #0b2b2355}
+.fd-bank-tab-icon{font-size:18px;line-height:1}
+.fd-bank-tab-label{white-space:nowrap}
+.fd-bank-tab-count{min-width:23px;border-radius:10px;background:#172c3b;padding:3px 7px;font-size:10px;line-height:1.2;color:#d1e8e6}
+.fd-bank-tab.active .fd-bank-tab-count{background:#1c654b;color:#f0ffed}
+.fd-bank-controls{display:grid;grid-template-columns:minmax(260px,1.6fr) minmax(190px,1fr) minmax(180px,.85fr);gap:13px;margin:9px 0 15px}
+.fd-bank-search-wrap,.fd-bank-control{display:grid;gap:7px;min-width:0}
+.fd-bank-controls label{font-size:11px;color:#b9ccd7;font-weight:800}
+.fd-bank-controls .fd-search,.fd-bank-controls .fd-select{min-height:44px;background:#182b3a;border:1px solid #597285;color:#e9f4f6;border-radius:6px;padding:10px 12px;max-width:100%;width:100%;font-size:12px}
+.fd-bank-controls .fd-search:focus,.fd-bank-controls .fd-select:focus{outline:2px solid #88d6ae}
+.fd-bank-summary{display:flex;align-items:center;flex-wrap:wrap;gap:9px 16px;padding:12px 15px;border:1px solid #486378;background:linear-gradient(130deg,#233a45,#21313f);border-radius:6px;margin-top:11px}
+.fd-bank-summary strong{font-size:14px;color:#f1f7ed}
+.fd-bank-summary span{font-size:11px;color:#bdcdd7;flex:1}
+.fd-bank-reset{padding:7px 11px;font-size:11px}
+.fd-bank-page .fd-bank-grid{margin-top:16px}
+.fd-bank-page .fd-bank-item{background:linear-gradient(150deg,#293c4c,#202e3d);border-color:#4b6373}
+.fd-bank-page .fd-bank-item:hover{border-color:#83b99c}
+.fd-bank-empty{padding:36px 20px;text-align:center;background:#243543;border:1px dashed #587480;border-radius:8px;margin:16px 0;color:#bfced8;font-size:12px}
+@media(max-width:1160px){.fd-bank-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-bank-search-wrap{grid-column:1/-1}}
+@media(max-width:680px){.fd-bank-controls{grid-template-columns:1fr}.fd-bank-search-wrap{grid-column:auto}.fd-bank-tabs{gap:6px;padding:8px}.fd-bank-tab{padding:8px;flex:1 1 130px}.fd-bank-summary{align-items:flex-start}}
