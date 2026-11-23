@@ -303,10 +303,46 @@ function achievementReached(a){return achievementValue(a.metric)>=a.target}
 function achievementsScore(){return achievementCatalog.reduce((sum,a)=>sum+(state.achievements?.[a.id]?(a.points||1):0),0)}
 function achievementsClaimed(){return achievementCatalog.reduce((n,a)=>n+(state.achievements?.[a.id]?1:0),0)}
 
+
+function toggleTrackAchievement(id){
+ const a=achievementCatalog.find(x=>x.id===id);if(!a)return;
+ if(!Array.isArray(state.trackedAchievements))state.trackedAchievements=[];
+ if(state.trackedAchievements.includes(id))
+  state.trackedAchievements=state.trackedAchievements.filter(x=>x!==id);
+ else {
+  if(state.trackedAchievements.length>=3){toast("Tu peux suivre jusqu'à 3 succès simultanément.");return}
+  if(state.achievements[id]){toast("Ce succès a déjà été obtenu.");return}
+  state.trackedAchievements.push(id);
+ }
+ render();save();
+}
+function trackedAchievementsPanel(){
+ const ids=(state.trackedAchievements||[]).filter(Boolean);
+ const cards=E("div",{className:"fd-tracked-list"});
+ for(const id of ids){
+  const a=achievementCatalog.find(x=>x.id===id);if(!a)continue;
+  const value=achievementValue(a.metric),done=value>=a.target;
+  cards.append(E("div",{className:"fd-tracked-card"},
+   E("div",{className:"fd-tracked-card-title"},
+    E("strong",{},a.title),pill(money(Math.min(value,a.target))+" / "+money(a.target))),
+   meter(value/a.target*100),
+   E("div",{className:"fd-tracked-card-actions"},
+    done&&!state.achievements[id]?B("🏆 Récupérer",()=>claimAchievement(id),"fd-mini"):null,
+    B("✕ Retirer",()=>toggleTrackAchievement(id),"fd-mini"))));
+ }
+ return E("section",{className:"fd-tracked-goals"},
+  E("div",{className:"fd-loot-stash-heading"},
+   E("strong",{},"🎯 Objectifs suivis"),
+   pill(cards.childNodes.length+" / 3")),
+  cards.childNodes.length?cards:E("p",{className:"fd-muted"},"Suis jusqu'à trois succès pour garder tes objectifs sous les yeux pendant les combats."),
+  B("🏆 Parcourir les succès",()=>runNav("achievements"),"fd-secondary fd-wide"));
+}
+
 function claimAchievement(id){
  const a=achievementCatalog.find(x=>x.id===id);
  if(!a||state.achievements[id]||!achievementReached(a))return;
  state.achievements[id]=Date.now();
+ state.trackedAchievements=(state.trackedAchievements||[]).filter(x=>x!==id);
  state.kamas+=a.kamas;state.earned+=a.kamas;state.playerXp+=a.xp;
  toast("🏆 Succès obtenu : "+a.title+" ! +"+a.kamas+" kamas, +"+a.xp+" XP");
  render();save();
@@ -393,7 +429,7 @@ function fresh(){
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
-  craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},
+  craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
@@ -401,7 +437,7 @@ function load(){
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
   return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
-  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{}});
+  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[]});
  }
  let s=fresh();
  try{
@@ -1124,7 +1160,7 @@ function combatPlayerPanel(){
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
     B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
-  lootStashPanel());
+  lootStashPanel(),trackedAchievementsPanel());
 }
 function combatEnemyPanel(){
  const m=world.monsters[String(state.selectedMonster)],zone=world.zones[String(state.selectedZone)];
@@ -1444,7 +1480,9 @@ function achievementsView(){
    E("div",{className:"fd-achievement-rewards"},
     pill("🪙 "+money(a.kamas)),pill("✨ "+money(a.xp)+" XP")),
    B(redeemed?"✓ Récompense reçue":done?"🎁 Récupérer":"Objectif en cours",
-    ()=>claimAchievement(a.id),"fd-button",redeemed||!done));
+    ()=>claimAchievement(a.id),"fd-button",redeemed||!done),
+   B((state.trackedAchievements||[]).includes(a.id)?"📌 Ne plus suivre":"🎯 Suivre ce succès",
+    ()=>toggleTrackAchievement(a.id),"fd-secondary fd-achievement-watch",redeemed));
   list.append(card);
  }
  const root=E("div",{className:"fd-achievements-page"},
@@ -1475,7 +1513,9 @@ function claimReadyAchievements(limit=40){
  for(const a of achievementCatalog){
   if(n>=limit)break;
   if(state.achievements[a.id]||!achievementReached(a))continue;
-  state.achievements[a.id]=Date.now();kamas+=a.kamas;xp+=a.xp;n++;
+  state.achievements[a.id]=Date.now();
+  state.trackedAchievements=(state.trackedAchievements||[]).filter(x=>x!==a.id);
+  kamas+=a.kamas;xp+=a.xp;n++;
  }
  if(!n){toast("Aucun succès à récupérer.");return}
  state.kamas+=kamas;state.earned+=kamas;state.playerXp+=xp;
@@ -1575,7 +1615,7 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()}};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
