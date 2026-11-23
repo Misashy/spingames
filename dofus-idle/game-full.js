@@ -1542,6 +1542,99 @@ function achievementPreview(){
   E("p",{className:"fd-muted"},ready?money(ready)+" récompense(s) à récupérer !":"Explore le bestiaire, apprends les métiers et maîtrise les zones."),
   B("Voir tous les succès",()=>runNav("achievements"),"fd-button fd-wide"));
 }
+
+/* Statistiques détaillées de style DOFUS. Les jets réels des objets ne sont pas
+   dans notre core.json : valeurs non simulées signalées « Indicatif ». */
+function advancedCharacterStats(){
+ const v=statValue("vitalite"),sag=statValue("sagesse"),fo=statValue("force");
+ const intel=statValue("intelligence"),ch=statValue("chance"),agi=statValue("agilite");
+ const crit=Number((5+(state.classId==="cra"?11:state.classId==="sram"?9:0)+agi*.015).toFixed(2));
+ const active=(icon,label,value,detail)=>[icon,label,value,true,detail];
+ const preview=(icon,label,value=0)=>[icon,label,value,false,"Statistique indicative : effet non encore simulé et jets exacts d'équipement non importés."];
+ const elemental=[["⚪","Neutre"],["🪨","Terre"],["🔥","Feu"],["💧","Eau"],["🌪️","Air"]];
+ const groups=[
+  ["primaires","❤️ Caractéristiques principales",[
+   active("❤️","Vitalité",v,"Points de capital investis ; ajoutés aux PV."),
+   active("🔮","Sagesse",sag,"Bonus à l'XP des combats dans DOFUS IDLE."),
+   active("🪨","Force",fo,"Bonus aux dégâts selon la classe."),
+   active("🔥","Intelligence",intel,"Bonus aux dégâts selon la classe."),
+   active("💧","Chance",ch,"Bonus aux dégâts selon la classe."),
+   active("🌪️","Agilité",agi,"Bonus à la défense et aux critiques idle."),
+   active("❤️","Points de vie",money(state.hp)+" / "+money(maxHp()),"PV actuels et PV maximum."),
+   preview("🟦","Points de bouclier")
+  ]],
+  ["utilitaires","⚡ PA, PM et utilitaires",[
+   preview("⚡","PA",6),preview("🟢","PM",3),preview("👁️","Portée (PO)"),
+   preview("🚩","Initiative",fo+intel+ch+agi),
+   preview("🔎","Prospection",100+Math.floor(ch/10)),
+   preview("🐉","Invocations",1),preview("📦","Pods",1000+fo*5),
+   active("🎯","Coups critiques",crit+" %","Chance réelle de coup critique dans le jeu idle."),
+   preview("✨","Puissance"),preview("💚","Soins"),preview("🪄","Puissance pièges")
+  ]],
+  ["dommages","⚔️ Dommages",[
+   preview("⚔️","Dommages fixes"),
+   ...elemental.map(([i,n])=>preview(i,"Dommages "+n)),
+   preview("💥","Dommages Critiques"),preview("➡️","Dommages Poussée"),
+   preview("🪤","Dommages pièges"),preview("🪤","% Dommages pièges","0 %"),
+   preview("🥊","% Dommages mêlée","0 %"),preview("🏹","% Dommages distance","0 %"),
+   preview("📜","% Dommages sorts","0 %"),preview("🗡️","% Dommages armes","0 %"),
+   preview("⚡","% Dommages finaux","0 %"),
+   active("⚔️","Dégâts par coup (idle)",damage(),"Valeur réellement utilisée à chaque attaque automatique.")
+  ]],
+  ["resistpercent","🛡️ Résistances en %",[
+   ...elemental.map(([i,n])=>preview(i,"% Résistance "+n,"0 %")),
+   preview("🥊","% Résistance mêlée","0 %"),preview("🏹","% Résistance distance","0 %"),
+   preview("📜","% Résistance sorts","0 %"),preview("🗡️","% Résistance armes","0 %")
+  ]],
+  ["resistfix","🧱 Résistances fixes",[
+   ...elemental.map(([i,n])=>preview(i,"Résistance "+n)),
+   preview("💥","Résistance Critique"),preview("➡️","Résistance Poussée"),
+   active("🛡️","Réduction des dégâts (idle)",defense(),"Réduction directe utilisée contre les monstres.")
+  ]],
+  ["entrave","🌀 Entrave et mobilité",[
+   preview("🤝","Tacle",Math.floor(agi/10)),
+   preview("🪽","Fuite",Math.floor(agi/10)),
+   preview("🔵","Esquive PA",Math.floor(sag/10)),
+   preview("🟢","Esquive PM",Math.floor(sag/10)),
+   preview("🔵","Retrait PA",Math.floor(sag/10)),
+   preview("🟢","Retrait PM",Math.floor(sag/10))
+  ]],
+  ["idle","🎮 Caractéristiques actives en idle",[
+   active("⚔️","Attaque",damage(),"Dégâts par attaque automatique."),
+   active("🛡️","Défense",defense(),"Réduction plate contre les attaques."),
+   active("⏱️","Vitesse d'attaque",Math.max(.5,1.65-(state.upgrades.weapon||0)*.025).toFixed(2)+" s","Intervalle entre deux coups."),
+   active("🎯","Chance de critique",crit+" %","Taux appliqué à chaque attaque."),
+   active("💥","Multiplicateur critique",state.classId==="ecaflip"?"×2":"×1,7","Multiplicateur de frappe critique."),
+   active("💚","Soin après victoire",(15*(state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)).toFixed(1)+" %","Pourcentage des PV maximum rendus après le combat."),
+   active("🏆","Niveau de combat",playerLevel(),"Niveau du personnage."),
+   active("🔮","Bonus XP",Number((sag*.2).toFixed(1))+" %","Sagesse × 0,2 %."),
+   active("🪙","Bonus Kamas",Math.round(((1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1)-1)*100)+" %","Bonus de victoire."),
+   active("❤️","PV d'équipement",equippedBonus("hp"),"Bonus simplifié apporté par le stuff."),
+   active("⚔️","Dégâts d'équipement",equippedBonus("atk"),"Bonus simplifié apporté par le stuff."),
+   active("🛡️","Défense d'équipement",equippedBonus("def"),"Bonus simplifié apporté par le stuff.")
+  ]]
+ ];
+ const total=groups.reduce((sum,group)=>sum+group[2].length,0);
+ const root=E("section",{className:"fd-character-panel fd-advanced-sheet",id:"fdAdvancedStats"},
+  E("div",{className:"fd-character-panel-heading"},
+   E("h3",{},"📊 Toutes les caractéristiques DOFUS"),pill(total+" caractéristiques")),
+  E("p",{className:"fd-advanced-disclaimer"},
+   "Les valeurs « Idle » sont calculées et utilisées dans le prototype. Les valeurs « Indicatif » sont affichées pour retrouver les statistiques DOFUS, mais leurs effets ne sont pas encore simulés. Les jets officiels du stuff ne figurent pas dans la base actuellement chargée."));
+ const layout=E("div",{className:"fd-advanced-groups"});
+ for(const [key,title,rows] of groups){
+  const group=E("section",{className:"fd-advanced-group","data-stat-group":key},E("h4",{},title));
+  for(const [icon,label,value,used,explain] of rows){
+   group.append(E("div",{className:"fd-advanced-row","data-stat-name":label,title:explain},
+    E("span",{className:"fd-advanced-label"},E("span",{className:"fd-advanced-icon"},icon),label),
+    E("strong",{className:"fd-advanced-value"},String(value)),
+    E("span",{className:"fd-advanced-marker "+(used?"is-active":"")},used?"Idle":"Indicatif")));
+  }
+  layout.append(group);
+ }
+ root.append(layout);
+ return root;
+}
+
 function characterView(){
  const current=CLASS_BY_ID[state.classId]||CLASS_BY_ID.iop;
  const lvl=levelOf(state.playerXp);
@@ -1581,6 +1674,7 @@ function characterView(){
      E("div",{className:"fd-stat"},E("span",{},"Défense"),E("strong",{},money(defense()))),
      E("div",{className:"fd-stat"},E("span",{},"Butins en attente"),E("strong",{},money(pendingTotal())))),
     achievementPreview())),
+  advancedCharacterStats(),
   E("section",{className:"fd-character-panel fd-class-chooser"},
    E("div",{className:"fd-character-panel-heading"},E("h3",{},"⚔️ Choisir ma classe"),
     pill(CLASS_META.length+" classes DOFUS")),
