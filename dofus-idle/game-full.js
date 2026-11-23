@@ -1529,7 +1529,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v10.0";
+ $("#buildVersion").textContent="v9.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -2966,32 +2966,6 @@ function rotateCombatTarget(a){
  const current=ids.indexOf(String(a.id)),next=ids[(current+1+ids.length)%ids.length];
  if(next&&next!==String(a.id)){a.nextId=next;toast("🔄 Prochain monstre : "+world.monsters[next][0])}
 }
-/* V10 — profils d'automatisation : choix explicite et réversible. */
-const AUTO_PRESETS={
- manuel:{name:"Manuel",desc:"Contrôle total, aucun automatisme.",cfg:{lootMode:"manual",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0}},
- prudent:{name:"Prudent",desc:"Butins en banque, soins sous 40 %, arrêt sous 20 %.",cfg:{lootMode:"bank-all",sellValue:20,healBelow:40,stopBelow:20,switchAfter:0}},
- recolte:{name:"Farmeur",desc:"Ressources en banque, soins sous 25 %, rotation après 10 victoires.",cfg:{lootMode:"bank-resources",sellValue:20,healBelow:25,stopBelow:10,switchAfter:10}},
- libre:{name:"Aventurier",desc:"Banque automatique et combat continu sans seuil de sécurité.",cfg:{lootMode:"bank-all",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0}}
-};
-function applyAutoPreset(id){
- const preset=AUTO_PRESETS[id];if(!preset)return;
- state.automation={...autoSettings(),...preset.cfg};
- state.autoPreset=id;
- toast("Profil "+preset.name+" activé.");save();render();
-}
-function automationPresetsPanel(){
- const cards=E("div",{className:"fd-v10-profiles"});
- for(const [id,p] of Object.entries(AUTO_PRESETS)){
-  const active=Object.entries(p.cfg).every(([k,v])=>autoSettings()[k]===v);
-  cards.append(E("article",{className:"fd-v10-preset"+(active?" active":"")},
-   E("strong",{},p.name),E("p",{},p.desc),
-   B(active?"✓ Actif":"Appliquer",()=>applyAutoPreset(id),"fd-secondary",active)));
- }
- return E("section",{className:"fd-character-panel"},
-  E("h3",{},"🎛️ Profils rapides · V10"),
-  E("p",{className:"fd-muted"},"Les profils modifient uniquement les réglages d'automatisation. Ils ne vendent jamais d'équipement. Tu peux ensuite ajuster chaque réglage ci-dessous."),cards);
-}
-
 function automationView(){
  const cfg=autoSettings();
  const select=(key,options)=>E("select",{className:"fd-select",value:String(cfg[key]??0),
@@ -3016,7 +2990,6 @@ function automationView(){
   row("Changer de monstre","Après ce nombre de victoires, passe à un monstre accessible de la même zone (hors donjon).",
    select("switchAfter",[[0,"Désactivé"],[5,"5 victoires"],[10,"10 victoires"],[25,"25 victoires"],[50,"50 victoires"]])));
  return E("div",{className:"fd-adventure-page"},
-  automationPresetsPanel(),
   panelHeading("⚙️ Automatisation du combat",
    "Options facultatives, aucune vente ni consommation automatique à l'installation.",
    pill("Paramètres sauvegardés")),
