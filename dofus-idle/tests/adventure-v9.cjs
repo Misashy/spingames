@@ -101,6 +101,12 @@ const nav=(label)=>{
   assert(started.action?.dungeonRun?.roomIndex==null,"Ancien format de parcours inattendu");
   assert.equal(started.action?.dungeonRun?.index,0,"Le donjon ne commence pas à la première salle");
   assert(w.document.querySelector(".fd-dungeon-panel"),"La liste de salles n'est pas affichée");
+  const duringDungeon=[...w.document.querySelectorAll(".fd-monster-row .fd-danger")];
+  assert(duringDungeon.length>0&&duringDungeon.every(b=>b.disabled),
+   "Les monstres d'un donjon actif ne doivent pas permettre de contourner les salles");
+  const abandon=[...w.document.querySelectorAll(".fd-enemy-panel .fd-combat-actions button")]
+   .find(b=>b.textContent.includes("Abandonner le donjon"));
+  assert(abandon,"Le donjon actif doit montrer un bouton d'abandon explicite");
   w.Math.random=()=>0;
   for(let i=0;i<rooms.length*5;i++){
    g.simulateSeconds(3.4);
