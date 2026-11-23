@@ -1416,7 +1416,7 @@ function sidebar(){
  // On affiche le combat en premier, au-dessus de la banque et des métiers.
  const groups=[
   ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"]]],
-  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"],["quests","📜","Quêtes"]]],
+  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"],["quests","📜","Quêtes"],["collection","📚","Collections"]]],
   ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
    [["job:"+id,jobIcon(id),jobName(id)],
     ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
@@ -2387,6 +2387,16 @@ function characterView(){
    "Personnalise ton aventurier, choisis ta classe et distribue tes points comme dans DOFUS.",
    pill("Niv. "+playerLevel()+" / 200")),
   hero,
+  E("section",{className:"fd-character-panel fd-title-picker"},
+   E("div",{className:"fd-character-panel-heading"},E("h3",{},"🎖️ Titres débloqués"),
+    pill((state.unlockedTitles||[]).length+" titre(s)")),
+   E("select",{className:"fd-select",value:state.selectedTitle||"",onchange:e=>{
+    const title=e.target.value;
+    if(title&&!state.unlockedTitles.includes(title))return;
+    state.selectedTitle=title;render();save();
+   }},
+    E("option",{value:""},"Aucun titre"),
+    ...(state.unlockedTitles||[]).map(title=>E("option",{value:title},title)))),
   spellBookPanel("character"),
   E("div",{className:"fd-character-main-layout"},
    characterEquipmentPanel(),
@@ -2654,6 +2664,154 @@ function questsView(){
  return root;
 }
 
+
+/* Encyclopédie de collections : identifiants DOFUS issus des objets, sets,
+   monstres, donjons et régions déjà importés. */
+let collectionTab="sets",collectionQuery="",collectionPage=0,collectionOnlyMissing=false;
+function collectionSetItems(def){
+ return (def?.[1]||[]).map(String).filter(id=>core.items[id]);
+}
+function collectionOwned(id){
+ return Number(state.bank[String(id)]||0)>0||
+  Object.values(state.equipment||{}).some(e=>String(e)===String(id));
+}
+function collectionSetProgress(def){
+ const ids=collectionSetItems(def);
+ return {ids,owned:ids.filter(collectionOwned).length,
+  completed:ids.length>=2&&ids.every(collectionOwned)};
+}
+function claimSetCollection(setId){
+ const id=String(setId),def=equipmentData?.sets?.[id];
+ if(!def||state.collectionClaims[id])return;
+ const done=collectionSetProgress(def);
+ if(!done.completed)return;
+ state.collectionClaims[id]=Date.now();
+ const lvl=Math.max(1,Math.round(done.ids.reduce((n,i)=>n+itemLevel(i),0)/done.ids.length));
+ const xp=90+lvl*14,kamas=70+lvl*12;
+ state.playerXp+=xp;state.kamas+=kamas;state.earned+=kamas;
+ const title="Collectionneur : "+def[0];
+ if(!state.unlockedTitles.includes(title))state.unlockedTitles.push(title);
+ toast("🏅 Panoplie complète ! "+def[0]+" · +"+xp+" XP, +"+kamas+" kamas");
+ render();save();
+}
+function collectionView(){
+ const allSets=Object.entries(equipmentData?.sets||{}).filter(([,def])=>collectionSetItems(def).length>=2);
+ const clear=Object.values(state.dungeonClears||{}).filter(x=>Number(x)>0).length;
+ const known=Object.values(state.dex||{}).filter(x=>Number(x)>0).length;
+ const regions=regionCatalog(),regionsFound=regions.filter(([name])=>state.visitedRegions?.[name]).length;
+ const setsDone=allSets.filter(([id])=>state.collectionClaims[id]).length;
+ const totals={sets:allSets.length,bestiary:Object.keys(world.monsters).length,
+  dungeons:Object.entries(world.zones).filter(([id,z])=>Number(z[5])>=0&&dungeonRoomList(id).length>=2).length,
+  regions:regions.length};
+ const tabs=[
+  ["sets","🧩 Panoplies",setsDone],
+  ["bestiary","🐉 Bestiaire",known],
+  ["dungeons","🏰 Boss",clear],
+  ["regions","🗺️ Régions",regionsFound]];
+ const root=E("div",{className:"fd-adventure-page fd-collection-page"},
+  panelHeading("📚 Collections du Monde des Douze",
+   "Complète les panoplies, découvre des créatures, bats les boss et explore les régions pour progresser.",
+   pill("🏅 "+setsDone+" panoplies récompensées")),
+  E("div",{className:"fd-collection-tabs"},
+   ...tabs.map(([key,label,n])=>B(label+" "+money(n)+"/"+money(totals[key]),()=>{
+    collectionTab=key;collectionPage=0;renderView()
+   },"fd-collection-tab "+(collectionTab===key?"active":"")))),
+  E("div",{className:"fd-adventure-filters"},
+   E("input",{type:"search",className:"fd-collection-search",value:collectionQuery,
+    placeholder:"Rechercher une panoplie, un monstre ou un donjon…",
+    oninput:e=>{collectionQuery=e.target.value;collectionPage=0;renderView();
+     const input=$(".fd-collection-search");if(input){input.focus();input.setSelectionRange(input.value.length,input.value.length)}
+    }}),
+   B(collectionOnlyMissing?"✓ Masquer les obtenus":"Afficher uniquement les manquants",()=>{
+    collectionOnlyMissing=!collectionOnlyMissing;collectionPage=0;renderView()
+   },"fd-secondary")));
+ const search=achievementKey(collectionQuery),entries=[];
+ if(collectionTab==="sets"){
+  for(const [id,def] of allSets){
+   if(search&&!achievementKey(def[0]).includes(search))continue;
+   if(collectionOnlyMissing&&state.collectionClaims[id])continue;
+   entries.push({key:id,def});
+  }
+  entries.sort((a,b)=>a.def[0].localeCompare(b.def[0],"fr"));
+ }else if(collectionTab==="bestiary"){
+  for(const [id,m] of Object.entries(world.monsters)){
+   if(!m?.[0]||(search&&!achievementKey(m[0]).includes(search)))continue;
+   if(collectionOnlyMissing&&state.dex?.[id])continue;
+   entries.push({key:id,m});
+  }
+  entries.sort((a,b)=>a.m[1]-b.m[1]||a.m[0].localeCompare(b.m[0],"fr"));
+ }else if(collectionTab==="dungeons"){
+  for(const [id,z] of Object.entries(world.zones)){
+   if(Number(z[5])<0||dungeonRoomList(id).length<2)continue;
+   if(search&&!achievementKey(z[0]+" "+regionFor(z)).includes(search))continue;
+   if(collectionOnlyMissing&&state.dungeonClears?.[id])continue;
+   entries.push({key:id,z});
+  }
+  entries.sort((a,b)=>a.z[2]-b.z[2]||a.z[0].localeCompare(b.z[0],"fr"));
+ }else{
+  for(const [name,zones] of regions){
+   if(search&&!achievementKey(name).includes(search))continue;
+   if(collectionOnlyMissing&&state.visitedRegions?.[name])continue;
+   entries.push({key:name,zones});
+  }
+ }
+ const pages=Math.max(1,Math.ceil(entries.length/24));
+ collectionPage=Math.max(0,Math.min(collectionPage,pages-1));
+ const grid=E("div",{className:"fd-adventure-grid fd-collection-grid"});
+ for(const entry of entries.slice(collectionPage*24,(collectionPage+1)*24)){
+  if(collectionTab==="sets"){
+   const [id,def]=[entry.key,entry.def],p=collectionSetProgress(def);
+   const claimed=!!state.collectionClaims[id];
+   const card=E("article",{className:"fd-collection-card "+(claimed?"done":p.completed?"ready":""),
+    "data-collection-id":id},
+    E("h3",{},"🧩 "+def[0]),
+    E("small",{},p.owned+" / "+p.ids.length+" pièces possédées"),
+    meter(p.ids.length?100*p.owned/p.ids.length:0));
+   const pieces=E("div",{className:"fd-collection-pieces"});
+   for(const iid of p.ids.slice(0,12)){
+    const owned=collectionOwned(iid);
+    const item=E("div",{className:"fd-collection-piece "+(owned?"owned":"missing"),
+     title:itemName(iid)+(owned?" · possédé":" · manquant")},
+     itemSprite(iid,"fd-collection-piece-art"),E("small",{},itemName(iid)));
+    pieces.append(item);
+   }
+   card.append(pieces,
+    B(claimed?"✓ Récompense reçue":p.completed?"🎁 Valider la collection":
+      "Panoplie incomplète",()=>claimSetCollection(id),"fd-button",claimed||!p.completed));
+   grid.append(card);
+  }else if(collectionTab==="bestiary"){
+   const m=entry.m,won=Number(state.dex?.[entry.key])||0;
+   grid.append(E("article",{className:"fd-collection-card "+(won?"done":"")},
+    mobSprite(entry.key,"fd-collection-mob-art"),
+    E("h3",{},m[0]),E("p",{},"Niv. "+m[1]+" · "+money(won)+" victoire(s)"),
+    pill(won?"✓ Découvert":"🔒 À découvrir",won?"green":"")));
+  }else if(collectionTab==="dungeons"){
+   const z=entry.z,rooms=dungeonRoomList(entry.key),boss=world.monsters[String(rooms[rooms.length-1])];
+   const won=Number(state.dungeonClears?.[entry.key])||0;
+   grid.append(E("article",{className:"fd-collection-card "+(won?"done":"")},
+    mobSprite(rooms[rooms.length-1],"fd-collection-mob-art"),
+    E("h3",{},z[0]),E("p",{},regionFor(z)+" · Boss : "+(boss?.[0]||"Inconnu")),
+    pill(won?"🏆 "+won+" victoire(s)":"🔒 Boss non vaincu",won?"green":""),
+    B("Explorer ce donjon",()=>{state.combatMode="dungeons";selectRegion(regionFor(z));
+     chooseZone(entry.key);state.view="combat";render();save()},"fd-secondary")));
+  }else{
+   const visited=!!state.visitedRegions?.[entry.key];
+   grid.append(E("article",{className:"fd-collection-card "+(visited?"done":"")},
+    regionArt(entry.key,entry.zones,"fd-region-art"),
+    E("h3",{},entry.key),E("p",{},entry.zones.length+" sous-zones"),
+    pill(visited?"✓ Région découverte":"🔒 À explorer",visited?"green":"")));
+  }
+ }
+ if(!entries.length)grid.append(E("p",{className:"fd-muted"},"Aucun élément trouvé avec les filtres actuels."));
+ root.append(E("p",{className:"fd-muted"},money(entries.length)+" entrée(s) · Les objets de panoplie sont comptés dans la banque et sur ton personnage."),
+  grid,
+  E("div",{className:"fd-achievement-pages"},
+   B("← Précédent",()=>{collectionPage--;renderView()},"fd-secondary",collectionPage===0),
+   pill("Page "+(collectionPage+1)+" / "+pages),
+   B("Suivant →",()=>{collectionPage++;renderView()},"fd-secondary",collectionPage>=pages-1)));
+ return root;
+}
+
 function renderView(){
  if(!state)return;
  const v=state.view;
@@ -2668,6 +2826,7 @@ function renderView(){
  else if(v==="recipes")node=craftingView(null,true);
  else if(v==="achievements")node=achievementsView();
  else if(v==="quests")node=questsView();
+ else if(v==="collection")node=collectionView();
  else node=characterView();
  $("#view").replaceChildren(node);
 }
