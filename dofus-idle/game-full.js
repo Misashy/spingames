@@ -355,6 +355,9 @@ function resetStats(){
 function changeClass(id){
  if(!CLASS_BY_ID[id]||state.classId===id)return;
  state.classId=id;state.classSelected=true;
+ if(state.action?.type==="combat"){
+  state.action.spellClass=null;ensureSpellAction(state.action);
+ }
  state.hp=clamp(state.hp,1,maxHp());
  toast("Nouvelle classe : "+CLASS_BY_ID[id][1]);
  render();save();
@@ -814,6 +817,7 @@ function fresh(){
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
   craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
+  spellPreferences:{},spellCasts:0,spellCastsById:{},
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
@@ -821,7 +825,8 @@ function load(){
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
   return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
-  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[]});
+  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[],
+  spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{}});
  }
  let s=fresh();
  try{
@@ -1013,7 +1018,7 @@ function regionOrder(a,b,sign=1){
    pendant la re-création automatique des panneaux de combat (toutes les 900 ms).
    Aucun effet de dégâts n'est écrit dans la sauvegarde. */
 let floatingDamageSeq=0;
-function emitDamageNumber(target,amount,critical=false){
+function emitDamageNumber(target,amount,critical=false,spellName=""){
  if(state?.view!=="combat"||typeof document==="undefined")return;
  const anchor=target==="player"?$(".fd-player-panel .fd-hp-label"):
   $(".fd-enemy-panel .fd-enemy-portrait")||$(".fd-enemy-panel .fd-enemy-hero");
@@ -1021,9 +1026,10 @@ function emitDamageNumber(target,amount,critical=false){
  const rect=anchor.getBoundingClientRect();
  const pop=document.createElement("span");
  const side=target==="player"?"player":"enemy";
- pop.className="fd-combat-damage fd-combat-damage-"+side+(critical?" is-critical":" is-normal");
+ pop.className="fd-combat-damage fd-combat-damage-"+side+(critical?" is-critical":" is-normal")+(spellName?" is-spell":"");
  pop.setAttribute("aria-hidden","true");
- pop.textContent=critical?"💥 COUP CRITIQUE ! −"+Math.round(amount):"−"+Math.round(amount);
+ pop.textContent=spellName?spellName+(critical?" 💥 COUP CRITIQUE !":"")+" −"+Math.round(amount):
+  critical?"💥 COUP CRITIQUE ! −"+Math.round(amount):"−"+Math.round(amount);
  const shift=(floatingDamageSeq++%3-1)*24;
  const width=window.innerWidth||1100,height=window.innerHeight||700;
  const x=rect.width>0?rect.left+rect.width/2+shift:(side==="enemy"?width*.73:width*.23);
@@ -1042,7 +1048,8 @@ function startCombat(id){
  if(!canFight(m)){toast("🔒 "+m[0]+" (niveau "+m[1]+") : niveau "+minimumCombatLevel(m)+" minimum pour combattre. Ton aventurier est niveau "+playerLevel()+". Commence par Incarnam.");return}
  if(state.action?.type==="combat"&&state.action.id===Number(id)){state.action=null;render();save();return}
  if(Object.keys(state.pendingLoot||{}).filter(k=>state.pendingLoot[k]>0).length>=250){toast("Butin temporaire plein. Récupère, vends ou jette les objets.");return}
- state.selectedMonster=String(id);state.action={type:"combat",id:Number(id),progress:0,enemyHp:m[2],enemyTick:0};
+ state.selectedMonster=String(id);state.action={type:"combat",id:Number(id),progress:0,enemyHp:m[2],enemyTick:0,
+  spellClass:state.classId,spellCooldowns:{},spellBuffs:{},spellShield:0,spellDot:null,spellClock:0,spellHistory:[],spellGlobalTimer:0};
  if(state.hp<=0)state.hp=maxHp();
  toast("Combat contre "+m[0]);render();save();
 }
@@ -1061,13 +1068,15 @@ function tick(dt){
  if(!state.action||dt<=0)return false;
  state.totalSeconds=(Number(state.totalSeconds)||0)+dt;
  const a=state.action;
+ if(a.type==="combat")advanceSpellTimers(a,dt);
  // Laisser le monstre à 0 PV pendant 1,8 seconde, même après un one-shot.
  // Les attaques et dégâts ennemis restent suspendus pendant ce délai.
  if(a.type==="combat"&&Number(a.respawnRemaining)>0){
   a.respawnRemaining=Math.max(0,a.respawnRemaining-dt);
   if(a.respawnRemaining===0){
    const next=world.monsters[String(a.id)];
-   if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0}
+   if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0;a.spellDot=null;
+    delete a.spellBuffs.slow;delete a.spellBuffs.weaken;}
   }
   return true;
  }
@@ -1107,23 +1116,42 @@ function tick(dt){
  }
  if(a.type==="combat"){
   const m=world.monsters[String(a.id)];if(!m){state.action=null;return true}
-  const second=1.65-(state.upgrades.weapon||0)*.025;
+  const second=combatAttackInterval(a);
   a.enemyTick=(a.enemyTick||0)+dt;
   let changed=false;
   let attacks=Math.min(10,Math.floor(a.progress/second));a.progress-=attacks*second;
   while(attacks-- && state.action){
-   const crit=criticalChance();
+   const crit=effectiveCombatCrit(a);
    const isCritical=Math.random()<crit;
-   const hit=Math.max(1,Math.round(damage()*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
+   const hit=Math.max(1,Math.round(effectiveCombatDamage(a)*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
    a.enemyHp-=hit;changed=true;
    emitDamageNumber("enemy",hit,isCritical);
    if(a.enemyHp<=0){victory(m,a);break}
   }
-  while(a.enemyTick>=2.8&&state.action&&!a.respawnRemaining){
-   a.enemyTick-=2.8;
-   const enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-defense());
+  if(a.respawnRemaining)return true;
+  if(advanceCombatDot(a,m,dt))changed=true;
+  if(a.respawnRemaining)return true;
+  if(advanceCombatSummon(a,m,dt))changed=true;
+  if(a.respawnRemaining)return true;
+  if(castAutoSpell(a))changed=true;
+  if(a.respawnRemaining)return true;
+  const enemyInterval=2.8*(1+spellBuff(a,"slow"));
+  while(a.enemyTick>=enemyInterval&&state.action&&!a.respawnRemaining){
+   a.enemyTick-=enemyInterval;
+   if(Math.random()<spellBuff(a,"evade")){
+    emitSpellFloat("player","ESQUIVE !","🌫️");changed=true;continue;
+   }
+   let enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-
+    defense());
+   enemyDmg=Math.max(1,Math.round(enemyDmg*(1-spellBuff(a,"armor"))*(1-spellBuff(a,"weaken"))));
+   const absorbed=Math.min(enemyDmg,Number(a.spellShield)||0);
+   if(absorbed>0){
+    a.spellShield=Math.max(0,a.spellShield-absorbed);
+    emitSpellFloat("player","Bouclier −"+absorbed,"🛡️");
+   }
+   enemyDmg=Math.max(0,enemyDmg-absorbed);
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
-   emitDamageNumber("player",enemyDmg);
+   if(enemyDmg>0)emitDamageNumber("player",enemyDmg);
    if(state.hp<=0){state.action=null;state.hp=maxHp();state.log.unshift({kind:"defeat",monsterId:String(a.id),monsterName:m[0]});toast("Défaite : tente un monstre moins puissant.")}
   }
   return changed;
@@ -1139,7 +1167,7 @@ function victory(m,a){
  // L'identité et les taux de drop viennent de DOFUS ; progression adaptée à l'idle.
  const baseXp=Math.max(15,Math.round(17+m[1]*3.2));
  state.playerXp+=Math.round(baseXp*(1+(statValue("sagesse")+gearStat("sagesse"))*.002));
- const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1));
+ const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1)*(1+spellBuff(a,"luck")));
  state.kamas+=kamas;state.earned+=kamas;
  const dropped=[];
  for(const [id,rate] of m[4]){
@@ -1157,7 +1185,8 @@ function victory(m,a){
  state.jobs["78"]=(state.jobs["78"]||0)+Math.ceil(expGain(m[1])*.35);
  state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*
   (state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)));
- a.enemyHp=0;a.enemyTick=0;a.progress=0;a.respawnRemaining=1.8;
+ a.enemyHp=0;a.enemyTick=0;a.progress=0;a.respawnRemaining=1.8;a.spellDot=null;
+ delete a.spellBuffs.slow;delete a.spellBuffs.weaken;
  // Rafraîchit immédiatement la barre à zéro, sans attendre le prochain
  // rendu de la page (qui a lieu au maximum toutes les 900 ms).
  if(state.view==="combat"&&typeof document!=="undefined"&&!document.hidden){
@@ -1775,7 +1804,7 @@ function monsterDropsPanel(id,m){
 function combatPlayerPanel(){
  const pv=clamp(state.hp,0,maxHp()),pct=maxHp()?100*pv/maxHp():0;
  const isRunning=state.action?.type==="combat";
- const timer=isRunning?Math.max(0,1.65-(state.upgrades.weapon||0)*.025-state.action.progress):0;
+ const timer=isRunning?Math.max(0,combatAttackInterval(state.action)-state.action.progress):0;
  const equipment=E("div",{className:"fd-combat-equipment"});
  for(const [slot,id] of Object.entries(state.equipment)){
   const label=EQUIP_LABELS[slot]||slot;
@@ -1788,7 +1817,7 @@ function combatPlayerPanel(){
  return E("section",{className:"fd-fight-panel fd-player-panel"},
   E("div",{className:"fd-fight-panel-title"},E("strong",{},"🛡️ Ton aventurier"),pill("Niv. "+playerLevel(),"green")),
   E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(pv)+" / "+money(maxHp())+" PV"),
-   E("small",{},isRunning?"Prochaine attaque : "+timer.toFixed(1)+" s":"Intervalle d'attaque : "+Math.max(.5,1.65-(state.upgrades.weapon||0)*.025).toFixed(2)+" s")),
+   E("small",{},isRunning?"Prochaine attaque : "+timer.toFixed(1)+" s":"Intervalle d'attaque : "+combatAttackInterval().toFixed(2)+" s")),
   meter(pct,"fd-player-hp"),
   E("div",{className:"fd-player-layout"},
    E("div",{className:"fd-player-gear"},
@@ -1798,7 +1827,7 @@ function combatPlayerPanel(){
     E("div",{className:"fd-fight-section-label"},"Statistiques de combat"),
     E("div",{className:"fd-stat"},E("span",{},"⚔️ Dégâts / coup"),E("strong",{},money(damage()))),
     E("div",{className:"fd-stat"},E("span",{},"🛡️ Défense"),E("strong",{},money(defense()))),
-    E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},(criticalChance()*100).toFixed(1)+" %")),
+    E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},(effectiveCombatCrit()*100).toFixed(1)+" %")),
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
     B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
