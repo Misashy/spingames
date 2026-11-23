@@ -47,6 +47,12 @@ const nav=(label)=>{
   assert(w.DOFUS_IDLE_SPELL_ASSETS,"Catalogue des visuels non chargé");
   assert.equal(w.document.querySelectorAll("img.fd-spell-art").length,3,"Les vraies images de sorts ne s'affichent pas");
   assert.equal(w.document.querySelectorAll("img.fd-spell-art[src$='.webp']").length,3);
+  const achievementCats=g.getAchievementSummary().categories;
+  assert(achievementCats.donjons>=400,"Succès des donjons absents");
+  assert(achievementCats.collections>=500,"Succès des panoplies absents");
+  assert(achievementCats.quetes>=100,"Succès des quêtes absents");
+  assert(g.getQuestSummary().total>=100,"Catalogue de quêtes trop limité");
+  assert(g.getCollectionSummary().sets>=500,"Catalogue de panoplies trop limité");
   const rooms=g.getDungeonRooms("447").map(String);
   assert(rooms.length>=4,"Crypte de Kardorim ne comporte pas plusieurs salles");
   assert.equal(rooms.at(-1),"4051","Kardorim doit être le boss final");
@@ -64,6 +70,8 @@ const nav=(label)=>{
   assert(claim,"La zone Champs déjà visitée doit valider la première quête");
   claim.click();
   assert(g.getState().questClaims["quest-incarnam-0"],"Quête Incarnam non enregistrée");
+  assert(g.getAchievementInfo("quest-success-quest-incarnam-0")?.reached,
+   "Succès lié à la quête non débloqué");
   nav("Collections");
   assert(w.document.querySelectorAll(".fd-collection-tab").length===4,"Les 4 collections sont absentes");
   const input=w.document.querySelector(".fd-collection-search");
@@ -75,6 +83,8 @@ const nav=(label)=>{
   assert(setButton&&!setButton.disabled,"La panoplie complète doit fournir une récompense");
   setButton.click();
   assert(g.getState().collectionClaims["1"],"Collection non validée");
+  assert(g.getAchievementInfo("collection-set-1")?.reached,
+   "Succès de panoplie non débloqué");
   assert(g.getState().unlockedTitles.some(x=>x.includes("Bouftou")),
    "Titre de collection non attribué");
   nav("Personnage");
@@ -99,6 +109,8 @@ const nav=(label)=>{
   }
   const ended=g.getState();
   assert.equal(ended.dungeonClears?.["447"],1,"Kardorim n'est pas enregistré comme vaincu");
+  assert(g.getAchievementInfo("dungeon-447-1")?.reached,
+   "Succès de premier donjon non débloqué");
   assert(ended.dex["4051"]>=1,"Le boss doit compter dans le bestiaire");
   assert(ended.kills>=rooms.length,"Chaque salle doit avoir une vraie victoire");
   assert.equal(Object.values(ended.pendingLoot||{}).reduce((a,b)=>a+Number(b),0),0,
