@@ -1592,7 +1592,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v10.0";
+ $("#buildVersion").textContent="v11.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -2769,6 +2769,59 @@ function claimQuest(qid){
  toast("📜 Quête accomplie : "+q.title+" · +"+q.xp+" XP / +"+q.kamas+" kamas");
  render();save();
 }
+
+/* V11 : guide de progression, maîtres de régions et encyclopédie globale.
+   Les PNJ et textes sont originaux au jeu idle ; les régions existent en base. */
+function regionJourneyPanel(){
+ const ordered=regionCatalog().filter(([r])=>questCatalog.some(q=>q.region===r))
+  .sort((a,b)=>a[0]==="Incarnam"?-1:b[0]==="Incarnam"?1:
+   a[0]==="Astrub"?-1:b[0]==="Astrub"?1:
+   a[0]==="Amakna"?-1:b[0]==="Amakna"?1:
+   regionCombatMin(a[1])-regionCombatMin(b[1]));
+ const chapter=E("div",{className:"fd-v11-regions"});
+ const display=ordered.slice(0,30);
+ for(const [region,zones] of display){
+  const quests=questCatalog.filter(q=>q.region===region);
+  const complete=quests.filter(q=>state.questClaims[q.id]).length;
+  const next=quests.find(q=>!state.questClaims[q.id]);
+  const open=!!next&&questUnlocked(next);
+  const npc=region==="Incarnam"?"Guide d'Incarnam":region==="Astrub"?"Éclaireur d'Astrub":
+   region==="Amakna"?"Messager d'Amakna":"Éclaireur de "+region;
+  const card=E("article",{className:"fd-v11-region"+(complete===quests.length?" complete":"")},
+    E("strong",{},"🧭 "+region),pill("Niveau conseillé "+regionCombatMin(zones)),
+    E("small",{},"🧑 "+npc),
+    meter(quests.length?100*complete/quests.length:0),
+    E("small",{},complete+"/"+quests.length+" étapes"),
+    E("p",{},next?(open?"Prochaine mission : "+next.title:"Mission verrouillée : termine la précédente"):"🎖️ Parcours régional terminé"),
+    B("📜 Voir les missions",()=>{questRegion=region;questPage=0;renderView();document.querySelector(".fd-quest-search")?.focus()},"fd-secondary"),
+    B("🗺️ Explorer",()=>{state.selectedRegion=region;state.combatMode="zones";runNav("combat")},"fd-secondary"));
+  chapter.append(card);
+ }
+ return E("section",{className:"fd-character-panel"},
+  E("h3",{},"🧭 Grande aventure · V11"),
+  E("p",{className:"fd-muted"},"Commence par Incarnam, puis Astrub et Amakna avant les contrées plus dangereuses. Les régions restent libres d'accès : le niveau minimum des monstres s'applique toujours. Les guides sont des PNJ narratifs de DOFUS IDLE."),chapter);
+}
+function encyclopediaProgressPanel(){
+ const monsters=Object.keys(world.monsters).length;
+ const known=Object.keys(state.dex||{}).filter(id=>world.monsters[id]&&Number(state.dex[id])>0).length;
+ const regions=regionCatalog().length;
+ const visited=regionCatalog().filter(([r])=>state.visitedRegions?.[r]).length;
+ const sets=Object.entries(equipmentData?.sets||{}).filter(([,v])=>collectionSetItems(v).length>=2);
+ const completed=sets.filter(([id])=>state.collectionClaims[id]).length;
+ const dungeons=Object.entries(world.zones).filter(([id,z])=>Number(z[5])>=0&&dungeonRoomList(id).length>=2);
+ const cleared=dungeons.filter(([id])=>Number(state.dungeonClears?.[id])>0).length;
+ const rows=[["🐉 Monstres",known,monsters],["🗺️ Régions",visited,regions],
+  ["🧩 Panoplies",completed,sets.length],["🏰 Donjons",cleared,dungeons.length]];
+ const total=rows.reduce((n,x)=>n+x[2],0),done=rows.reduce((n,x)=>n+x[1],0);
+ return E("section",{className:"fd-character-panel"},
+  E("h3",{},"📖 Encyclopédie du Monde des Douze · V11"),
+  E("p",{className:"fd-muted"},"Progression persistante des découvertes. Une panoplie est comptée après récupération de sa récompense."),
+  E("strong",{},"Exploration globale : "+(total?(done*100/total).toFixed(2):"0")+" %"),
+  meter(total?100*done/total:0),
+  E("div",{className:"fd-v11-encyclopedia"},...rows.map(([label,n,max])=>
+   E("div",{className:"fd-v11-stat"},E("strong",{},label),E("span",{},money(n)+" / "+money(max)),meter(max?100*n/max:0)))));
+}
+
 function questsView(){
  const all=questCatalog,completed=all.filter(q=>state.questClaims[q.id]).length;
  const search=achievementKey(questSearch);
@@ -2782,6 +2835,7 @@ function questsView(){
  const pageCount=Math.max(1,Math.ceil(matched.length/24));
  questPage=Math.min(Math.max(0,questPage),pageCount-1);
  const root=E("div",{className:"fd-adventure-page"},
+  regionJourneyPanel(),
   panelHeading("📜 Carnet de quêtes","Des parcours régionaux construits à partir des vrais monstres et donjons du jeu. Les scénarios et récompenses sont propres à DOFUS IDLE.",
    pill(money(completed)+" / "+money(all.length)+" quêtes")),
   E("section",{className:"fd-adventure-summary"},
@@ -2870,6 +2924,7 @@ function collectionView(){
   ["dungeons","🏰 Boss",clear],
   ["regions","🗺️ Régions",regionsFound]];
  const root=E("div",{className:"fd-adventure-page fd-collection-page"},
+  encyclopediaProgressPanel(),
   panelHeading("📚 Collections du Monde des Douze",
    "Complète les panoplies, découvre des créatures, bats les boss et explore les régions pour progresser.",
    pill("🏅 "+setsDone+" panoplies récompensées")),
