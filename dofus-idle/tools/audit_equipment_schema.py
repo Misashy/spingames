@@ -68,3 +68,27 @@ for filename,data in [("ITEM",item),("SET",sets),("EFFECT",effects)]:
   if iid not in keys:continue
   ix=keys.index(iid);entry=values[ix]
   print("ENTRY",filename,iid,repr(entry),flush=True)
+
+item_refs={int(x["rid"]):x for x in item["references"]["RefIds"]}
+set_refs={int(x["rid"]):x for x in sets["references"]["RefIds"]}
+for itemid in [44,70,2411,2414,2416,885,1000,2603,18666]:
+ keys=item["objectsById"]["m_keys"]["Array"]; vals=item["objectsById"]["m_values"]["Array"]
+ if itemid not in keys:continue
+ outer=item_refs[int(vals[keys.index(itemid)]["rid"])]["data"]
+ print("ITEM DETAILS",itemid,"set",outer.get("itemSetId"),"EFFECTS",len(outer.get("possibleEffects",{}).get("Array",[])),flush=True)
+ for e in outer.get("possibleEffects",{}).get("Array",[])[:8]:
+  print(" ITEM_EFFECT",itemid,json.dumps(item_refs.get(int(e.get("rid")),{}),ensure_ascii=False)[:4200],flush=True)
+sk=sets["objectsById"]["m_keys"]["Array"];sv=sets["objectsById"]["m_values"]["Array"]
+for sid in [1,2,4,55]:
+ if sid not in sk:continue
+ outer=set_refs[int(sv[sk.index(sid)]["rid"])]["data"]
+ print("SET DETAILS",sid,"bonuses",len(outer.get("effects",{}).get("Array",[])),flush=True)
+ for i,entry in enumerate(outer.get("effects",{}).get("Array",[])[:4]):
+  print("SET_BONUS",sid,i,flush=True)
+  for e in entry.get("values",{}).get("Array",[])[:7]:
+   print(" SET_EFFECT",sid,i,json.dumps(set_refs.get(int(e.get("rid")),{}),ensure_ascii=False)[:4500],flush=True)
+for effectid in [111,118,119,123,124,125,126,128,138,176,158,115,117,174]:
+ r=db.execute("SELECT descriptionId, characteristic,characteristicOperator,useDice,bonusType FROM EffectData WHERE id=?",(effectid,)).fetchone()
+ if r is not None:
+  t=db.execute("SELECT value FROM translations WHERE lang='fr' AND id=?",(r["descriptionId"],)).fetchone()
+  print("EFFECT_METADATA",effectid,dict(r),str(t["value"])[:140] if t else None,flush=True)
