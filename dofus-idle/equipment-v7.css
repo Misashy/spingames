@@ -1,0 +1,38 @@
+/* Version 7 — vrais jets DOFUS, comparateur et panoplies. */
+.fd-equipment-modal{max-width:700px;width:100%;padding:23px;display:grid;gap:13px}
+.fd-equipment-modal-header{display:flex;align-items:center;gap:14px;background:linear-gradient(140deg,#203b3d,#233c4e);border:1px solid #4d7c71;border-radius:9px;padding:14px}
+.fd-equipment-modal-art{width:88px;height:88px;flex:none;display:grid;place-items:center;font-size:58px}
+.fd-equipment-modal-art img{height:100%;width:100%;object-fit:contain}
+.fd-equipment-modal-header h2{font-size:22px;line-height:1.25;margin:0 0 5px;color:#f9e8bd}
+.fd-equipment-modal-header p{color:#b9d3d2;font-size:12px;margin:0 0 8px}
+.fd-equipment-modal h3{font-size:14px;border-bottom:1px solid #496576;padding-bottom:8px;margin:6px 0 0}
+.fd-equipment-modal>.fd-muted{margin:0;color:#bdced7;font-size:12px}
+.fd-equip-choice{display:grid;gap:7px;font-size:11px;color:#b9cbd7}
+.fd-equip-choice .fd-select{max-width:100%;width:100%}
+.fd-equipment-effects{display:grid;gap:5px;max-height:290px;overflow:auto}
+.fd-equipment-effect{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid #465d70;background:#263646;border-radius:5px;padding:8px 10px;font-size:12px;color:#dfebf1}
+.fd-equipment-effect.is-applied{border-color:#4f8665;background:#25443c}
+.fd-equipment-effect .fd-pill{font-size:9px;padding:4px 7px}
+.fd-equipment-effect>span:first-child{flex:1}
+.fd-equipment-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.fd-equipment-delta{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#293949;border:1px solid #42576c;padding:8px;border-radius:5px;font-size:11px}
+.fd-equipment-delta.positive strong{color:#a9efbe}
+.fd-equipment-delta.negative strong{color:#ffa6ae}
+.fd-equipment-compare-totals{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.fd-equipment-modal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.fd-equipment-modal-actions .fd-button{flex:1}
+.fd-modal-set{display:grid;gap:6px;background:#273f3c;border:1px solid #547e68;border-radius:7px;padding:11px}
+.fd-modal-set h3{color:#e6e5bb;margin:0}
+.fd-set-tier{display:grid;gap:5px;padding:8px 10px;background:#24343c;border:1px solid #43595f;border-radius:5px}
+.fd-set-tier.active{background:#23553d;border-color:#6cbb8d}
+.fd-set-tier strong{font-size:12px;color:#f0e5bd}
+.fd-set-tier small{font-size:10px;line-height:1.5;color:#c4d7d1}
+.fd-set-panel{margin-top:2px;background:linear-gradient(120deg,#263b3e,#1f3340)}
+.fd-equipped-set{display:grid;gap:8px;padding:12px;border:1px solid #4f776a;border-radius:6px;background:#1b3034;margin-bottom:8px}
+.fd-equipped-set-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fd-equipped-set-head strong{font-size:13px;color:#e5e7bb}
+.fd-equipped-set p{font-size:11px;color:#c7dcce;margin:0;line-height:1.5}
+.fd-character-gear-grid .fd-char-gear-slot .fd-mini{padding:5px 6px}
+.fd-bank-page .fd-compare-button{background:#3b6356;border-color:#60937c;color:#e0f5e9}
+.fd-bank-page .fd-compare-button:hover{background:#4a856d}
+@media(max-width:720px){.fd-equipment-modal{padding:14px}.fd-equipment-modal-art{height:68px;width:68px}.fd-equipment-modal-header h2{font-size:17px}.fd-equipment-compare{grid-template-columns:1fr}.fd-equipment-effect{flex-wrap:wrap}.fd-equipment-modal-actions .fd-button{flex-basis:100%}}
