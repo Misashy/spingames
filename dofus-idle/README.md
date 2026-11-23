@@ -1,4 +1,4 @@
-# DOFUS IDLE — Monde des Douze (version 8)
+# DOFUS IDLE — Monde des Douze (version 9)
 
 Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, recettes et monstres de DOFUS 3.7.14.18. Projet indépendant de dofus-clicker.
 
@@ -157,6 +157,55 @@ Les attaques hors ligne restent désactivées : les récoltes et l'artisanat seu
 Tests automatisés :
 - **tests/spells-v8.cjs** vérifie 19 × 3 capacités, les déblocages, sorts automatiques, arrêt de l'automatisation, recharge, soins, boucliers, brûlures, invocations, changements de classe et conservation des anciennes sauvegardes.
 - Le workflow **.github/workflows/dofus-idle-smoke.yml** continue aussi de tester les métiers, les 22 382 succès, les catégories de banque, la fiche des caractéristiques et l'équipement/panoplies V7.
+
+## Version 9 — Icônes de sorts, donjons, quêtes, collections et automatisation
+
+### Les 57 icônes authentiques du client DOFUS 3
+
+Les icônes proviennent de images-spell.zip, SpellData et des traductions françaises, version v6.0_3.7.14.18 du référentiel dofus-sqlite. Elles sont téléchargées, optimisées en WebP et publiées dans assets/spells. Le catalogue assets/spells/catalog.json contient 57 associations, dont 46 exactes, 8 proches et 3 illustrations thématiques. Chaque association non exacte signale le nom du sort DOFUS réellement illustré. Le grimoire et l'historique de combat utilisent ces images, avec un pictogramme de secours en cas d'échec de chargement.
+
+Les lancements déclenchent un effet visuel bref de sort avec la véritable icône et un halo correspondant à Terre/Feu/Eau/Air. Un sort en recharge est grisé, un sort prêt se distingue par son halo. Ces effets sont décoratifs et n'ajoutent pas de dégâts invisibles au moteur.
+
+### Donjons et boss
+
+Chaque sous-zone de donjon contenant plusieurs monstres utilisables devient un parcours de salles : jusqu'à quatre types de monstres réels de la zone, puis un boss sélectionné en fonction du niveau conseillé du donjon. La Crypte de Kardorim utilise les monstres officiels d'Incarnam et se termine contre Kardorim. Plus de 180 donjons sont issus des sous-zones disponibles. Les parcours, les limites de niveau, le bouclier de 5 secondes, l'attaque spéciale toutes les 8 secondes et l'enrage à 35 % PV sont des adaptations DOFUS IDLE, pas les règles tactiques officielles.
+
+Lorsqu'un monstre meurt, sa barre reste à 0 PV pendant 1,8 seconde avant le suivant. Le dernier boss valide une seule victoire de donjon, accorde des kamas/XP bonus et une ressource supplémentaire issue de sa table de butin (récompense garantie propre au prototype, sans revendiquer le taux officiel). Le nombre de donjons terminés est sauvegardé dans dungeonClears. Un donjon ne reboucle pas automatiquement après la dernière salle.
+
+### Quêtes régionales
+
+Le carnet de quêtes propose des étapes liées aux régions réelles : découvrir une zone, vaincre un monstre de la région, explorer une autre zone puis terminer un donjon local si disponible. Les étapes sont déverrouillées successivement au sein de chaque région, sans bloquer la libre exploration ailleurs. Les quêtes accordent des kamas et XP et une chaîne régionale complète débloque un titre cosmétique. Les noms de zones, de monstres et de donjons sont issus des données DOFUS ; les scénarios, XP et récompenses sont des créations DOFUS IDLE, et non les quêtes officielles d'Ankama.
+
+### Collections
+
+L'encyclopédie est paginée pour rester fluide :
+- Panoplies : pièces actuellement possédées en banque ou équipées, récompense unique pour une panoplie complète, titre de collectionneur à sélectionner sur la fiche Personnage.
+- Bestiaire : monstres découverts à partir des victoires réelles.
+- Boss : donjons terminés, trophées de progression et lien pour retourner au donjon.
+- Régions : zones découvertes au cours de l'exploration.
+
+Une collection de panoplie est acquise quand le joueur possède simultanément toutes les pièces. Il faut récupérer la récompense avant de vendre les pièces. Les titres sont purement cosmétiques et n'accordent pas de statistiques gratuites.
+
+### Automatisation du combat (facultative)
+
+Le menu Automatisation permet :
+- butin manuel (défaut), tout en banque, ressources seulement, revente d'objets peu chers non équipables, ou mode mixte ;
+- seuil configurable pour les objets peu chers, avec interdiction systématique de vendre automatiquement un équipement ou une pièce de panoplie ;
+- consommation automatique de pain/nourriture compatible sous un seuil de PV (soins et délai sont des règles idle) ;
+- arrêt automatique du combat sous un seuil de PV pour éviter une défaite ;
+- rotation vers un autre monstre accessible de la même zone après 5, 10, 25 ou 50 victoires, sans modifier l'ordre des salles de donjon.
+
+Tous les automatismes sont désactivés par défaut et conservés dans la clé locale dofus-idle-full-v2. Les anciens personnages, équipements, quêtes, succès et inventaires ne sont pas réinitialisés.
+
+### Succès et tests
+
+Le système de succès intègre désormais également des objectifs pour chaque donjon, chaque étape de quête et chaque panoplie récompensée, avec des paliers de donjons et collections. Les identifiants des 22 382 succès d'origine restent inchangés ; les nouveaux objectifs sont ajoutés sous des identifiants stables.
+
+Le workflow de test continue les tests antérieurs et ajoute tests/adventure-v9.cjs : présence des 57 images dans le dépôt, parcours de 5 salles de la Crypte de Kardorim, boss final, quêtes d'Incarnam, panoplie du Bouftou, titres, automatisation du butin, sauvegarde et nouveaux succès. Les images ont leur propre workflow de reconstruction, dofus-idle-icons-v9.yml.
+
+### Limites
+
+DOFUS IDLE reste un projet fan idle, non un clone technique complet. Les donjons ne reproduisent pas les mécaniques tactiques de chaque boss, les quêtes ne proviennent pas du journal officiel de quêtes, et la fabrication/forgemagie, les PA/PM au tour par tour, le multijoueur et la synchronisation cloud ne sont pas couverts par cette version. Les capacités spéciales affichées et les titres sont propres au prototype. Ne pas confondre les icônes officielles récupérées avec une reproduction des véritables sorts DOFUS.
 
 ## Fidélité et limites
 
