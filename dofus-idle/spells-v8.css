@@ -1,0 +1,78 @@
+/* DOFUS IDLE V8 — Grimoire des 19 classes, 57 sorts idle. */
+.fd-spell-book{
+ background:linear-gradient(145deg,#243849 0%,#1d2e3e 100%);
+ border:1px solid #4a6b77;border-radius:9px;padding:16px;
+ min-width:0;display:grid;gap:12px;
+}
+.fd-spell-book-character{margin:16px 0 20px;border-color:#ab8955;background:linear-gradient(125deg,#283f47,#2b3745)}
+.fd-spell-book-combat{margin:13px 0 0;border-color:#56796e;background:linear-gradient(125deg,#21363e,#263344)}
+.fd-spell-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 14px}
+.fd-spell-head-title{display:grid;gap:4px}
+.fd-spell-header h3{margin:0;color:#ffe3a1;font-size:17px;font-weight:900;line-height:1.25}
+.fd-spell-header small{font-size:10px;color:#d0e2df}
+.fd-spell-intro{font-size:11px;line-height:1.6;color:#c8d9df;margin:0}
+.fd-spell-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.fd-spell-card{border:1px solid #4c6673;background:linear-gradient(148deg,#2c4050,#1d2e3b);border-radius:9px;
+ padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.fd-spell-card.is-ready{border-color:#8aceaa;box-shadow:inset 0 1px 0 #d9ebbb35,0 0 8px #5cc79b18}
+.fd-spell-card.locked{filter:saturate(.55);opacity:.75}
+.fd-spell-card-top{display:flex;align-items:center;gap:10px}
+.fd-spell-icon{width:53px;height:53px;border-radius:10px;border:1px solid #916e3b;
+ background:linear-gradient(150deg,#594c31,#354c56);font-size:29px;
+ flex:0 0 53px;display:grid;place-items:center;text-shadow:0 2px 6px #151e23}
+.fd-spell-card.locked .fd-spell-icon{filter:grayscale(.75);background:#3b424a}
+.fd-spell-name{min-width:0;display:grid;gap:4px}
+.fd-spell-name strong{color:#ffebc9;font-weight:900;font-size:12px;line-height:1.35}
+.fd-spell-name small{color:#bbcdd7;font-size:10px;line-height:1.4}
+.fd-spell-description{color:#d7e1e7;font-size:11px;line-height:1.55;margin:0;flex:1}
+.fd-spell-recharge{display:grid;gap:5px}
+.fd-spell-recharge-line{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#a9d8c1}
+.fd-spell-recharge-line strong{color:#e5f6d7}
+.fd-spell-meter{height:6px;background:#102e2d;border-radius:5px;overflow:hidden}
+.fd-spell-meter span{display:block;background:linear-gradient(90deg,#429778,#a5daa0);height:100%;transition:width .17s}
+.fd-spell-controls{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}
+.fd-spell-controls button{min-height:34px;padding:8px 9px;font-size:10px;font-weight:800;border:1px solid #5d7a84;border-radius:5px;cursor:pointer;color:#e8f6e9;background:#344959;flex:1}
+.fd-spell-controls button:hover:not(:disabled){background:#446c68}
+.fd-spell-controls button:focus-visible{outline:2px solid #b3ebbd;outline-offset:2px}
+.fd-spell-controls button:disabled{opacity:.58;cursor:not-allowed}
+.fd-spell-auto.active{background:#215d4c!important;border-color:#4ca885!important;color:#d5ffda!important}
+.fd-spell-auto.off{background:#514842!important;border-color:#8d755d!important}
+.fd-spell-cast{background:linear-gradient(145deg,#975f2e,#77542d)!important;border-color:#d89e52!important;color:#fff3d8!important}
+.fd-spell-cast:hover:not(:disabled){background:#b27833!important}
+.fd-spell-cast:disabled{background:#44464e!important;border-color:#6c6470!important;color:#ddd0cf!important}
+.fd-spell-buffs,.fd-spell-history{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:10px;
+ background:#19353a;border:1px solid #406c67;border-radius:6px}
+.fd-spell-buffs>strong,.fd-spell-history>strong{color:#e5f2cd;font-size:11px;margin-right:5px}
+.fd-spell-buffs .fd-pill{font-size:10px}
+.fd-spell-history{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:#22333e;border-color:#415969}
+.fd-spell-history>strong{grid-column:1/-1}
+.fd-spell-history-line{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:5px;background:#293e4b}
+.fd-spell-history-line span{font-size:11px;color:#f6e0b6}
+.fd-spell-history-line small{font-size:10px;color:#c0dce1;text-align:right}
+.fd-spell-floating{position:fixed;pointer-events:none;z-index:195;
+ transform:translate(-50%,-50%);white-space:nowrap;max-width:90vw;overflow:hidden;
+ text-overflow:ellipsis;text-align:center;font-size:19px;line-height:1.3;font-weight:900;
+ color:#b4ffba;-webkit-text-stroke:.3px #243c1e;
+ text-shadow:0 2px 3px #172222,0 2px 9px #478668;
+ animation:fd-spell-pop 1.55s cubic-bezier(.18,.6,.25,1) forwards}
+.fd-spell-floating-enemy{color:#ffe7a6;text-shadow:0 2px 4px #381e22,0 0 15px #a3542a}
+.fd-combat-damage.is-spell{color:#aef0f8;font-size:29px;text-shadow:0 3px 8px #102d36,0 0 15px #26a3d7}
+.fd-combat-damage.is-spell.is-critical{font-size:35px;color:#ffe059;text-shadow:0 3px 6px #3a1d14,0 0 20px #f4b529}
+@keyframes fd-spell-pop{
+ 0%{opacity:0;transform:translate(-50%,-20%) scale(.75)}
+ 14%{opacity:1;transform:translate(-50%,-60%) scale(1.22)}
+ 45%{opacity:1;transform:translate(-50%,-140%) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-235%) scale(.88)}
+}
+@media(max-width:1380px){.fd-spell-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.fd-spell-grid{grid-template-columns:1fr}.fd-spell-history{grid-template-columns:1fr}}
+@media(max-width:640px){
+ .fd-spell-book{padding:12px}
+ .fd-spell-grid{grid-template-columns:1fr}
+ .fd-spell-card-top{gap:9px}
+ .fd-spell-icon{width:45px;height:45px;flex-basis:45px;font-size:25px}
+ .fd-spell-floating{font-size:15px}
+ .fd-combat-damage.is-spell{font-size:21px}
+ .fd-combat-damage.is-spell.is-critical{font-size:26px}
+}
+@media(prefers-reduced-motion:reduce){.fd-spell-floating{animation:none;opacity:1}}
