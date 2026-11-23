@@ -10,6 +10,8 @@ on:
       - 'dofus-idle/tests/bank-character-combat.cjs'
       - 'dofus-idle/tests/equipment-v7.cjs'
       - 'dofus-idle/tests/spells-v8.cjs'
+      - 'dofus-idle/tests/adventure-v9.cjs'
+      - 'dofus-idle/assets/spells/catalog.json'
       - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-smoke.yml'
 permissions:
@@ -32,3 +34,4 @@ jobs:
           node dofus-idle/tests/bank-character-combat.cjs
           node dofus-idle/tests/equipment-v7.cjs
           node dofus-idle/tests/spells-v8.cjs
+          node dofus-idle/tests/adventure-v9.cjs
