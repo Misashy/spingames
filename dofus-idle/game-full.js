@@ -828,11 +828,13 @@ function regionCatalog(){
   if(!map.has(region))map.set(region,[]);
   map.get(region).push([id,z]);
  }
- for(const zones of map.values())zones.sort((a,b)=>a[1][2]-b[1][2]||String(a[1][0]).localeCompare(String(b[1][0]),"fr"));
+ const sign=state.combatSort==="desc"?-1:1;
+ for(const zones of map.values())zones.sort((a,b)=>sign*(a[1][2]-b[1][2])||String(a[1][0]).localeCompare(String(b[1][0]),"fr"));
  return [...map.entries()].sort((a,b)=>{
-  const ia=REGIONS_FAVORITES.indexOf(a[0]),ib=REGIONS_FAVORITES.indexOf(b[0]);
-  if(ia>=0||ib>=0)return (ia<0?99:ia)-(ib<0?99:ib);
-  return a[0].localeCompare(b[0],"fr");
+  const sign=state.combatSort==="desc"?-1:1;
+  const minA=Math.min(...a[1].map(([,z])=>Number(z[2])||1));
+  const minB=Math.min(...b[1].map(([,z])=>Number(z[2])||1));
+  return sign*(minA-minB)||a[0].localeCompare(b[0],"fr");
  });
 }
 function zoneSymbol(name){
@@ -1007,7 +1009,8 @@ function combatZoneCard(id,z){
   difficultyChip(zoneLevel),E("span",{className:"fd-chevron"},open?"−":"+"));
  card.append(head);
  if(open){
-  const matches=z[3].filter(mid=>world.monsters[String(mid)]&&world.monsters[String(mid)][0].toLowerCase().includes(monsterQuery.toLowerCase()));
+  const matches=z[3].filter(mid=>world.monsters[String(mid)]&&world.monsters[String(mid)][0].toLowerCase().includes(monsterQuery.toLowerCase()))
+   .sort((x,y)=>world.monsters[String(x)][1]-world.monsters[String(y)][1]);
   const rows=E("div",{className:"fd-zone-monsters"},E("div",{className:"fd-zone-monster-head"},"MONSTRES DE LA ZONE",pill(money(matches.length))));
   if(matches.length>20)rows.append(E("input",{className:"fd-zone-monster-search",type:"search",value:monsterQuery,placeholder:"Chercher un monstre de cette zone…",
    oninput:e=>{monsterQuery=e.target.value;monsterPage=0;renderView();const next=$(".fd-zone-monster-search");if(next){next.focus();next.setSelectionRange(next.value.length,next.value.length)}}}));
@@ -1027,7 +1030,13 @@ function zoneView(){
  const all=regionCatalog();
  const mode=state.combatMode==="dungeons"?"dungeons":"zones";
  const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="dungeons"?Number(z[5])>=0:Number(z[5])<0)])
-  .filter(([name,zones])=>zones.length>0);
+  .filter(([name,zones])=>zones.length>0)
+  .sort((a,b)=>{
+   const sign=state.combatSort==="desc"?-1:1;
+   const levelA=Math.min(...a[1].map(([,z])=>Number(z[2])||1));
+   const levelB=Math.min(...b[1].map(([,z])=>Number(z[2])||1));
+   return sign*(levelA-levelB)||a[0].localeCompare(b[0],"fr");
+  });
  const chosen=regions.find(([name])=>name===state.selectedRegion);
  const outer=E("div",{className:"fd-combat-page"},
   E("div",{className:"fd-combat-tabs"},
@@ -1035,6 +1044,11 @@ function zoneView(){
    B("🏰 Donjons",()=>{state.combatMode="dungeons";state.selectedRegion="";combatOpenZone="";zoneQuery="";render();save()},"fd-combat-tab "+(mode==="dungeons"?"active":"")),
    B("📚 Bestiaire",()=>runNav("bestiary"),"fd-combat-tab"),
    B("🎒 Équipement",()=>runNav("character"),"fd-combat-tab")));
+ const sortSelect=E("label",{className:"fd-combat-sort"},"Trier par niveau",
+  E("select",{className:"fd-select",value:state.combatSort||"asc",
+   onchange:e=>{state.combatSort=e.target.value;render();save()}},
+   E("option",{value:"asc"},"Niveau croissant ↑"),
+   E("option",{value:"desc"},"Niveau décroissant ↓")));
  if(!chosen){
   const grid=E("div",{className:"fd-region-cards"});
   for(const [name,zones] of regions){
@@ -1047,11 +1061,12 @@ function zoneView(){
   }
   outer.append(panelHeading("🌍 Choisis une région",
     "Incarnam, Amakna, Île des Wabbits, Moon, Frigost et toutes les régions présentes dans DOFUS 3.",
-    pill(money(regions.length)+" régions")),grid);
+    pill(money(regions.length)+" régions")),sortSelect,grid);
   return outer;
  }
  const [region,zones]=chosen;
- const filtered=zones.filter(([id,z])=>String(z[0]+" "+z[1]).toLowerCase().includes(zoneQuery.toLowerCase()));
+ const filtered=zones.filter(([id,z])=>String(z[0]+" "+z[1]).toLowerCase().includes(zoneQuery.toLowerCase()))
+  .sort((a,b)=>(state.combatSort==="desc"?-1:1)*(Number(a[1][2])-Number(b[1][2]))||a[1][0].localeCompare(b[1][0],"fr"));
  const cards=E("div",{className:"fd-combat-zone-grid"});
  for(const [id,z] of filtered)cards.append(combatZoneCard(id,z));
  outer.append(E("div",{className:"fd-combat-breadcrumb"},
@@ -1059,6 +1074,7 @@ function zoneView(){
     E("strong",{className:"fd-region-heading"},regionArt(region,zones,"fd-region-breadcrumb-art"),E("span",{},region)),
     pill(money(zones.length)+" zones")),
   E("div",{className:"fd-battle-sections"},combatPlayerPanel(),combatEnemyPanel()),
+  sortSelect,
   panelHeading(mode==="dungeons"?"🏰 Donjons de "+region:"⚔️ Zones de "+region,
    "Clique sur une zone pour afficher ses véritables monstres, puis choisis Combattre ou Butins.",
    pill(money(filtered.length)+" affichées")),
