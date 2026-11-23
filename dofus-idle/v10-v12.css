@@ -1,0 +1,21 @@
+/* V10 métiers */
+.fd-v10-queue,.fd-v12-cloud{margin:14px 0;padding:18px}
+.fd-v10-queue-list{display:grid;gap:8px}
+.fd-v10-queue-entry{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#192c36;border:1px solid #4b6570;padding:10px;border-radius:7px}
+.fd-v10-queue-entry span:nth-child(2){flex:1;min-width:130px;font-size:12px}
+.fd-v10-craft-extra{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.fd-v10-craft-extra button{font-size:10px;padding:7px}
+.fd-v10-deps{display:block;line-height:1.5;margin-top:8px}
+.fd-v11-regions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}
+.fd-v11-region{display:grid;align-content:start;gap:9px;padding:14px;border-radius:8px;background:#1d3039;border:1px solid #53727a}
+.fd-v11-region.complete{border-color:#5b9a70;background:#274139}
+.fd-v11-region>strong{color:#f8df9e}
+.fd-v11-region small,.fd-v11-region p{color:#c4d3d9;font-size:11px;margin:0;line-height:1.5}
+.fd-v11-region button{width:100%}
+.fd-v11-encyclopedia{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+.fd-v11-stat{display:grid;gap:6px;padding:11px;background:#1d3039;border-radius:8px}
+.fd-v11-stat span{font-size:12px;color:#c0d5d5}
+.fd-v12-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.fd-v12-actions select{max-width:190px}
+.fd-v12-cloud input{max-width:400px;width:100%;display:block;margin:10px 0}
+@media(max-width:700px){.fd-v11-regions{grid-template-columns:1fr}.fd-v12-actions>*{width:100%;max-width:none!important}}
