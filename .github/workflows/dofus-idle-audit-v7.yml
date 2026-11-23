@@ -1,0 +1,27 @@
+name: Audit des effets et panoplies DOFUS 3 V7
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dofus-idle/tools/audit_equipment_schema.py'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Télécharger les données officielles épinglées
+        run: |
+          mkdir -p /tmp/dofus-v7
+          base=https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18
+          for n in itemsdata itemsetsdata effectsdata characteristicsdata; do
+            curl -fL --retry 3 "$base/$n.json" -o "/tmp/dofus-v7/$n.json"
+          done
+      - name: Auditer les structures et exemples pour V7
+        run: python dofus-idle/tools/audit_equipment_schema.py
