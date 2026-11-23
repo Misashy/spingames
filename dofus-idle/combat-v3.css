@@ -155,3 +155,54 @@
  .fd-region-breadcrumb-art{width:30px;height:30px;}
  .fd-combat-page .fd-battle-sections{margin-bottom:14px;}
 }
+
+
+/* V6 — Conditions d'accès explicites, Incarnam prioritaire et dégâts animés */
+.fd-incarnam-hint{display:inline-flex!important;align-items:center;color:#aef2b3!important;font-weight:850;letter-spacing:.25px}
+.fd-zone-min-level{font-size:10px!important;line-height:1.45;color:#aad9bc!important;font-weight:800}
+.fd-combat-min-level{font-size:10px!important;font-weight:800;line-height:1.4}
+.fd-combat-min-level.is-locked{color:#ffc7a2!important}
+.fd-combat-min-level.is-available{color:#a2e4ad!important}
+.fd-monster-buttons .fd-danger:disabled{opacity:.88;background:#624e4f;color:#f9d8c6;border-color:#8e6d63;cursor:not-allowed}
+.fd-monster-buttons .fd-danger{font-size:9.5px;min-height:29px;white-space:normal}
+.fd-fight-level-info{border:1px solid #4d7563;background:#23443c;border-radius:7px;padding:10px 13px;display:grid;gap:5px;line-height:1.4}
+.fd-fight-level-info strong{font-size:12px;color:#b2efbe}
+.fd-fight-level-info small{font-size:11px;color:#d4e7da}
+.fd-fight-level-info.is-locked{border-color:#aa815b;background:#4b352e}
+.fd-fight-level-info.is-locked strong{color:#ffd3a0}
+.fd-fight-level-info.is-locked small{color:#ffe5d2}
+.fd-combat-rule{background:#1d3442;border-left:4px solid #69b7df;border-radius:6px;padding:12px 15px;display:flex;align-items:start;flex-wrap:wrap;gap:7px 13px}
+.fd-combat-rule strong{font-size:12px;color:#c1e4f5;white-space:nowrap}
+.fd-combat-rule span{font-size:11px;line-height:1.55;color:#cfdae3;flex:1}
+.fd-combat-damage{position:fixed;z-index:190;pointer-events:none;user-select:none;white-space:nowrap;display:block;text-align:center;font-weight:1000;font-size:31px;line-height:1.18;letter-spacing:-.5px;
+ transform:translate(-50%,-50%);color:#fff2cf;
+ -webkit-text-stroke:.45px #442116;text-shadow:0 2px 0 #2c1b23,0 3px 8px #070b14,0 0 15px #fa8b36;
+ animation:fd-damage-rise 1.35s cubic-bezier(.18,.65,.32,1) forwards}
+.fd-combat-damage-player{color:#ff8190;text-shadow:0 2px 0 #440d27,0 4px 12px #0a101c,0 0 18px #f25656}
+.fd-combat-damage.is-critical{font-size:39px;letter-spacing:.4px;color:#ffde55;
+ -webkit-text-stroke:1px #852a06;
+ text-shadow:0 3px 0 #6e2012,0 5px 9px #150b14,0 0 20px #fc5e11,0 0 34px #ffd532;
+ animation:fd-damage-crit 1.4s cubic-bezier(.17,.7,.2,1) forwards}
+@keyframes fd-damage-rise{
+ 0%{opacity:0;transform:translate(-50%,-30%) scale(.65)}
+ 12%{opacity:1;transform:translate(-50%,-60%) scale(1.22)}
+ 36%{opacity:1;transform:translate(-50%,-105%) scale(1)}
+ 75%{opacity:.9;transform:translate(-50%,-178%) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-225%) scale(.9)}
+}
+@keyframes fd-damage-crit{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-8deg)}
+ 13%{opacity:1;transform:translate(-50%,-68%) scale(1.45) rotate(2deg)}
+ 30%{opacity:1;transform:translate(-50%,-112%) scale(1.2)}
+ 65%{opacity:1;transform:translate(-50%,-165%) scale(1.14)}
+ 100%{opacity:0;transform:translate(-50%,-230%) scale(1)}
+}
+@media(max-width:760px){
+ .fd-combat-damage{font-size:26px}
+ .fd-combat-damage.is-critical{font-size:29px}
+ .fd-combat-rule{display:grid}
+ .fd-fight-level-info strong{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ .fd-combat-damage,.fd-combat-damage.is-critical{animation:none;opacity:1;transform:translate(-50%,-50%)}
+}
