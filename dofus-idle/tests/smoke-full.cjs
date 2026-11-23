@@ -134,6 +134,24 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    'Un critique doit être plus visible et explicitement indiqué');
   w.Math.random=()=>0;
   w.DOFUS_IDLE_FULL.simulateSeconds(20);
+  // Un one-shot ne doit PAS remettre aussitôt le monstre à 100 % PV.
+  const ko=w.DOFUS_IDLE_FULL.getState();
+  assert(ko.kills>=1,'la victoire automatique ne fonctionne pas');
+  assert.equal(ko.action.enemyHp,0,'le monstre vaincu doit rester à 0 PV');
+  assert(ko.action.respawnRemaining>0,'un délai de réapparition est requis');
+  assert(w.document.querySelector('.fd-enemy-defeated'),'le message KO doit être visible');
+  assert(w.document.querySelector('.fd-enemy-panel .fd-hp-label')?.textContent.includes('0 /'),
+   'le joueur doit réellement voir 0 PV');
+  w.DOFUS_IDLE_FULL.simulateSeconds(0.8);
+  assert.equal(w.DOFUS_IDLE_FULL.getState().action.enemyHp,0,'le 0 PV doit rester visible');
+  w.DOFUS_IDLE_FULL.simulateSeconds(1.1);
+  assert(w.DOFUS_IDLE_FULL.getState().action.enemyHp>0,'l’ennemi suivant doit réapparaître après le délai');
+  // L'ancien test supposait plusieurs victoires en un unique tick.
+  // Avec un délai de KO intentionnel, simuler une suite de véritables combats.
+  for(let i=0;i<20 && w.DOFUS_IDLE_FULL.levelOf(w.DOFUS_IDLE_FULL.getState().playerXp).level<2;i++){
+   w.DOFUS_IDLE_FULL.simulateSeconds(3);
+   w.DOFUS_IDLE_FULL.simulateSeconds(2);
+  }
   const state=w.DOFUS_IDLE_FULL.getState();
   assert(state.kills>=1,'la victoire automatique ne fonctionne pas');
   assert(Object.keys(state.gearDrops).length>=1,'aucun équipement ne tombe lors du roll bonus forcé');
@@ -160,6 +178,15 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   eniripsa.click();
   assert.equal(w.DOFUS_IDLE_FULL.getState().classId,'eniripsa','changement de classe non sauvegardé');
   assert(w.document.querySelectorAll('.fd-char-stat-row').length===6,'caractéristiques à distribuer manquantes');
+  assert(w.document.querySelectorAll('.fd-advanced-row').length>=55,'fiche de caractéristiques DOFUS trop limitée');
+  for(const label of ['PA','PM','Portée (PO)','Initiative','Prospection','Invocations','Pods',
+    'Dommages Terre','Dommages Feu','Dommages Eau','Dommages Air','Résistance Neutre',
+    'Résistance Critique','Résistance Poussée','Esquive PA','Retrait PM','Tacle','Fuite']){
+    assert([...w.document.querySelectorAll('.fd-advanced-row')].some(row=>row.getAttribute('data-stat-name')===label),
+      'Caractéristique DOFUS manquante : '+label);
+  }
+  assert(w.document.querySelector('.fd-advanced-disclaimer').textContent.includes('Indicatif'),
+    'Les effets non simulés doivent être explicitement signalés');
   const points=w.DOFUS_IDLE_FULL.getState().playerXp;
   const addPoint=w.document.querySelector('.fd-char-stat-row .fd-mini');
   assert(addPoint&&!addPoint.disabled,'niveau acquis mais distribution de points impossible');
