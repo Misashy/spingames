@@ -1205,6 +1205,7 @@ function bankView(){
     B("Vendre 1",()=>sell(id,1),"fd-mini"),
     B("Tout vendre",()=>sell(id,qty),"fd-mini"),
     B("Sources",()=>showSources(id),"fd-mini"),
+    gearSlot(id)?B("Comparer",()=>equipmentDetails(id),"fd-mini fd-compare-button"):null,
     gearSlot(id)?B(playerLevel()<itemLevel(id)?"Niv. "+itemLevel(id)+" requis":"Équiper",()=>equip(id),"fd-mini",playerLevel()<itemLevel(id)):null)));
  }
  const filters=E("div",{className:"fd-bank-controls"},
@@ -1241,8 +1242,97 @@ function sell(id,qty){
  state.itemsSold=(state.itemsSold||0)+count;
  toast("Vendu : "+money(count)+" × "+itemName(id)+" · +"+money(earn)+" kamas");render();save();
 }
-function equip(id){
- if(!has(id))return;const slot=gearSlot(id);if(!slot)return;
+
+/* Comparer un équipement : les écarts incluent le changement de panoplie.
+   Chaque objet utilise le jet moyen d'une plage officielle, non un jet inventé. */
+function equipmentDetails(id,slotChoice=preferredGearSlot(id)){
+ id=String(id);if(!core.items[id]||!gearSlot(id))return;
+ const candidate=availableGearSlots(id);
+ const slot=candidate.includes(slotChoice)?slotChoice:candidate[0];
+ const current=gearStatsFor(state.equipment);
+ const hypothetical={...state.equipment,[slot]:id};
+ const next=gearStatsFor(hypothetical);
+ const effects=itemEffects(id),setInfo=itemSetInfo(id);
+ const modal=E("div",{className:"fd-modal fd-equipment-modal"},
+  E("div",{className:"fd-equipment-modal-header"},itemSprite(id,"fd-equipment-modal-art"),
+   E("div",{},E("h2",{},itemName(id)),
+    E("p",{},typeName(id)+" · Niveau "+itemLevel(id)),
+    pill("Jet médian des bornes DOFUS 3","green"))));
+ if(candidate.length>1){
+  modal.append(E("label",{className:"fd-equip-choice"},"Emplacement",
+   E("select",{className:"fd-select",value:slot,onchange:e=>equipmentDetails(id,e.target.value)},
+    ...candidate.map(k=>E("option",{value:k},EQUIP_LABELS[k]||k))));
+ }
+ modal.append(E("p",{className:"fd-muted"},"Remplace : "+(state.equipment[slot]?itemName(state.equipment[slot]):"Emplacement vide")));
+ const bonuses=E("div",{className:"fd-equipment-effects"});
+ for(const line of effects){
+  const key=gearEffectKey(line[0]);
+  bonuses.append(E("div",{className:"fd-equipment-effect "+(key?"is-applied":"")},
+   E("span",{},statTooltip(line)),
+   pill(key?"Appliqué (idle)":"Hors combat idle",key?"green":"")));
+ }
+ modal.append(E("h3",{},"Effets de l'objet"),
+  effects.length?bonuses:E("p",{className:"fd-muted"},"Aucun jet d'effet disponible pour cet objet dans la source épinglée."));
+ if(setInfo){
+  const sid=equipmentData.items[id][0],count=next.sets.find(x=>x.id===String(sid))?.count||1;
+  const setBlock=E("section",{className:"fd-modal-set"},
+   E("h3",{},"🧩 "+setInfo[0]+" · "+count+" / "+setInfo[1].length+" pièces"),
+   E("small",{className:"fd-muted"},"Bonus officiel correspondant au nombre de pièces équipées."));
+  for(let n=2;n<=setInfo[1].length;n++){
+   const lines=setInfo[2]?.[n-1]||[];
+   if(!lines.length)continue;
+   const div=E("div",{className:"fd-set-tier "+(n===count?"active":""),E("strong",{},n+" pièces"+(n===count?" — bonus actif":"")));
+   div.append(E("small",{},lines.map(statTooltip).join(" · ")));
+   setBlock.append(div);
+  }
+  modal.append(setBlock);
+ }
+ const keys=["vitalite","force","intelligence","chance","agilite","sagesse",
+  "power","critical","ap","mp","range","damage","resistance","resistancePct"];
+ const diff=keys.map(key=>[key,(next.stats[key]||0)-(current.stats[key]||0)]).filter(([,d])=>d!==0);
+ const list=E("div",{className:"fd-equipment-compare"});
+ for(const [key,delta] of diff)list.append(E("div",{className:"fd-equipment-delta "+(delta>0?"positive":"negative")},
+  E("span",{},BONUS_LABELS[key]||key),E("strong",{},(delta>0?"+":"")+delta)));
+ modal.append(E("h3",{},"Comparaison avec ton stuff actuel"),
+  diff.length?list:E("p",{className:"fd-muted"},"Aucun écart de statistique actuellement simulée."),
+  E("div",{className:"fd-equipment-compare-totals"},
+   pill("❤️ "+money(maxHpFor(state.equipment))+" → "+money(maxHpFor(hypothetical))+" PV"),
+   pill("⚔️ "+money(damageFor(state.equipment))+" → "+money(damageFor(hypothetical))+" dégâts"),
+   pill("🛡️ "+money(defenseFor(state.equipment))+" → "+money(defenseFor(hypothetical))+" défense")));
+ const allowed=has(id)&&playerLevel()>=itemLevel(id);
+ modal.append(E("div",{className:"fd-equipment-modal-actions"},
+  B(allowed?"⚔️ Équiper dans "+(EQUIP_LABELS[slot]||slot):"Niveau "+itemLevel(id)+" requis",
+   ()=>{closeModal();equip(id,slot)},"fd-button",!allowed),
+  B("Fermer",closeModal,"fd-secondary")));
+ $("#modalRoot").replaceChildren(E("div",{className:"fd-overlay",
+  onclick:e=>{if(e.target.classList.contains("fd-overlay"))closeModal()}},modal));
+}
+function equipmentSetPanel(){
+ const active=equippedSetInfo();
+ const root=E("section",{className:"fd-character-panel fd-set-panel"},
+  E("div",{className:"fd-character-panel-heading"},
+   E("h3",{},"🧩 Mes panoplies"),pill(active.length+" actives")));
+ if(!active.length)root.append(E("p",{className:"fd-muted"},"Équipe plusieurs pièces d'une même panoplie pour activer ses véritables bonus. Les bonus commencent généralement à 2 pièces."));
+ for(const row of active){
+  const container=E("div",{className:"fd-equipped-set"},
+   E("div",{className:"fd-equipped-set-head"},E("strong",{},row.name),
+    pill(row.count+" / "+row.total+" pièces",row.count>=2?"green":"")),
+   meter(100*row.count/row.total));
+  const currentTier=row.count>=2?row.bonuses:[];
+  container.append(E("p",{},currentTier?.length?
+   currentTier.map(statTooltip).join(" · "):
+   "Encore "+Math.max(1,2-row.count)+" pièce(s) pour un bonus."));
+  root.append(container);
+ }
+ return root;
+}
+
+function equip(id,chosenSlot=null){
+ id=String(id);
+ if(!has(id))return;
+ const allowed=availableGearSlots(id);
+ const slot=chosenSlot&&allowed.includes(chosenSlot)?chosenSlot:preferredGearSlot(id);
+ if(!slot)return;
  if(playerLevel()<itemLevel(id)){toast("Niveau de combat "+itemLevel(id)+" requis pour équiper "+itemName(id)+".");return}
  if(slot in state.equipment){
   const old=state.equipment[slot];if(old&&!has(old)&&slots()>=bankCap()&&state.bank[id]>1){toast("Banque pleine.");return}
@@ -1646,6 +1736,7 @@ function characterEquipmentPanel(){
    id?itemSprite(id,"fd-char-gear-image"):E("span",{className:"fd-char-gear-image"},SLOT_ICONS[slot]||"＋"),
    E("strong",{},EQUIP_LABELS[slot]||slot),
    E("small",{},id?itemName(id):"Emplacement vide"));
+  if(id&&equipmentData?.items?.[String(id)])card.append(B("Détails",()=>equipmentDetails(id,slot),"fd-mini"));
   if(id)card.append(B("Retirer",()=>{
    if(!add(id)){toast("Banque pleine.");return}
    state.equipment[slot]=null;state.hp=Math.min(state.hp,maxHp());render();save();
@@ -1800,6 +1891,7 @@ function characterView(){
      E("div",{className:"fd-stat"},E("span",{},"Défense"),E("strong",{},money(defense()))),
      E("div",{className:"fd-stat"},E("span",{},"Butins en attente"),E("strong",{},money(pendingTotal())))),
     achievementPreview())),
+  equipmentSetPanel(),
   advancedCharacterStats(),
   E("section",{className:"fd-character-panel fd-class-chooser"},
    E("div",{className:"fd-character-panel-heading"},E("h3",{},"⚔️ Choisir ma classe"),
@@ -1984,6 +2076,15 @@ async function init(){
     if(!dropIndex[iid])dropIndex[iid]=[];dropIndex[iid].push([mid,rate]);
    }
   }
+  // Import unique des effets et panoplies : le jeu garde la dernière sauvegarde
+  // même en cas de chargement réseau impossible.
+  try{
+   const r=await fetch("./data/equipment-v7.json");
+   if(r.ok){
+    const data=await r.json();
+    if(data?.meta?.itemCount>4000&&data?.meta?.setCount>400)equipmentData=data;
+   }
+  }catch(e){console.warn("Référentiel de stuff inaccessible",e)}
   // Catalogue des vrais équipements fabriquables : le taux d'obtention bonus
   // est propre à DOFUS IDLE, les identités et niveaux proviennent du client.
   gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
@@ -2023,7 +2124,7 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
