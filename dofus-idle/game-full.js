@@ -368,7 +368,11 @@ function levelOf(total){
 }
 function jobLevel(id){return levelOf(state.jobs[id]||0).level}
 function playerLevel(){return levelOf(state.playerXp).level}
-function maxHp(){return Math.ceil((105+playerLevel()*8+(state.upgrades.armor||0)*12+statValue("vitalite"))*(state.classId==="sacrieur"?1.35:1)+equippedBonus("hp"))}
+function maxHpFor(gear=state.equipment){
+ const vit=gearStatsFor(gear).stats.vitalite||0;
+ return Math.max(1,Math.ceil((105+playerLevel()*8+(state.upgrades.armor||0)*12+statValue("vitalite")+vit)*(state.classId==="sacrieur"?1.35:1)));
+}
+function maxHp(){return maxHpFor(state.equipment)}
 /* Référentiel de jets du client DOFUS 3 — valeur médiane, sans jet aléatoire.
    L'ID est celui de l'effet/action officiel, sa caractéristique provient de EffectData. */
 const CHARACTERISTIC_KEYS={
@@ -465,8 +469,27 @@ function itemSetInfo(id){
  return sid!=null&&sid>=0?equipmentData?.sets?.[String(sid)]:null;
 }
 
-function damage(){const focus=CLASS_BY_ID[state.classId]?.[5]||"force";const elemental=statValue(focus);return Math.ceil((9+playerLevel()*2.2+elemental*.16+(state.upgrades.weapon||0)*6+equippedBonus("atk"))*(state.classId==="iop"?1.2:state.classId==="ouginak"?1.15:1))}
-function defense(){return Math.floor(playerLevel()*.4+statValue("agilite")*.07+equippedBonus("def")+(state.upgrades.armor||0)*3+(state.classId==="feca"?5:0))}
+function damageFor(gear=state.equipment){
+ const focus=CLASS_BY_ID[state.classId]?.[5]||"force";
+ const stats=gearStatsFor(gear).stats,elemental=statValue(focus)+(stats[focus]||0);
+ const dmgKey={force:"damageEarth",intelligence:"damageFire",chance:"damageWater",agilite:"damageAir"}[focus];
+ const flat=(stats.damage||0)+(stats[dmgKey]||0);
+ return Math.max(1,Math.ceil((9+playerLevel()*2.2+elemental*.16+(stats.power||0)*.08+flat+
+  (state.upgrades.weapon||0)*6)*(state.classId==="iop"?1.2:state.classId==="ouginak"?1.15:1)));
+}
+function damage(){return damageFor(state.equipment)}
+function defenseFor(gear=state.equipment){
+ const stats=gearStatsFor(gear).stats;
+ return Math.max(0,Math.floor(playerLevel()*.4+(statValue("agilite")+(stats.agilite||0))*.07+
+  (stats.resistance||0)+(stats.resistancePct||0)*.25+
+  (state.upgrades.armor||0)*3+(state.classId==="feca"?5:0)));
+}
+function defense(){return defenseFor(state.equipment)}
+function criticalChance(gear=state.equipment){
+ const stats=gearStatsFor(gear).stats;
+ return clamp(.05+(state.classId==="cra"?.11:state.classId==="sram"?.09:0)+
+  (statValue("agilite")+(stats.agilite||0))*.00015+(stats.critical||0)/100,.01,.75);
+}
 function bankCap(){return 150+(state.upgrades.bank||0)*100}
 function slots(){return Object.keys(state.bank).filter(i=>state.bank[i]>0).length}
 function has(id,n=1){return Number(state.bank[id]||0)>=n}
@@ -832,7 +855,7 @@ function tick(dt){
   let changed=false;
   let attacks=Math.min(10,Math.floor(a.progress/second));a.progress-=attacks*second;
   while(attacks-- && state.action){
-   const crit=.05+(state.classId==="cra"?.11:state.classId==="sram"?.09:0)+statValue("agilite")*.00015;
+   const crit=criticalChance();
    const isCritical=Math.random()<crit;
    const hit=Math.max(1,Math.round(damage()*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
    a.enemyHp-=hit;changed=true;
@@ -858,7 +881,7 @@ function victory(m,a){
   state.zoneKills[zoneId]=(state.zoneKills[zoneId]||0)+1;
  // L'identité et les taux de drop viennent de DOFUS ; progression adaptée à l'idle.
  const baseXp=Math.max(15,Math.round(17+m[1]*3.2));
- state.playerXp+=Math.round(baseXp*(1+statValue("sagesse")*.002));
+ state.playerXp+=Math.round(baseXp*(1+(statValue("sagesse")+gearStat("sagesse"))*.002));
  const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1));
  state.kamas+=kamas;state.earned+=kamas;
  const dropped=[];
@@ -1428,7 +1451,7 @@ function combatPlayerPanel(){
     E("div",{className:"fd-fight-section-label"},"Statistiques de combat"),
     E("div",{className:"fd-stat"},E("span",{},"⚔️ Dégâts / coup"),E("strong",{},money(damage()))),
     E("div",{className:"fd-stat"},E("span",{},"🛡️ Défense"),E("strong",{},money(defense()))),
-    E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},state.classId==="cra"?"16 %":"5 %")),
+    E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},(criticalChance()*100).toFixed(1)+" %")),
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
     B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
@@ -1651,28 +1674,28 @@ function achievementPreview(){
 function advancedCharacterStats(){
  const v=statValue("vitalite"),sag=statValue("sagesse"),fo=statValue("force");
  const intel=statValue("intelligence"),ch=statValue("chance"),agi=statValue("agilite");
- const crit=Number((5+(state.classId==="cra"?11:state.classId==="sram"?9:0)+agi*.015).toFixed(2));
+ const crit=Number((criticalChance()*100).toFixed(2));
  const active=(icon,label,value,detail)=>[icon,label,value,true,detail];
  const preview=(icon,label,value=0)=>[icon,label,value,false,"Statistique indicative : effet non encore simulé et jets exacts d'équipement non importés."];
  const elemental=[["⚪","Neutre"],["🪨","Terre"],["🔥","Feu"],["💧","Eau"],["🌪️","Air"]];
  const groups=[
   ["primaires","❤️ Caractéristiques principales",[
-   active("❤️","Vitalité",v,"Points de capital investis ; ajoutés aux PV."),
-   active("🔮","Sagesse",sag,"Bonus à l'XP des combats dans DOFUS IDLE."),
-   active("🪨","Force",fo,"Bonus aux dégâts selon la classe."),
-   active("🔥","Intelligence",intel,"Bonus aux dégâts selon la classe."),
-   active("💧","Chance",ch,"Bonus aux dégâts selon la classe."),
-   active("🌪️","Agilité",agi,"Bonus à la défense et aux critiques idle."),
+   active("❤️","Vitalité",v+gearStat("vitalite"),"Capital et jet médian du stuff actuel."),
+   active("🔮","Sagesse",sag+gearStat("sagesse"),"Capital et jet médian du stuff, influencent l’XP idle."),
+   active("🪨","Force",fo+gearStat("force"),"Capital et jet médian du stuff."),
+   active("🔥","Intelligence",intel+gearStat("intelligence"),"Capital et jet médian du stuff."),
+   active("💧","Chance",ch+gearStat("chance"),"Capital et jet médian du stuff."),
+   active("🌪️","Agilité",agi+gearStat("agilite"),"Capital et jet médian du stuff."),
    active("❤️","Points de vie",money(state.hp)+" / "+money(maxHp()),"PV actuels et PV maximum."),
    preview("🟦","Points de bouclier")
   ]],
   ["utilitaires","⚡ PA, PM et utilitaires",[
-   preview("⚡","PA",6),preview("🟢","PM",3),preview("👁️","Portée (PO)"),
-   preview("🚩","Initiative",fo+intel+ch+agi),
-   preview("🔎","Prospection",100+Math.floor(ch/10)),
+   preview("⚡","PA",6+gearStat("ap")),preview("🟢","PM",3+gearStat("mp")),preview("👁️","Portée (PO)",gearStat("range")),
+   preview("🚩","Initiative",fo+intel+ch+agi+gearStat("initiative")),
+   preview("🔎","Prospection",100+Math.floor((ch+gearStat("chance"))/10)+gearStat("prospection")),
    preview("🐉","Invocations",1),preview("📦","Pods",1000+fo*5),
    active("🎯","Coups critiques",crit+" %","Chance réelle de coup critique dans le jeu idle."),
-   preview("✨","Puissance"),preview("💚","Soins"),preview("🪄","Puissance pièges")
+   active("✨","Puissance",gearStat("power"),"Bonus de puissance d'équipement appliqué aux dégâts idle."),preview("💚","Soins",gearStat("healing")),preview("🪄","Puissance pièges")
   ]],
   ["dommages","⚔️ Dommages",[
    preview("⚔️","Dommages fixes"),
@@ -1710,11 +1733,11 @@ function advancedCharacterStats(){
    active("💥","Multiplicateur critique",state.classId==="ecaflip"?"×2":"×1,7","Multiplicateur de frappe critique."),
    active("💚","Soin après victoire",(15*(state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)).toFixed(1)+" %","Pourcentage des PV maximum rendus après le combat."),
    active("🏆","Niveau de combat",playerLevel(),"Niveau du personnage."),
-   active("🔮","Bonus XP",Number((sag*.2).toFixed(1))+" %","Sagesse × 0,2 %."),
+   active("🔮","Bonus XP",Number(((sag+gearStat("sagesse"))*.2).toFixed(1))+" %","Sagesse totale × 0,2 %."),
    active("🪙","Bonus Kamas",Math.round(((1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1)-1)*100)+" %","Bonus de victoire."),
-   active("❤️","PV d'équipement",equippedBonus("hp"),"Bonus simplifié apporté par le stuff."),
-   active("⚔️","Dégâts d'équipement",equippedBonus("atk"),"Bonus simplifié apporté par le stuff."),
-   active("🛡️","Défense d'équipement",equippedBonus("def"),"Bonus simplifié apporté par le stuff.")
+   active("❤️","PV d'équipement",equippedBonus("hp"),"Valeur médiane des vrais jets DOFUS."),
+   active("⚔️","Dégâts d'équipement",equippedBonus("atk"),"Dommages fixes et puissance reconnus du stuff."),
+   active("🛡️","Défense d'équipement",equippedBonus("def"),"Résistances exploitées par le moteur idle.")
   ]]
  ];
  const total=groups.reduce((sum,group)=>sum+group[2].length,0);
