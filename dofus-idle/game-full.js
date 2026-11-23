@@ -677,7 +677,18 @@ function trainingTick(job){
 function tick(dt){
  if(!state.action||dt<=0)return false;
  state.totalSeconds=(Number(state.totalSeconds)||0)+dt;
- const a=state.action; a.progress+=dt;
+ const a=state.action;
+ // Laisser le monstre à 0 PV pendant 1,8 seconde, même après un one-shot.
+ // Les attaques et dégâts ennemis restent suspendus pendant ce délai.
+ if(a.type==="combat"&&Number(a.respawnRemaining)>0){
+  a.respawnRemaining=Math.max(0,a.respawnRemaining-dt);
+  if(a.respawnRemaining===0){
+   const next=world.monsters[String(a.id)];
+   if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0}
+  }
+  return true;
+ }
+ a.progress+=dt;
  if(a.type==="gather"){
   const seconds=actionCost(a);const n=Math.min(10000,Math.floor(a.progress/seconds));
   if(!n)return false;
@@ -723,9 +734,9 @@ function tick(dt){
    const hit=Math.max(1,Math.round(damage()*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
    a.enemyHp-=hit;changed=true;
    emitDamageNumber("enemy",hit,isCritical);
-   if(a.enemyHp<=0)victory(m,a);
+   if(a.enemyHp<=0){victory(m,a);break}
   }
-  while(a.enemyTick>=2.8&&state.action){
+  while(a.enemyTick>=2.8&&state.action&&!a.respawnRemaining){
    a.enemyTick-=2.8;
    const enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-defense());
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
@@ -763,7 +774,13 @@ function victory(m,a){
  state.jobs["78"]=(state.jobs["78"]||0)+Math.ceil(expGain(m[1])*.35);
  state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*
   (state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)));
- a.enemyHp=m[2];a.enemyTick=0;
+ a.enemyHp=0;a.enemyTick=0;a.progress=0;a.respawnRemaining=1.8;
+ // Rafraîchit immédiatement la barre à zéro, sans attendre le prochain
+ // rendu de la page (qui a lieu au maximum toutes les 900 ms).
+ if(state.view==="combat"&&typeof document!=="undefined"&&!document.hidden){
+  const previous=$(".fd-enemy-panel");
+  if(previous)previous.replaceWith(combatEnemyPanel());
+ }
  if(pendingEntries().length>=250){
   state.action=null;toast("Butin plein : utilise les options de récupération pour reprendre le combat.");
  }
@@ -1323,15 +1340,20 @@ function combatEnemyPanel(){
    E("div",{className:"fd-combat-empty"},"Sélectionne une zone, puis un monstre pour voir ses caractéristiques et ses butins."));
  }
  const active=state.action?.type==="combat"&&String(state.action.id)===String(state.selectedMonster);
- const enemyHp=active?clamp(state.action.enemyHp,0,m[2]):m[2];
+ const knockedOut=active&&Number(state.action.respawnRemaining)>0;
+ const enemyHp=knockedOut?0:active?clamp(state.action.enemyHp,0,m[2]):m[2];
  const enemyPct=m[2]?100*enemyHp/m[2]:0;
  const minimum=minimumCombatLevel(m),allowed=canFight(m);
  return E("section",{className:"fd-fight-panel fd-enemy-panel"},
   E("div",{className:"fd-fight-panel-title"},E("strong",{},"⚔️ Adversaire : "+m[0]),pill("Niv. "+m[1],"fd-difficulty-hard")),
   E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(enemyHp)+" / "+money(m[2])+" PV"),
-    E("small",{},active?"Le monstre attaque toutes les 2,8 secondes":"Combat arrêté")),
+    E("small",{},knockedOut?"💀 Monstre vaincu — nouvel adversaire dans "+Number(state.action.respawnRemaining).toFixed(1)+" s":
+     active?"Le monstre attaque toutes les 2,8 secondes":"Combat arrêté")),
   meter(enemyPct,"fd-enemy-hp"),
-  E("div",{className:"fd-enemy-hero"},
+  knockedOut?E("div",{className:"fd-enemy-defeated",role:"status"},
+   E("strong",{},"💀 MONSTRE VAINCU !"),
+   E("small",{},"0 PV — nouvelle cible après une courte pause")):null,
+  E("div",{className:"fd-enemy-hero "+(knockedOut?"fd-enemy-hero-ko":"")},
    mobSprite(state.selectedMonster,"fd-enemy-portrait"),
    E("div",{},E("h2",{},m[0]),
      E("p",{},"📍 "+zone[0]+" · Niveau "+m[1]),
