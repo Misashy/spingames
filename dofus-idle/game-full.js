@@ -1204,7 +1204,11 @@ function tick(dt){
  if(!state.action||dt<=0)return false;
  state.totalSeconds=(Number(state.totalSeconds)||0)+dt;
  const a=state.action;
- if(a.type==="combat")advanceSpellTimers(a,dt);
+ if(a.type==="combat"){
+  advanceSpellTimers(a,dt);
+  a.autoHealTimer=Math.max(0,(Number(a.autoHealTimer)||0)-dt);
+  automaticHealing(a);
+ }
  // Laisser le monstre à 0 PV pendant 1,8 seconde, même après un one-shot.
  // Les attaques et dégâts ennemis restent suspendus pendant ce délai.
  if(a.type==="combat"&&Number(a.respawnRemaining)>0){
@@ -1215,6 +1219,7 @@ function tick(dt){
     const nextId=a.dungeonRun.rooms[a.dungeonRun.index];
     if(nextId){a.id=Number(nextId);state.selectedMonster=String(nextId)}
    }
+   if(!a.dungeonRun&&a.nextId){a.id=Number(a.nextId);state.selectedMonster=String(a.nextId);a.nextId=null}
    const next=world.monsters[String(a.id)];
    if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0;a.spellDot=null;
     delete a.spellBuffs.slow;delete a.spellBuffs.weaken;}
@@ -1294,6 +1299,10 @@ function tick(dt){
    }
    enemyDmg=Math.max(0,enemyDmg-absorbed);
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
+   automaticHealing(a);
+   if(state.action&&Number(autoSettings().stopBelow)>0&&state.hp>0&&state.hp/maxHp()*100<Number(autoSettings().stopBelow)){
+    state.action=null;toast("🛑 Arrêt de sécurité : PV bas");return true;
+   }
    if(enemyDmg>0)emitDamageNumber("player",enemyDmg);
    if(state.hp<=0){state.action=null;state.hp=maxHp();state.log.unshift({kind:"defeat",monsterId:String(a.id),monsterName:m[0]});toast("Défaite : tente un monstre moins puissant.")}
   }
@@ -1329,6 +1338,8 @@ function victory(m,a){
  state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*
   (state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)));
  dungeonVictory(a,m);
+ processAutomatedLoot();
+ rotateCombatTarget(a);
  a.enemyHp=0;a.enemyTick=0;a.progress=0;a.respawnRemaining=1.8;a.spellDot=null;
  delete a.spellBuffs.slow;delete a.spellBuffs.weaken;
  // Rafraîchit immédiatement la barre à zéro, sans attendre le prochain
@@ -1415,7 +1426,7 @@ function runNav(view){
 function sidebar(){
  // On affiche le combat en premier, au-dessus de la banque et des métiers.
  const groups=[
-  ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"]]],
+  ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"],["automation","⚙️","Automatisation"]]],
   ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"],["quests","📜","Quêtes"],["collection","📚","Collections"]]],
   ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
    [["job:"+id,jobIcon(id),jobName(id)],
@@ -2048,7 +2059,7 @@ function combatPlayerPanel(){
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
     B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
-  lootStashPanel(),spellBookPanel("combat"),trackedAchievementsPanel());
+  lootStashPanel(),spellBookPanel("combat"),automationMiniPanel(),trackedAchievementsPanel());
 }
 function combatEnemyPanel(){
  const m=world.monsters[String(state.selectedMonster)],zone=world.zones[String(state.selectedZone)];
@@ -2929,6 +2940,7 @@ function renderView(){
  else if(v==="achievements")node=achievementsView();
  else if(v==="quests")node=questsView();
  else if(v==="collection")node=collectionView();
+ else if(v==="automation")node=automationView();
  else node=characterView();
  $("#view").replaceChildren(node);
 }
