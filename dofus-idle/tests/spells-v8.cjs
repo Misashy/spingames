@@ -134,6 +134,7 @@ function startBattle(w){
 
   selectClass(w,"Féca");
   assert.equal(game.getState().classId,"feca");
+  navigation(w,"Zones et monstres");
   if(game.getState().action.respawnRemaining)game.simulateSeconds(2);
   assert(game.castSpell("glyphe"),"Glyphe Enflammé non lancé");
   assert(game.getState().action.spellDot?.damage>0,"Effet de brûlure non appliqué");
@@ -141,6 +142,7 @@ function startBattle(w){
    "Brûlure non indiquée dans les effets actifs");
 
   selectClass(w,"Osamodas");
+  navigation(w,"Zones et monstres");
   if(game.getState().action.respawnRemaining)game.simulateSeconds(2);
   assert(game.castSpell("bouftou"),"Invocation Bouftou non disponible");
   assert(game.getState().action.spellBuffs.summon?.remaining>0,"Invocation non active");
