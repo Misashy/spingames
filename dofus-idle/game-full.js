@@ -583,7 +583,7 @@ function sidebar(){
  // On affiche le combat en premier, au-dessus de la banque et des métiers.
  const groups=[
   ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"]]],
-  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"]]],
+  ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"]]],
   ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
    [["job:"+id,jobIcon(id),jobName(id)],
     ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
@@ -614,7 +614,7 @@ function sidebar(){
 function header(){
  const view=state.view,job=view.startsWith("job:")||view.startsWith("craft:")?view.split(":")[1]:null;
  const lev=job?levelOf(state.jobs[job]||0):levelOf(state.playerXp);
- const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",recipes:"Toutes les recettes",bestiary:"Bestiaire"}[view]||"DOFUS IDLE");
+ const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",achievements:"Succès",recipes:"Toutes les recettes",bestiary:"Bestiaire"}[view]||"DOFUS IDLE");
  const h=E("div",{className:"fd-headline"},job?jobSprite(job,"fd-head-icon"):E("span",{className:"fd-head-icon"},"✦"),
   E("div",{},E("h1",{},tit),E("small",{},"DOFUS IDLE · Monde des Douze")));
  const stats=E("div",{className:"fd-headstats"},
@@ -1081,28 +1081,144 @@ function bestiaryView(){
    pill((page+1)+" / "+Math.max(1,Math.ceil(mobs.length/54))),
    B("→",()=>{page++;renderView()},"fd-mini",(page+1)*54>=mobs.length)));
 }
+
+function statAllocationPanel(){
+ const capital=availableStats();
+ const content=E("section",{className:"fd-character-panel fd-character-points"},
+  E("div",{className:"fd-character-panel-heading"},
+   E("h3",{},"✨ Répartir mes caractéristiques"),pill(money(capital)+" points disponibles",capital>0?"green":"")),
+  E("p",{className:"fd-muted"},"5 points gagnés par niveau. Force, Intelligence, Chance et Agilité ont des paliers progressifs ; Vitalité coûte 1 point et Sagesse 3 points."));
+ for(const [key,icon,label,desc] of STAT_DEFS){
+  const n=statValue(key),cost=statCost(key,n);
+  content.append(E("div",{className:"fd-char-stat-row"},
+   E("span",{className:"fd-char-stat-symbol"},icon),
+   E("span",{className:"fd-char-stat-desc"},E("strong",{},label),E("small",{},desc)),
+   E("div",{className:"fd-char-stat-actions"},pill(money(n)),
+    B("+1",()=>spendStat(key,1),"fd-mini",capital<cost),
+    B("+10",()=>spendStat(key,10),"fd-mini",capital<cost))));
+  content.lastChild.append(E("small",{className:"fd-char-stat-cost"},"Coût actuel : "+cost+" pt"+(cost>1?"s":"")+"/1"));
+ }
+ content.append(E("div",{className:"fd-char-points-footer"},
+  E("small",{className:"fd-muted"},"Capital total : "+money((playerLevel()-1)*5)+" points · distribués : "+money(statsSpent())),
+  B("Réinitialiser mes points",resetStats,"fd-secondary",statsSpent()===0)));
+ return content;
+}
+function characterEquipmentPanel(){
+ const slots=E("div",{className:"fd-character-gear-grid"});
+ for(const [slot,id] of Object.entries(state.equipment)){
+  const card=E("article",{className:"fd-char-gear-slot"},
+   id?itemSprite(id,"fd-char-gear-image"):E("span",{className:"fd-char-gear-image"},SLOT_ICONS[slot]||"＋"),
+   E("strong",{},EQUIP_LABELS[slot]||slot),
+   E("small",{},id?itemName(id):"Emplacement vide"));
+  if(id)card.append(B("Retirer",()=>{
+   if(!add(id)){toast("Banque pleine.");return}
+   state.equipment[slot]=null;state.hp=Math.min(state.hp,maxHp());render();save();
+  },"fd-mini"));
+  slots.append(card);
+ }
+ return E("section",{className:"fd-character-panel fd-character-gear"},
+  E("div",{className:"fd-character-panel-heading"},E("h3",{},"🛡️ Mes équipements"),
+   pill("Niv. "+playerLevel())),
+  slots,B("🎒 Ouvrir la banque pour s'équiper",()=>runNav("bank"),"fd-secondary fd-wide"));
+}
+function achievementPreview(){
+ const total=ACHIEVEMENTS.filter(a=>state.achievements[a.id]).length;
+ const ready=ACHIEVEMENTS.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length;
+ return E("section",{className:"fd-character-panel fd-character-success-preview"},
+  E("div",{className:"fd-character-panel-heading"},E("h3",{},"🏆 Mes succès"),
+   pill(total+" / "+ACHIEVEMENTS.length)),
+  meter(total*100/ACHIEVEMENTS.length),
+  E("p",{className:"fd-muted"},ready?ready+" récompense(s) à récupérer !":"Remplis des objectifs de combat, de récolte et d'exploration."),
+  B("Voir tous les succès",()=>runNav("achievements"),"fd-button fd-wide"));
+}
 function characterView(){
- const classes=[["iop","Iop","⚔️","+20 % dégâts"],["cra","Crâ","🏹","+11 % critique"],["sacrieur","Sacrieur","🩸","+35 % PV"],["eniripsa","Eniripsa","💚","+60 % soin"]];
- return E("div",{},panelHeading("Ton aventurier","Choisis ta classe et équipe les créations de tes métiers.",pill("Combat niv. "+playerLevel())),
-  E("div",{className:"fd-character-stats"},pill("❤️ "+money(maxHp())+" PV"),pill("⚔️ "+damage()+" dégâts"),pill("🛡️ "+defense()+" défense"),pill("🏆 "+state.kills+" victoires")),
-  E("div",{className:"fd-class-grid"},...classes.map(([id,n,icon,bonus])=>
-   B(icon+" "+n+" · "+bonus,()=>{state.classId=id;state.hp=Math.min(state.hp,maxHp());render();save()},
-   "fd-class "+(state.classId===id?"active":"")))),
-  panelHeading("Équipements","Les bonus de statistiques de ce prototype sont simplifiés.",""),
-  E("div",{className:"fd-equipment"},...Object.entries(state.equipment).map(([slot,id])=>
-   E("div",{className:"fd-equip-slot"},id?itemSprite(id,"fd-bank-art"):E("span",{className:"fd-bank-art"},"＋"),
-    E("strong",{},EQUIP_LABELS[slot]||slot),E("small",{},id?itemName(id):"Vide"),
-    id?B("Retirer",()=>{if(!add(id)){toast("Banque pleine.");return}state.equipment[slot]=null;render();save()},"fd-mini"):null))),
+ const current=CLASS_BY_ID[state.classId]||CLASS_BY_ID.iop;
+ const lvl=levelOf(state.playerXp);
+ const hero=E("section",{className:"fd-character-hero"},
+  E("div",{className:"fd-character-avatar-wrap"},classArt(state.classId,"fd-character-avatar")),
+  E("div",{className:"fd-character-hero-info"},
+   pill("AVENTURIER · NIVEAU "+playerLevel(),"green"),
+   E("h2",{},current[1]),E("p",{},current[3]+" · "+current[4]),
+   E("div",{className:"fd-character-hero-metrics"},
+    pill("❤️ "+money(maxHp())+" PV"),pill("⚔️ "+money(damage())+" dégâts"),
+    pill("🛡️ "+money(defense())+" défense")),
+   E("small",{},"Expérience : "+money(lvl.xp)+" / "+money(lvl.next)+" XP"),
+   meter(lvl.ratio)),
+  B("🏆 Succès",()=>runNav("achievements"),"fd-secondary"));
+ const allClasses=E("div",{className:"fd-select-classes"});
+ for(const [id,name,icon,role,description] of CLASS_META){
+  const selected=state.classId===id;
+  const btn=B("",()=>changeClass(id),"fd-select-class "+(selected?"active":""));
+  btn.append(classArt(id,"fd-class-card-art"),E("strong",{},name),
+   E("small",{},role),selected?pill("✓ Sélectionnée","green"):null);
+  allClasses.append(btn);
+ }
+ return E("div",{className:"fd-character-page"},
+  panelHeading("🧙 Mon personnage",
+   "Personnalise ton aventurier, choisis ta classe et distribue tes points comme dans DOFUS.",
+   pill("Niv. "+playerLevel()+" / 200")),
+  hero,
+  E("div",{className:"fd-character-main-layout"},
+   characterEquipmentPanel(),
+   statAllocationPanel(),
+   E("div",{className:"fd-character-side"},
+    E("section",{className:"fd-character-panel"},
+     E("div",{className:"fd-character-panel-heading"},E("h3",{},"📊 Statistiques")),
+     E("div",{className:"fd-stat"},E("span",{},"Niveau de combat"),E("strong",{},playerLevel())),
+     E("div",{className:"fd-stat"},E("span",{},"Monstres vaincus"),E("strong",{},money(state.kills))),
+     E("div",{className:"fd-stat"},E("span",{},"Dégâts moyens"),E("strong",{},money(damage()))),
+     E("div",{className:"fd-stat"},E("span",{},"Défense"),E("strong",{},money(defense()))),
+     E("div",{className:"fd-stat"},E("span",{},"Butins en attente"),E("strong",{},money(pendingTotal())))),
+    achievementPreview())),
+  E("section",{className:"fd-character-panel fd-class-chooser"},
+   E("div",{className:"fd-character-panel-heading"},E("h3",{},"⚔️ Choisir ma classe"),
+    pill(CLASS_META.length+" classes DOFUS")),
+   E("p",{className:"fd-muted"},"Choisis librement parmi les classes du Monde des Douze. Les rôles et bonus de combat sont adaptés au prototype idle."),
+   allClasses),
   E("div",{className:"fd-character-actions"},
    B("📦 Exporter sauvegarde",exportSave,"fd-secondary"),
    B("📥 Importer sauvegarde",()=>$("#fdImport").click(),"fd-secondary"),
    B("🗑️ Nouvelle partie",()=>{if(confirm("Effacer la sauvegarde DOFUS IDLE complète ?")){localStorage.removeItem(KEY);location.reload()}},"fd-danger"),
-   E("input",{id:"fdImport",type:"file",accept:".json,application/json",style:{display:"none"},onchange:async e=>{const f=e.target.files[0];if(!f)return;try{
-    if(f.size>2000000)throw Error("Sauvegarde trop volumineuse");
-    const data=JSON.parse(await f.text());if(data.version!==2||!data.bank||!data.jobs)throw Error("Fichier invalide");
-    localStorage.setItem(KEY,JSON.stringify(data));location.reload();
-   }catch(err){toast("Import refusé : "+err.message)}}})));
+   E("input",{id:"fdImport",type:"file",accept:".json,application/json",style:{display:"none"},onchange:async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try{
+     if(file.size>2500000)throw Error("Sauvegarde trop volumineuse");
+     const data=JSON.parse(await file.text());
+     if(data.version!==2||!data.bank||!data.jobs)throw Error("Fichier invalide");
+     localStorage.setItem(KEY,JSON.stringify(data));location.reload();
+    }catch(err){toast("Import refusé : "+err.message)}
+   }})));
 }
+function achievementsView(){
+ const claimed=ACHIEVEMENTS.filter(a=>state.achievements[a.id]).length;
+ const ready=ACHIEVEMENTS.filter(a=>achievementReached(a)&&!state.achievements[a.id]).length;
+ const root=E("div",{className:"fd-achievements-page"},
+  panelHeading("🏆 Succès du Monde des Douze",
+   "Objectifs propres à DOFUS IDLE. Récupère les récompenses en XP et en kamas après avoir accompli chaque défi.",
+   pill(claimed+" / "+ACHIEVEMENTS.length+" succès")),
+  E("section",{className:"fd-achievement-summary"},
+   E("strong",{},"Progression des succès"),meter(claimed*100/ACHIEVEMENTS.length),
+   E("small",{},claimed+" débloqués · "+ready+" récompenses disponibles")));
+ for(const [category,label] of Object.entries(ACH_GROUPS)){
+  const section=E("section",{className:"fd-achievement-section"},E("h3",{},label));
+  const grid=E("div",{className:"fd-achievement-grid"});
+  for(const a of ACHIEVEMENTS.filter(x=>x.cat===category)){
+   const value=achievementValue(a.metric),completed=achievementReached(a),claimedThis=!!state.achievements[a.id];
+   grid.append(E("article",{className:"fd-achievement-card "+(claimedThis?"claimed":completed?"ready":"")},
+    E("div",{className:"fd-achievement-card-header"},E("strong",{},a.title),
+      pill(claimedThis?"✓ Obtenu":completed?"À récupérer":"En cours",claimedThis?"green":completed?"gold":"")),
+    E("p",{},a.desc),
+    meter(value/a.target*100),
+    E("div",{className:"fd-achievement-progress"},E("small",{},money(Math.min(value,a.target))+" / "+money(a.target)),
+     E("small",{},"🪙 "+money(a.kamas)+" · ✨ "+money(a.xp)+" XP")),
+    B(claimedThis?"✓ Récompense reçue":completed?"🎁 Récupérer la récompense":"🔒 Verrouillé",
+      ()=>claimAchievement(a.id),"fd-button",claimedThis||!completed)));
+  }
+  section.append(grid);root.append(section);
+ }
+ return root;
+}
+
 function exportSave(){
  save();const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
  const url=URL.createObjectURL(blob);const a=E("a",{href:url,download:"dofus-idle-save-v2.json"});
@@ -1120,6 +1236,7 @@ function renderView(){
  else if(v==="combat")node=zoneView();
  else if(v==="bestiary")node=bestiaryView();
  else if(v==="recipes")node=craftingView(null,true);
+ else if(v==="achievements")node=achievementsView();
  else node=characterView();
  $("#view").replaceChildren(node);
 }
