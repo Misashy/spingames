@@ -433,7 +433,8 @@ const ACHIEVEMENTS=[
 const ACH_GROUPS={
  combat:"⚔️ Combats",bestiaire:"🐉 Bestiaire",exploration:"🧭 Exploration",
  metiers:"🪓 Métiers",recolte:"🌿 Récoltes",artisanat:"🔨 Artisanat",
- personnage:"🧙 Personnage",butin:"🎁 Butins",equipements:"🛡️ Équipements",economie:"🪙 Économie"
+ personnage:"🧙 Personnage",butin:"🎁 Butins",equipements:"🛡️ Équipements",economie:"🪙 Économie",
+ donjons:"🏰 Donjons",quetes:"📜 Quêtes",collections:"📚 Collections"
 };
 
 /* Succès générés depuis les données du client DOFUS 3.
@@ -553,6 +554,42 @@ function buildAchievementCatalog(){
     "recipe:"+key,1,Math.min(600,45+level*3),Math.min(400,25+level*2),2);
   }
  }
+
+ // Nouveaux objectifs de la V9 : chaque donjon, quête et panoplie réelle.
+ for(const [zoneId,z] of Object.entries(world.zones)){
+  if(Number(z[5])<0||dungeonRoomList(zoneId).length<2)continue;
+  const rooms=dungeonRoomList(zoneId);
+  const boss=world.monsters[String(rooms[rooms.length-1])];
+  for(const count of [1,5,25,100]){
+   push("dungeon-"+zoneId+"-"+count,"donjons",
+    z[0]+" · "+count+" victoire"+(count>1?"s":""),
+    "Vaincs "+count+" fois le boss "+(boss?.[0]||"final")+" du donjon "+z[0]+".",
+    "dungeonClear:"+zoneId,count,150+z[2]*8+count*40,100+z[2]*5+count*25,count>=25?15:5);
+  }
+ }
+ for(const q of questCatalog){
+  push("quest-success-"+q.id,"quetes","Quête : "+q.title,
+   "Termine l'objectif régional "+q.title+" à "+q.region+".",
+   "questClaim:"+q.id,1,Math.round(q.kamas*.5),Math.round(q.xp*.5),5);
+ }
+ for(const [setId,def] of Object.entries(equipmentData?.sets||{})){
+  if(collectionSetItems(def).length<2)continue;
+  push("collection-set-"+setId,"collections","Panoplie : "+def[0],
+   "Réunis la collection complète puis récupère sa récompense.",
+   "setCollect:"+setId,1,240,140,10);
+ }
+ for(const target of [1,5,10,25,50,100,200,400]){
+  push("dungeon-total-"+target,"donjons","Explorateur de donjons : "+target,
+   "Termine "+target+" donjons en tout.","dungeonTotal",target,
+   100+target*50,80+target*30,target>=50?15:5);
+  push("quest-total-"+target,"quetes","Aventurier accompli : "+target,
+   "Récupère la récompense de "+target+" quêtes.","questsDone",target,
+   100+target*30,80+target*20,target>=50?15:5);
+  push("sets-total-"+target,"collections","Collectionneur : "+target,
+   "Récupère "+target+" récompense(s) de panoplie.","setsCompleted",target,
+   100+target*30,80+target*20,target>=50?15:5);
+ }
+
  const ids=new Set();
  achievementCatalog=all.filter(a=>{
   if(ids.has(a.id))return false;
@@ -564,6 +601,12 @@ function buildAchievementCatalog(){
 }
 
 function achievementValue(metric){
+ if(metric.startsWith("dungeonClear:"))return achievementNum(state.dungeonClears?.[metric.slice(13)]);
+ if(metric.startsWith("questClaim:"))return state.questClaims?.[metric.slice(11)]?1:0;
+ if(metric.startsWith("setCollect:"))return state.collectionClaims?.[metric.slice(11)]?1:0;
+ if(metric==="dungeonTotal")return Object.values(state.dungeonClears||{}).reduce((sum,n)=>sum+achievementNum(n),0);
+ if(metric==="questsDone")return Object.keys(state.questClaims||{}).length;
+ if(metric==="setsCompleted")return Object.keys(state.collectionClaims||{}).length;
  if(metric.startsWith("monster:"))return achievementNum(state.dex?.[metric.slice(8)]);
  if(metric.startsWith("job:"))return jobLevel(metric.slice(4));
  if(metric.startsWith("jobCraft:"))return achievementNum(state.jobCraftCount?.[metric.slice(9)]);
@@ -3007,7 +3050,7 @@ async function init(){
     state.regionZoneCount[region]=(state.regionZoneCount[region]||0)+1;
    }
   }
-  buildAchievementCatalog();buildQuestCatalog();
+  buildQuestCatalog();buildAchievementCatalog();
   offline();state.hp=clamp(Number(state.hp)||maxHp(),1,maxHp());
   $("#menuToggle").onclick=()=>$("#sidebar").classList.toggle("open");
   window.addEventListener("pagehide",save);
