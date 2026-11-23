@@ -1,0 +1,1 @@
+Icônes du client DOFUS 3, version v6.0_3.7.14.18. mapping=exact indique le même nom; proche et illustration signalent des images thématiques quand les capacités idle ne correspondent pas au catalogue officiel.
