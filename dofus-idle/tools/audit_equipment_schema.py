@@ -41,3 +41,14 @@ for filename, data in [("ITEM",item),("SET",sets),("EFFECT",effects),("CHAR",cha
  for n in ids:
   x=v.get(str(n)) if isinstance(v,dict) else next((o for o in v if isinstance(o,dict) and int(o.get("id") or 0)==n),None)
   print("OBJ LOOKUP",filename,n,json.dumps(x,ensure_ascii=False)[:6000],flush=True)
+
+import sqlite3
+db=sqlite3.connect("file:/tmp/dofus-v7/dofus.sqlite?mode=ro",uri=True)
+db.row_factory=sqlite3.Row
+tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+print("RELEVANT TABLES", [x for x in tables if any(k in x.lower() for k in ("item","effect","characteristic","set","bonus"))][:120],flush=True)
+for table in [x for x in tables if x in ("ItemData","ItemSetData","EffectData","EffectInstanceData","WeaponData") or "Effect" in x and "junction" not in x][:22]:
+ cols=[r[1] for r in db.execute(f"PRAGMA table_info({table})")]
+ print("SQL TABLE",table,"COLUMNS",cols,flush=True)
+ for rec in db.execute(f"SELECT * FROM {table} LIMIT 2"):
+  print("SQL SAMPLE",table,json.dumps(dict(rec),ensure_ascii=False,default=str)[:5000],flush=True)
