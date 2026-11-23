@@ -933,8 +933,13 @@ function load(){
 function save(){if(!state)return;state.lastAt=now();try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast("Sauvegarde impossible. Vérifie le stockage du navigateur.")}}
 function toast(msg){const region=$("#toastRegion");if(!region)return;const child=E("div",{className:"toast"},msg);region.prepend(child);setTimeout(()=>child.remove(),3800)}
 function formatRate(r){return String(Number(r.toFixed(2))).replace(".",",")+" %"}
+function gatherMasteryBonus(id){
+ const count=Math.max(0,Number(state.mastery?.[String(id)])||0);
+ const tier=count>=1000?5:count>=400?4:count>=150?3:count>=50?2:count>=10?1:0;
+ return {count,tier,bonus:tier*.04};
+}
 function actionCost(a){
- if(a.type==="gather"){const skill=core.gather[String(a.job)]?.find(x=>x[0]===a.id);return clamp(2.3+(skill?.[1]||1)*.026,2.3,9)*(1-(state.upgrades.tool||0)*.055)}
+ if(a.type==="gather"){const skill=core.gather[String(a.job)]?.find(x=>x[0]===a.id);return clamp(2.3+(skill?.[1]||1)*.026,2.3,9)*(1-(state.upgrades.tool||0)*.055)*(1-gatherMasteryBonus(a.id).bonus)}
  if(a.type==="craft")return clamp(2.8+itemLevel(a.id)*.025,3,9);
  if(a.type==="train")return 4;
  return 1.65;
@@ -994,10 +999,19 @@ function craftQueuePanel(){
    :E("p",{className:"fd-muted"},"Aucune commande en attente."),
   queue.length?B("▶ Reprendre la file",()=>{if(state.action&&!state.action.queued){toast("Arrête d'abord l'activité en cours.");return}startNextQueuedCraft();render();save()},"fd-secondary"):null);
 }
+let sourceIndex=null;
+function buildSourceIndex(){
+ const gathering=new Map(),recipes=new Map();
+ for(const [job,rows] of Object.entries(core.gather))
+  for(const [id,level] of rows){const key=String(id);if(!gathering.has(key))gathering.set(key,[]);gathering.get(key).push(jobName(job)+" niv. "+level)}
+ for(const [job,rows] of Object.entries(core.recipes))
+  for(const [id,level] of rows){const key=String(id);if(!recipes.has(key))recipes.set(key,[]);recipes.get(key).push(jobName(job)+" niv. "+level)}
+ sourceIndex={gathering,recipes};
+}
 function recipeDependencies(r){
  const deps=r[2].map(([id,amount])=>{
-  const sources=Object.entries(core.gather).flatMap(([j,rows])=>rows.filter(row=>String(row[0])===String(id)).map(row=>jobName(j)+" niv. "+row[1]));
-  const craft=Object.entries(core.recipes).flatMap(([j,rows])=>rows.filter(row=>String(row[0])===String(id)).map(row=>jobName(j)+" niv. "+row[1]));
+  const sources=sourceIndex?.gathering.get(String(id))||[];
+  const craft=sourceIndex?.recipes.get(String(id))||[];
   const drops=(dropIndex[String(id)]||[]).length;
   return itemName(id)+" ×"+amount+" : "+(sources.length?sources.join(", "):craft.length?craft.slice(0,2).join(", "):drops?"Butin de "+drops+" monstre(s)":"Source à découvrir");
  });
@@ -1619,7 +1633,8 @@ function gatherView(job){
    onclick:()=>startGather(job,id)},
    E("span",{className:"fd-card-top"},pill("Niveau "+req),active?pill("EN COURS","green"):null),
    itemSprite(id,"fd-big-art"),E("h3",{},itemName(id)),E("small",{},GATHER_VERBS[job]+" · +"+expGain(req)+" XP · "+actionCost({type:"gather",job,id}).toFixed(1)+" s"),
-   E("strong",{className:"fd-card-bottom"},locked?"🔒 Débloqué au niveau "+req:"En banque : "+money(state.bank[id]||0))));
+   E("strong",{className:"fd-card-bottom"},locked?"🔒 Débloqué au niveau "+req:"En banque : "+money(state.bank[id]||0)),
+   E("small",{},"Maîtrise récolte : "+gatherMasteryBonus(id).tier+"/5 · "+gatherMasteryBonus(id).count+" récoltes · Bonus vitesse "+Math.round(gatherMasteryBonus(id).bonus*100)+" %")));
  }
  return E("div",{},currentActionBox(),
   panelHeading(jobName(job)+" · Toutes les ressources","Récolte répétée automatiquement. Paliers de déblocage issus de DOFUS 3.",pill(skills.length+" ressources")),
@@ -3258,6 +3273,7 @@ async function init(){
  try{
   const req=await Promise.all(["./data/core.json","./data/world.json"].map(url=>fetch(url).then(r=>{if(!r.ok)throw Error(url+" : "+r.status);return r.json()})));
   core=req[0];world=req[1];
+  buildSourceIndex();
   if(!core.jobs||!core.items||!world.monsters||!world.zones)throw Error("Base DOFUS 3 incomplète");
   // Les sprites courants sont déjà présents dans les imports précédents.
   const catalog=window.DOFUS_IDLE_ASSETS||{items:{},monsters:{},jobs:{}};
