@@ -93,3 +93,42 @@
 @media(max-width:1200px){.fd-select-classes{grid-template-columns:repeat(4,minmax(0,1fr))}.fd-achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:880px){.fd-character-main-layout{grid-template-columns:1fr}.fd-character-side{grid-column:auto;grid-template-columns:1fr}.fd-character-hero{flex-wrap:wrap}.fd-character-avatar-wrap{flex-basis:130px;width:130px;height:130px}.fd-select-classes{grid-template-columns:repeat(3,minmax(0,1fr))}.fd-loot-stash-grid{grid-template-columns:1fr}}
 @media(max-width:570px){.fd-character-hero{padding:15px}.fd-character-avatar-wrap{flex-basis:100px;width:100px;height:100px}.fd-character-avatar{font-size:55px}.fd-character-hero-info h2{font-size:24px}.fd-class-card-art{width:50px;height:50px;font-size:33px}.fd-select-classes{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.fd-select-class{min-height:127px}.fd-achievement-grid{grid-template-columns:1fr}.fd-combat-sort{justify-content:space-between}.fd-combat-sort select{width:180px}.fd-combat-log-items{padding-left:0}.fd-char-stat-desc{min-width:105px}}
+
+
+/* Succès v5 : catalogue extensible et paginé (plus de 20 000 objectifs).
+   Aucun DOM géant : seules les 32 cartes de la page active sont rendues. */
+.fd-achievements-page{max-width:1740px;margin:0 auto 35px}
+.fd-achievement-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.fd-achievement-stats>div{background:linear-gradient(130deg,#294038,#233442);border:1px solid #4c736b;border-radius:8px;padding:16px;display:grid;gap:5px}
+.fd-achievement-stats strong{font-size:24px;color:#f7e4a4;font-weight:900}
+.fd-achievement-stats small{font-size:11px;color:#bfd2d9}
+.fd-achievement-summary-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.fd-achievement-filters{display:grid;grid-template-columns:minmax(245px,2fr) repeat(3,minmax(155px,1fr));gap:10px;align-items:center;margin:20px 0 12px}
+.fd-achievement-filters>.fd-select{max-width:100%;width:100%;min-height:42px;font-size:11px}
+.fd-achievement-filters>.fd-search{min-height:42px}
+.fd-achievement-list-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px}
+.fd-achievement-list-header strong{font-size:13px;color:#cfe4d9}
+.fd-achievement-list-header button{font-size:11px}
+.fd-achievement-library{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fd-achievement-library .fd-achievement-card{min-height:202px}
+.fd-achievement-library .fd-achievement-card-header strong{font-size:13px;line-height:1.35;word-wrap:break-word;overflow-wrap:anywhere}
+.fd-achievement-library .fd-achievement-card>p{min-height:32px}
+.fd-achievement-rewards{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+.fd-achievement-rewards .fd-pill{font-size:10px}
+.fd-achievement-pages{display:flex;justify-content:center;align-items:center;gap:12px;margin:24px 0}
+.fd-achievement-empty{padding:35px;text-align:center;background:#233342;border:1px dashed #586e7c;border-radius:8px;color:#b8cbd8;font-size:12px}
+.fd-achievement-card.claimed{opacity:.76}
+.fd-character-success-preview .fd-pill{font-size:9.5px}
+@media(max-width:1400px){
+ .fd-achievement-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .fd-achievement-filters>.fd-search{grid-column:1/-1}
+ .fd-achievement-library{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .fd-achievement-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .fd-achievement-library{grid-template-columns:1fr}
+ .fd-achievement-filters{grid-template-columns:1fr}
+ .fd-achievement-filters>.fd-search{grid-column:1}
+ .fd-achievement-list-header{align-items:flex-start;flex-wrap:wrap}
+ .fd-achievement-pages .fd-secondary{padding:8px;font-size:11px}
+}
