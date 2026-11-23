@@ -177,6 +177,37 @@ function combatAttackInterval(a=state.action){
 }
 function effectiveCombatCrit(a=state.action){return clamp(criticalChance()+spellBuff(a,"crit"),.01,.9)}
 function effectiveCombatDamage(a=state.action){return Math.max(1,Math.round(damage()*(1+spellBuff(a,"fury"))))}
+
+function spellIconMeta(cls,id){return window.DOFUS_IDLE_SPELL_ASSETS?.[cls+":"+id]||null}
+function spellArt(cls,id,emoji="✨",cssClass="fd-spell-art"){
+ const meta=spellIconMeta(cls,id);
+ if(!meta?.src)return E("span",{className:cssClass+" fd-spell-emoji"},emoji);
+ const img=E("img",{className:cssClass,src:"./"+meta.src,
+  alt:"Icône du sort "+(meta.officialName||id),loading:"lazy",decoding:"async",
+  onerror:e=>{e.target.replaceWith(E("span",{className:cssClass+" fd-spell-emoji"},emoji))}});
+ img.title=meta.mapping==="exact"?"Icône DOFUS : "+meta.officialName:
+  "Illustration DOFUS : "+meta.officialName+" (sort idle adapté)";
+ return img;
+}
+function emitSpellCastEffect(spell){
+ if(!spell||state.view!=="combat")return;
+ const kind=spell[5],onEnemy=["strike","blast","execute","leech","dot","slow","weaken"].includes(kind);
+ const anchor=onEnemy?$(".fd-enemy-panel .fd-enemy-hero"):$(".fd-player-panel .fd-hp-label");
+ if(!anchor)return;
+ const r=anchor.getBoundingClientRect();
+ const fx=E("div",{className:"fd-cast-fx fd-cast-fx-"+(spell[8]||"soutien")+" "+
+  (onEnemy?"fd-cast-fx-enemy":"fd-cast-fx-player"),"aria-hidden":"true"},
+  spellArt(state.classId,spell[0],spell[2],"fd-cast-art"),
+  E("strong",{},spell[1]));
+ const vw=window.innerWidth||1100,vh=window.innerHeight||700;
+ fx.style.left=Math.max(50,Math.min(vw-50,r.width?r.left+r.width/2:(onEnemy?vw*.7:vw*.3)))+"px";
+ fx.style.top=Math.max(50,Math.min(vh-50,r.height?r.top+r.height/2:vh*.3))+"px";
+ document.body.append(fx);
+ if(document.querySelectorAll(".fd-cast-fx").length>12)document.querySelector(".fd-cast-fx")?.remove();
+ fx.addEventListener("animationend",()=>fx.remove(),{once:true});
+ setTimeout(()=>fx.remove(),1600);
+}
+
 function spellHistory(a,spell,description){
  a.spellHistory.unshift({id:spell[0],icon:spell[2],name:spell[1],text:description});
  a.spellHistory=a.spellHistory.slice(0,6);
@@ -261,6 +292,7 @@ function castClassSpell(spellId,manual=false){
  a.spellCooldowns[spell[0]]=spell[4];
  a.spellGlobalTimer=1.2;
  spellHistory(a,spell,text);
+ emitSpellCastEffect(spell);
  if(a.enemyHp<=0&&state.action===a)victory(m,a);
  if(manual){render();save()}
  return true;
@@ -1825,9 +1857,10 @@ function spellBookPanel(context="character"){
   const remaining=a?Math.max(0,Number(a.spellCooldowns?.[id])||0):0;
   const automated=spellAutoEnabled(id);
   const card=E("article",{className:"fd-spell-card "+(unlocked?"unlocked":"locked")+(a&&ready?" is-ready":""),
-   "data-spell-id":id,"data-spell-level":String(required)},
+   "data-spell-id":id,"data-spell-level":String(required),"data-spell-element":sp[8]||"soutien",
+   title:name+" · "+description+" · Recharge "+cooldown+" secondes"},
    E("div",{className:"fd-spell-card-top"},
-    E("span",{className:"fd-spell-icon","aria-hidden":"true"},emoji),
+    E("span",{className:"fd-spell-icon","aria-hidden":"true"},spellArt(state.classId,id,emoji)),
     E("div",{className:"fd-spell-name"},E("strong",{},name),
      E("small",{},unlocked?"Niveau "+required+" · recharge "+cooldown+" s":"🔒 Débloqué au niveau "+required))),
    E("p",{className:"fd-spell-description"},description));
@@ -1866,7 +1899,7 @@ function spellBookPanel(context="character"){
     E("strong",{},"Derniers sorts utilisés"));
    for(const h of a.spellHistory.slice(0,4))
     history.append(E("div",{className:"fd-spell-history-line"},
-     E("span",{},h.icon+" "+h.name),E("small",{},h.text)));
+     E("span",{className:"fd-spell-history-name"},spellArt(state.classId,h.id,h.icon,"fd-spell-mini-art"),h.name),E("small",{},h.text)));
    root.append(history);
   }
  }
@@ -2422,6 +2455,13 @@ async function init(){
     for(const kind of ["items","monsters","jobs"])Object.assign(images[kind],c[kind]||{});
    }
   }catch(e){}
+  try{
+   const r=await fetch("./assets/spells/catalog.json");
+   if(r.ok){
+    const entries=await r.json();
+    if(entries&&Object.keys(entries).length===57)window.DOFUS_IDLE_SPELL_ASSETS=entries;
+   }
+  }catch(e){/* Les pictogrammes restent visibles si les images ne sont pas déployées. */}
   // Portraits DOFUS 3 des 19 classes, générés depuis images-class.zip.
   try{
    const r=await fetch("./assets/classes/catalog.json");
