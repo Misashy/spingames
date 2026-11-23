@@ -64,6 +64,263 @@ const CLASS_META=[
  ["forgelance","Forgelance","🔱","Lancier","Bonus de défense et d'attaque","force",20]
 ];
 const CLASS_BY_ID=Object.fromEntries(CLASS_META.map(c=>[c[0],c]));
+
+/* V8 : trois techniques par classe. Les noms rappellent DOFUS, mais les
+   délais, coefficients et effets sont une adaptation originale au combat idle.
+   Un sort : [id, nom, icône, niv, recharge(s), type, puissance, description, élément]. */
+const CLASS_SPELLS={
+ iop:[
+  ["pression","Pression","⚔️",1,7,"strike",1.30,"Frappe Terre augmentée.","terre"],
+  ["bond","Bond","🦵",15,25,"fury",.25,"Augmente tes dégâts pendant 10 s.","terre"],
+  ["colere","Colère de Iop","💥",45,35,"execute",2.6,"Frappe violente, renforcée contre les ennemis affaiblis.","terre"]],
+ cra:[
+  ["fleche","Flèche Magique","🏹",1,7,"strike",1.20,"Tir Air à distance.","air"],
+  ["tir","Tir Puissant","🎯",15,26,"crit",.18,"Augmente tes chances de critique pendant 11 s.","air"],
+  ["explosive","Flèche Explosive","🔥",45,19,"blast",1.85,"Explosion de Feu infligeant d'importants dégâts.","feu"]],
+ sacrieur:[
+  ["assaut","Assaut","🩸",1,8,"leech",1.05,"Frappe Air qui te soigne selon les dégâts.","air"],
+  ["chatiment","Châtiment","⚡",15,24,"fury",.32,"Augmente fortement tes dégâts pendant 10 s.","terre"],
+  ["punition","Punition","💔",45,30,"execute",2.5,"Dégâts importants sur un adversaire déjà blessé.","terre"]],
+ eniripsa:[
+  ["mot-interdit","Mot Interdit","🔥",1,8,"strike",1.05,"Attaque magique de Feu.","feu"],
+  ["mot-soignant","Mot Soignant","💚",15,13,"heal",.25,"Rend 25 % de tes PV maximum.","feu"],
+  ["mot-prevention","Mot de Prévention","🛡️",45,22,"shield",.30,"Génère un bouclier qui absorbe les dégâts.","feu"]],
+ feca:[
+  ["attaque-naturelle","Attaque Naturelle","🔥",1,7,"strike",1.10,"Frappe magique de Feu.","feu"],
+  ["rempart","Rempart","🛡️",15,26,"armor",.32,"Réduit les dégâts ennemis pendant 11 s.","feu"],
+  ["glyphe","Glyphe Enflammé","♨️",45,19,"dot",.50,"Inflige des brûlures régulières à la cible.","feu"]],
+ osamodas:[
+  ["griffe","Griffe Spectrale","🐾",1,8,"strike",1.08,"Griffe magique de Feu.","feu"],
+  ["bouftou","Invocation de Bouftou","🐑",15,20,"summon",.50,"Un allié frappe régulièrement pendant 12 s.","terre"],
+  ["piqure","Piqûre Motivante","✨",45,28,"haste",.22,"Accélère tes attaques pendant 10 s.","feu"]],
+ enutrof:[
+  ["pieces","Lancer de Pièces","🪙",1,7,"strike",1.08,"Projectile d'Eau.","eau"],
+  ["sac","Sac Animé","🎒",15,21,"shield",.25,"Protège ton personnage avec des PV de bouclier.","eau"],
+  ["chance","Chance","🍀",45,28,"luck",.30,"Augmente les kamas gagnés pendant 12 s.","eau"]],
+ sram:[
+  ["sournoise","Attaque Sournoise","🗡️",1,7,"strike",1.22,"Frappe discrète de Terre.","terre"],
+  ["invisibilite","Invisibilité","🌫️",15,24,"evade",.35,"Chance d'esquiver les attaques pendant 10 s.","air"],
+  ["mortelle","Attaque Mortelle","☠️",45,24,"execute",2.45,"Frappe meurtrière plus puissante en exécution.","terre"]],
+ xelor:[
+  ["aiguille","Aiguille","⌛",1,7,"strike",1.16,"Projectile magique de Feu.","feu"],
+  ["ralentissement","Ralentissement","⏳",15,21,"slow",.35,"Ralentit les attaques de ce monstre pendant 11 s.","feu"],
+  ["rayon","Rayon Obscur","🌘",45,20,"blast",1.75,"Puissant rayon de Feu.","feu"]],
+ ecaflip:[
+  ["bluff","Bluff","🎲",1,7,"strike",1.16,"Attaque d'Eau imprévisible.","eau"],
+  ["trefle","Trèfle","🍀",15,26,"crit",.23,"Augmente tes coups critiques pendant 10 s.","air"],
+  ["rekop","Rekop","✨",45,21,"blast",2.05,"Attaque élémentaire puissante.","eau"]],
+ sadida:[
+  ["ronce","Ronce","🌿",1,7,"strike",1.10,"Ronce de Terre.","terre"],
+  ["gonflable","La Gonflable","🌱",15,27,"regen",.030,"Soins périodiques pendant 12 s.","terre"],
+  ["ronce-agressive","Ronce Agressive","🌳",45,18,"dot",.59,"Entrave la cible et lui inflige des dégâts dans le temps.","terre"]],
+ pandawa:[
+  ["poing","Poing Enflammé","🍶",1,7,"strike",1.18,"Frappe de Feu.","feu"],
+  ["picole","Picole","🛡️",15,26,"armor",.28,"Réduit les dégâts subis pendant 11 s.","eau"],
+  ["vague","Vague à Lame","🌊",45,19,"blast",1.77,"Puissante attaque d'Eau.","eau"]],
+ roublard:[
+  ["explobombe","Explobombe","💣",1,9,"dot",.48,"Une bombe brûle la cible pendant plusieurs secondes.","feu"],
+  ["bottes","Bottes","🥾",15,25,"evade",.28,"Évite une partie des attaques ennemies.","air"],
+  ["detonateur","Détonateur","💥",45,20,"blast",1.95,"Déclenche une explosion de Feu.","feu"]],
+ zobal:[
+  ["martelo","Martelo","🎭",1,7,"strike",1.19,"Frappe Terre.","terre"],
+  ["plastron","Plastron","🛡️",15,21,"shield",.36,"Crée un puissant bouclier.","terre"],
+  ["mascarade","Mascarade","💢",45,30,"fury",.40,"Augmente tes dégâts pendant 10 s.","terre"]],
+ steamer:[
+  ["harponneuse","Harponneuse","⚙️",1,18,"summon",.48,"Tourelle qui frappe régulièrement pendant 12 s.","feu"],
+  ["gardienne","Gardienne","💚",15,27,"regen",.035,"Tourelle de soins pendant 12 s.","eau"],
+  ["embuscade","Embuscade","🌊",45,20,"blast",1.87,"Frappe polyvalente à base d'Eau.","eau"]],
+ eliotrope:[
+  ["affront","Affront","🌀",1,7,"strike",1.18,"Attaque magique de Feu.","feu"],
+  ["portail","Portail","🕳️",15,27,"haste",.25,"Accélère tes attaques pendant 11 s.","feu"],
+  ["wakfu","Rayon de Wakfu","✨",45,20,"blast",1.80,"Rayon de Feu renforcé.","feu"]],
+ huppermage:[
+  ["lance-flammes","Lance-Flammes","🔥",1,7,"strike",1.18,"Frappe élémentaire de Feu.","feu"],
+  ["orage","Orage","🌩️",15,18,"blast",1.58,"Frappe élémentaire d'Air.","air"],
+  ["rune","Rune Élémentaire","🔮",45,28,"fury",.29,"Renforce les dégâts élémentaires pendant 11 s.","feu"]],
+ ouginak:[
+  ["machoire","Mâchoire","🐺",1,8,"leech",1.15,"Morsure de Terre qui soigne légèrement.","terre"],
+  ["proie","Proie","🎯",15,22,"weaken",.30,"Réduit les dégâts du monstre pendant 12 s.","terre"],
+  ["rage","Rage","🔴",45,27,"fury",.43,"Accroît les dégâts pendant 10 s.","terre"]],
+ forgelance:[
+  ["javelot","Javelot","🔱",1,7,"strike",1.23,"Frappe de Terre.","terre"],
+  ["estoc","Estoc","🛡️",15,22,"shield",.26,"Protection issue du maniement de la lance.","terre"],
+  ["deferlante","Déferlante","🌊",45,20,"blast",1.86,"Attaque de zone adaptée en frappe Air.","air"]]
+};
+const SPELL_BY_ID=Object.fromEntries(Object.entries(CLASS_SPELLS)
+ .map(([cls,spells])=>[cls,Object.fromEntries(spells.map(sp=>[sp[0],sp]))]));
+function classSpells(){return CLASS_SPELLS[state.classId]||CLASS_SPELLS.iop}
+function spellReady(spell,a=state.action){
+ return !!a&&a.type==="combat"&&(!a.respawnRemaining)&&
+  playerLevel()>=spell[3]&&(Number(a.spellCooldowns?.[spell[0]])||0)<=0&&
+  (Number(a.spellGlobalTimer)||0)<=0;
+}
+function spellAutoEnabled(id){return state.spellPreferences?.[state.classId+":"+id]!==false}
+function toggleSpellAuto(id){
+ if(!SPELL_BY_ID[state.classId]?.[id])return;
+ if(!state.spellPreferences)state.spellPreferences={};
+ const key=state.classId+":"+id;
+ state.spellPreferences[key]=!spellAutoEnabled(id);
+ render();save();
+}
+function ensureSpellAction(a){
+ if(a.spellClass!==state.classId){
+  a.spellClass=state.classId;a.spellCooldowns={};a.spellBuffs={};
+  a.spellShield=0;a.spellDot=null;a.spellGlobalTimer=0;a.spellClock=0;a.spellHistory=[];
+ }
+ a.spellCooldowns=a.spellCooldowns||{};
+ a.spellBuffs=a.spellBuffs||{};
+ a.spellHistory=a.spellHistory||[];
+}
+function spellBuff(a,key){return a?.spellBuffs?.[key]?.remaining>0?a.spellBuffs[key].value:0}
+function combatAttackInterval(a=state.action){
+ return Math.max(.5,(1.65-(state.upgrades.weapon||0)*.025)*(1-spellBuff(a,"haste")));
+}
+function effectiveCombatCrit(a=state.action){return clamp(criticalChance()+spellBuff(a,"crit"),.01,.9)}
+function effectiveCombatDamage(a=state.action){return Math.max(1,Math.round(damage()*(1+spellBuff(a,"fury"))))}
+function spellHistory(a,spell,description){
+ a.spellHistory.unshift({id:spell[0],icon:spell[2],name:spell[1],text:description});
+ a.spellHistory=a.spellHistory.slice(0,6);
+ state.spellCasts=(Number(state.spellCasts)||0)+1;
+ state.spellCastsById=state.spellCastsById||{};
+ const key=state.classId+":"+spell[0];
+ state.spellCastsById[key]=(state.spellCastsById[key]||0)+1;
+}
+function emitSpellFloat(target,text,icon="✨"){
+ if(state?.view!=="combat"||typeof document==="undefined")return;
+ const anchor=target==="enemy"?$(".fd-enemy-panel .fd-enemy-hero"):
+  $(".fd-player-panel .fd-hp-label");
+ if(!anchor)return;
+ const r=anchor.getBoundingClientRect();
+ const node=E("span",{className:"fd-spell-floating "+(target==="enemy"?"fd-spell-floating-enemy":"fd-spell-floating-player"),
+  "aria-hidden":"true"},icon+" "+text);
+ const w=window.innerWidth||1100,h=window.innerHeight||700;
+ const x=r.width>0?r.left+r.width*.5:(target==="enemy"?w*.72:w*.25);
+ const y=r.height>0?r.top+r.height*.45:(target==="enemy"?h*.33:h*.25);
+ node.style.left=Math.max(44,Math.min(w-44,x))+"px";
+ node.style.top=Math.max(42,Math.min(h-42,y))+"px";
+ document.body.append(node);
+ if(document.querySelectorAll(".fd-spell-floating").length>14)document.querySelector(".fd-spell-floating")?.remove();
+ node.addEventListener("animationend",()=>node.remove(),{once:true});
+ setTimeout(()=>node.remove(),1600);
+}
+function spellHit(a,m,spell,multiplier=1){
+ const elem={terre:"force",feu:"intelligence",eau:"chance",air:"agilite"}[spell[8]]||"force";
+ const bonus=(statValue(elem)+gearStat(elem)+gearStat("power"))*.035;
+ const crit=Math.random()<effectiveCombatCrit(a);
+ const threshold=spell[5]==="execute"&&a.enemyHp/m[2]<=.4?1.65:1;
+ const total=Math.max(1,Math.round((effectiveCombatDamage(a)*spell[6]*multiplier+bonus)*
+  threshold*(crit?1.7:1)));
+ const hit=Math.min(Math.max(0,a.enemyHp),total);
+ a.enemyHp=Math.max(0,a.enemyHp-total);
+ emitDamageNumber("enemy",total,crit,spell[2]+" "+spell[1]);
+ return hit;
+}
+function castClassSpell(spellId,manual=false){
+ const spell=SPELL_BY_ID[state.classId]?.[spellId],a=state.action;
+ if(!spell||!a||a.type!=="combat"||!world.monsters[String(a.id)]){if(manual)toast("Lance un combat pour utiliser tes sorts.");return false}
+ ensureSpellAction(a);
+ if(playerLevel()<spell[3]){if(manual)toast("Sort débloqué au niveau "+spell[3]+".");return false}
+ if(!spellReady(spell,a)){if(manual)toast("Ce sort est en recharge ou le monstre est vaincu.");return false}
+ const m=world.monsters[String(a.id)],type=spell[5],amount=spell[6];
+ let text="";
+ if(["strike","blast","execute","leech"].includes(type)){
+  const dealt=spellHit(a,m,spell);
+  text="−"+Math.round(dealt)+" PV";
+  if(type==="leech"){
+   const heal=Math.min(maxHp()-state.hp,Math.max(1,Math.round(dealt*.30)));
+   state.hp=Math.min(maxHp(),state.hp+heal);
+   text+=" · +"+heal+" PV";
+   if(heal)emitSpellFloat("player","+"+heal+" PV",spell[2]);
+  }
+ }else if(type==="heal"){
+  const heal=Math.min(maxHp()-state.hp,Math.ceil(maxHp()*amount));
+  state.hp=Math.min(maxHp(),state.hp+heal);text="+"+heal+" PV";
+  emitSpellFloat("player",text,spell[2]);
+ }else if(type==="shield"){
+  const shield=Math.ceil(maxHp()*amount);
+  a.spellShield=Math.min(Math.ceil(maxHp()*.75),(a.spellShield||0)+shield);
+  text="+"+shield+" bouclier";
+  emitSpellFloat("player",text,spell[2]);
+ }else if(type==="dot"){
+  a.spellDot={remaining:8,progress:0,damage:Math.max(1,Math.round(damage()*amount)),name:spell[1],icon:spell[2]};
+  text="Brûlure : 8 secondes";emitSpellFloat("enemy","Brûlure",spell[2]);
+ }else if(type==="summon"){
+  a.spellBuffs.summon={remaining:12,value:amount,progress:0,icon:spell[2]};
+  text="Allié invoqué : 12 secondes";emitSpellFloat("player","Allié invoqué",spell[2]);
+ }else{
+  const times={fury:10,crit:11,haste:11,armor:11,evade:11,slow:11,weaken:12,luck:12,regen:12};
+  const duration=times[type]||10;
+  a.spellBuffs[type]={remaining:duration,value:amount,progress:0,icon:spell[2]};
+  text=(type==="regen"?"Régénération":type==="fury"?"Dégâts renforcés":
+   type==="crit"?"Critiques renforcés":type==="haste"?"Attaques accélérées":
+   type==="armor"?"Protection":type==="evade"?"Esquive":
+   type==="slow"?"Monstre ralenti":type==="weaken"?"Monstre affaibli":
+   type==="luck"?"Kamas améliorés":"Bonus")+" : "+duration+" s";
+  emitSpellFloat(type==="slow"||type==="weaken"?"enemy":"player",text,spell[2]);
+ }
+ a.spellCooldowns[spell[0]]=spell[4];
+ a.spellGlobalTimer=1.2;
+ spellHistory(a,spell,text);
+ if(a.enemyHp<=0&&state.action===a)victory(m,a);
+ if(manual){render();save()}
+ return true;
+}
+function advanceSpellTimers(a,dt){
+ ensureSpellAction(a);
+ a.spellClock=(a.spellClock||0)+dt;
+ a.spellGlobalTimer=Math.max(0,(a.spellGlobalTimer||0)-dt);
+ for(const key of Object.keys(a.spellCooldowns))
+  a.spellCooldowns[key]=Math.max(0,(Number(a.spellCooldowns[key])||0)-dt);
+ for(const [key,status] of Object.entries(a.spellBuffs)){
+  if(!status)continue;
+  const activeDt=Math.min(Math.max(0,Number(status.remaining)||0),dt);
+  if((key==="regen")&&activeDt>0)
+   state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*status.value*activeDt));
+  status.remaining=Math.max(0,status.remaining-dt);
+  if(status.remaining<=0)delete a.spellBuffs[key];
+ }
+}
+function advanceCombatDot(a,m,dt){
+ if(!a.spellDot||a.enemyHp<=0)return false;
+ const dot=a.spellDot;
+ const duration=Math.min(Math.max(0,dot.remaining),dt);
+ dot.progress=(dot.progress||0)+duration;
+ dot.remaining=Math.max(0,dot.remaining-dt);
+ let changed=false;
+ const ticks=Math.min(8,Math.floor(dot.progress));
+ dot.progress-=ticks;
+ for(let i=0;i<ticks&&a.enemyHp>0;i++){
+  a.enemyHp=Math.max(0,a.enemyHp-dot.damage);changed=true;
+  emitDamageNumber("enemy",dot.damage,false,dot.icon+" "+dot.name);
+  if(a.enemyHp<=0){victory(m,a);return true}
+ }
+ if(!dot.remaining)a.spellDot=null;
+ return changed;
+}
+function advanceCombatSummon(a,m,dt){
+ const summ=a.spellBuffs?.summon;if(!summ||a.enemyHp<=0)return false;
+ summ.progress=(summ.progress||0)+dt;
+ const n=Math.min(8,Math.floor(summ.progress/2.5));
+ summ.progress-=n*2.5;
+ let changed=false;
+ for(let i=0;i<n&&a.enemyHp>0;i++){
+  const dmg=Math.max(1,Math.round(damage()*summ.value));
+  a.enemyHp=Math.max(0,a.enemyHp-dmg);changed=true;
+  emitDamageNumber("enemy",dmg,false,summ.icon+" Invocation");
+  if(a.enemyHp<=0){victory(m,a);return true}
+ }
+ return changed;
+}
+function castAutoSpell(a){
+ if(a.spellClock<2||a.spellGlobalTimer>0||a.respawnRemaining||a.enemyHp<=0)return false;
+ const available=classSpells().filter(sp=>spellAutoEnabled(sp[0])&&spellReady(sp,a));
+ // Le soigneur n'emploie pas ses soins si les PV sont quasiment pleins.
+ const chosen=available.find(sp=>
+  (sp[5]!=="heal"&&sp[5]!=="regen")||state.hp/maxHp()<.78);
+ if(!chosen)return false;
+ return castClassSpell(chosen[0],false);
+}
+
 function statValue(key){return Math.max(0,Math.floor(Number(state.characteristics?.[key])||0))}
 function statCost(key,value){
  if(key==="vitalite")return 1;
