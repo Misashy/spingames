@@ -175,6 +175,10 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert(Object.keys(w.DOFUS_IDLE_FULL.getState().achievements).length>=1,'récompense de succès non conservée');
 
   // Vérifier que l'on explique précisément les monstres trop forts.
+  const combatMenu=[...w.document.querySelectorAll('.fd-nav-entry')].find(b=>b.textContent.includes('Zones et monstres'));
+  combatMenu.click();
+  const toRegions=w.document.querySelector('.fd-combat-breadcrumb button');
+  if(toRegions)toRegions.click();
   const regionsAgain=[...w.document.querySelectorAll('.fd-region-card')];
   assert(regionsAgain[0].textContent.includes('Incarnam'),'Incarnam doit rester première après navigation');
   const amakna=regionsAgain.find(b=>b.textContent.includes('Amakna'));
