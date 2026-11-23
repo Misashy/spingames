@@ -1,4 +1,4 @@
-# DOFUS IDLE — Monde des Douze (version 5)
+# DOFUS IDLE — Monde des Douze (version 7)
 
 Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, recettes et monstres de DOFUS 3.7.14.18. Projet indépendant de dofus-clicker.
 
@@ -99,6 +99,38 @@ L'onglet Personnage présente une fiche complète organisée en groupes : caract
 Précision importante : la base actuelle des objets ne contient pas les jets d'effets des équipements. Seules les caractéristiques effectivement appliquées par le moteur idle sont marquées Idle et calculées ; les autres sont affichées comme Indicatif et ne sont pas encore utilisées pour calculer les combats. Les bonus officiels détaillés des équipements, les PA/PM et les sorts DOFUS ne sont pas simulés.
 
 Le test de non-régression bank-character-combat.cjs valide les cinq catégories présentes dans les données de test, les types officiels, l'onglet Tous, les tris, les groupes de statistiques, le KO immédiat à 0 PV, la pause et le rétablissement des PV.
+
+## Version 7 — Les vrais bonus des équipements et des panoplies
+
+Source : fichiers clients DOFUS 3.7.14.18 des archives de ledouxm/dofus-sqlite. L'extracteur V7 résout les références Unity EffectInstanceDice dans itemsdata.json et itemsetsdata.json. Les noms d'effets et de panoplies proviennent des traductions françaises du même dofus.sqlite. Il ne remplace ni les noms, ni les recettes, ni les monstres de la base principale.
+
+Données importées dans data/equipment-v7.json :
+- 12 396 fiches d'objets avec au moins un effet ou une panoplie.
+- 527 panoplies avec la liste exacte de leurs membres et un bonus correspondant à chaque palier.
+- 275 types d'effets de la version DOFUS 3 épinglée.
+- Bornes de jet minimales et maximales authentiques, reliées aux identifiants d'objet et d'effet.
+
+Interface :
+- Banque → Comparer : voir les effets de l'objet, le détail des jets, la panoplie, les bonus de chaque palier, ainsi que les variations de PV, de dégâts et de défense avant d'équiper.
+- Personnage → Mes équipements : affichage de 17 emplacements incluant deux anneaux, six slots Dofus/trophées, familier et monture ; les huit emplacements préexistants sont préservés.
+- Personnage → Mes panoplies : nombre de pièces portées, progression vers le bonus suivant, et les effets actifs.
+- Tous les bonus de panoplie sont pris au palier actuel : par exemple 2 pièces activent le palier 2, 3 pièces remplacent le palier 2 par le palier 3. Ils ne sont pas additionnés entre paliers.
+- Équiper et retirer un objet conserve ses identifiants et quantités en banque. La sauvegarde locale historique dofus-idle-full-v2 est conservée sans réinitialisation.
+
+### Fidélité des effets et limites de la V7
+
+**Les plages d'effets et leurs noms sont officiels, le calcul idle reste une adaptation.**
+- Les objets n'ont pas encore de jet individuel stocké par exemplaire : le moteur calcule un jet médian déterministe à partir des bornes officielles. Il ne prétend pas que ce jet correspond au meilleur jet ni à un objet réel obtenu chez Ankama.
+- Sont notamment reliés au moteur idle : Vitalité, Force, Intelligence, Chance, Agilité, Sagesse, Puissance, coups critiques, dommages simples et résistances reconnues ; les effets modifient les PV, les dégâts, la défense, la chance de critique ou l'XP selon les règles idle documentées.
+- Les PA, PM, PO et autres statistiques sont affichés mais le jeu idle n'a pas encore de système de tours, déplacements, sorts ou IA DOFUS. Les effets non interprétés sont explicitement marqués Hors combat idle.
+- Les conditions complexes pour équiper certains objets (quêtes, alignements, classe ou caractéristique minimum), la forgemagie, les jets individuels et certaines propriétés des armes ne sont pas encore simulées : seul le niveau de l'objet est vérifié lors de l'équipement.
+- La comparaison reflète les statistiques que le moteur idle utilise, y compris la perte ou le gain d'un bonus de panoplie. Aucun bonus arbitraire basé uniquement sur le niveau d'objet n'est ajouté quand les effets officiels existent.
+
+Fichiers V7 :
+- tools/build_equipment_v7.py : extraction déterministe des données itemsdata.json/itemsetsdata.json.
+- .github/workflows/dofus-idle-equipment-v7.yml : import vérifié et publication du seul fichier equipment-v7.json.
+- tests/equipment-v7.cjs : tests des bornes d'effets de la Panoplie du Bouftou, du palier à deux pièces, du comparateur et du retour en banque.
+- equipment-v7.css et game-full.js : interface du comparateur et intégration au moteur.
 
 ## Fidélité et limites
 
