@@ -206,3 +206,13 @@
 @media(prefers-reduced-motion:reduce){
  .fd-combat-damage,.fd-combat-damage.is-critical{animation:none;opacity:1;transform:translate(-50%,-50%)}
 }
+
+
+/* Pause après KO : la barre ennemie reste visiblement à zéro. */
+.fd-enemy-defeated{padding:14px 18px;text-align:center;border:1px solid #d69d57;border-radius:7px;background:#47312a;display:grid;gap:6px;animation:fd-ko-glow .65s ease-in-out both}
+.fd-enemy-defeated strong{font-size:19px;color:#ffda7a;letter-spacing:.7px;text-shadow:0 2px 4px #27171d}
+.fd-enemy-defeated small{font-size:11px;color:#ffe3c0}
+.fd-enemy-hero-ko{opacity:.55;filter:grayscale(.5)}
+.fd-enemy-panel .fd-enemy-hp>span{transition:width .16s ease-out}
+@keyframes fd-ko-glow{from{transform:scale(.96);opacity:.3}to{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.fd-enemy-defeated{animation:none}}
