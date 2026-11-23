@@ -1592,7 +1592,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v11.0";
+ $("#buildVersion").textContent="v12.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -2519,6 +2519,108 @@ function advancedCharacterStats(){
  return root;
 }
 
+
+/* V12 — la partie locale est toujours prioritaire jusqu'à action explicite. */
+let cloudInstance=null,cloudSlot="principal";
+function cloudConfigReady(){
+ const c=window.DOFUS_IDLE_CLOUD||{};
+ return /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(String(c.url||""))&&
+  typeof c.publishableKey==="string"&&c.publishableKey.length>20;
+}
+function cloudClient(){
+ if(!cloudConfigReady())throw Error("Sauvegarde cloud non configurée par l'administrateur.");
+ if(!window.supabase?.createClient)throw Error("Bibliothèque de connexion cloud indisponible (réseau ou bloqueur).");
+ if(!cloudInstance){
+  const c=window.DOFUS_IDLE_CLOUD;
+  cloudInstance=window.supabase.createClient(c.url,c.publishableKey,
+   {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"pkce",
+     storageKey:"dofus-idle-cloud-auth-v12"}});
+ }
+ return cloudInstance;
+}
+async function cloudUser(){
+ const {data,error}=await cloudClient().auth.getUser();
+ if(error)throw error;
+ if(!data?.user)throw Error("Connecte-toi d'abord pour utiliser le cloud.");
+ return data.user;
+}
+async function cloudLogin(email){
+ try{
+  const value=String(email||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw Error("Adresse email invalide.");
+  const {error}=await cloudClient().auth.signInWithOtp({
+   email:value,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});
+  if(error)throw error;
+  toast("📨 Lien de connexion envoyé. Vérifie tes emails.");
+ }catch(error){toast("Cloud : "+error.message)}
+}
+async function cloudLogout(){
+ try{const {error}=await cloudClient().auth.signOut();if(error)throw error;toast("Compte déconnecté.");render()}
+ catch(error){toast("Cloud : "+error.message)}
+}
+async function cloudPush(){
+ try{
+  const user=await cloudUser();
+  const target=cloudSlot;
+  if(!confirm("Envoyer la sauvegarde locale vers le cloud, emplacement « "+target+" » ? Cela remplacera uniquement la copie distante de cet emplacement."))return;
+  save();
+  const snapshot=JSON.parse(localStorage.getItem(KEY));
+  const {error}=await cloudClient().from("dofus_idle_saves").upsert({
+   user_id:user.id,slot:target,save_data:snapshot,updated_at:new Date().toISOString()},
+   {onConflict:"user_id,slot"});
+  if(error)throw error;
+  toast("☁️ Sauvegarde envoyée : "+target);
+ }catch(error){toast("Cloud : "+error.message)}
+}
+async function cloudPull(){
+ try{
+  const user=await cloudUser();
+  const {data,error}=await cloudClient().from("dofus_idle_saves").select("save_data,updated_at")
+   .eq("user_id",user.id).eq("slot",cloudSlot).maybeSingle();
+  if(error)throw error;
+  if(!data){toast("Aucune sauvegarde distante sur cet emplacement.");return}
+  const remote=data.save_data;
+  if(!remote||remote.version!==2||!remote.jobs||!remote.bank)throw Error("Sauvegarde distante invalide.");
+  if(!confirm("Restaurer « "+cloudSlot+" » du "+new Date(data.updated_at).toLocaleString("fr-FR")+
+   " ? La partie locale sera archivée dans ce navigateur avant remplacement, puis la page se rechargera."))return;
+  const previous=localStorage.getItem(KEY);
+  const backupKey=KEY+"-backup-v12-"+Date.now();
+  try{
+   if(previous)localStorage.setItem(backupKey,previous);
+   localStorage.setItem(KEY,JSON.stringify(remote));
+  }catch(error){throw Error("Stockage local insuffisant, restauration annulée : "+error.message)}
+  location.reload();
+ }catch(error){toast("Cloud : "+error.message)}
+}
+async function cloudPanel(){
+ try{
+  const client=cloudClient();
+  const {data,error}=await client.auth.getUser();if(error)throw error;
+  const user=data?.user;
+  const box=E("section",{className:"fd-character-panel fd-v12-cloud"},
+   E("h3",{},"☁️ Sauvegarde cloud · V12"),
+   E("p",{className:"fd-muted"},"Sauvegarde locale toujours active. Aucun transfert automatique et aucune fusion implicite. Les trois emplacements sont indépendants."),
+   E("p",{},user?"Connecté : "+(user.email||user.id):"Aucun compte connecté"));
+  if(!user){
+   const email=E("input",{type:"email",className:"fd-search",placeholder:"Adresse email pour le lien de connexion",maxLength:180});
+   box.append(email,B("📨 Recevoir un lien de connexion",()=>cloudLogin(email.value),"fd-button"));
+  }else{
+   const select=E("select",{className:"fd-select",value:cloudSlot,onchange:e=>{cloudSlot=e.target.value}},
+    ...["principal","secondaire","troisieme"].map(v=>E("option",{value:v},v)));
+   box.append(E("div",{className:"fd-v12-actions"},select,
+    B("☁️ Envoyer ma partie",cloudPush,"fd-button"),
+    B("📥 Restaurer depuis le cloud",cloudPull,"fd-secondary"),
+    B("Déconnexion",cloudLogout,"fd-secondary")));
+  }
+  $("#fdCloudPanel")?.replaceChildren(box);
+ }catch(error){
+  $("#fdCloudPanel")?.replaceChildren(E("section",{className:"fd-character-panel"},
+   E("h3",{},"☁️ Sauvegarde cloud · V12"),
+   E("p",{className:"fd-muted"},error.message),
+   E("p",{className:"fd-muted"},"La sauvegarde locale, son export JSON et son import restent disponibles.")));
+ }
+}
+
 function characterView(){
  const current=CLASS_BY_ID[state.classId]||CLASS_BY_ID.iop;
  const lvl=levelOf(state.playerXp);
@@ -2578,6 +2680,7 @@ function characterView(){
     pill(CLASS_META.length+" classes DOFUS")),
    E("p",{className:"fd-muted"},"Choisis librement parmi les classes du Monde des Douze. Les rôles et bonus de combat sont adaptés au prototype idle."),
    allClasses),
+  E("div",{id:"fdCloudPanel",className:"fd-v12-panel"}),
   E("div",{className:"fd-character-actions"},
    B("📦 Exporter sauvegarde",exportSave,"fd-secondary"),
    B("📥 Importer sauvegarde",()=>$("#fdImport").click(),"fd-secondary"),
@@ -3148,6 +3251,7 @@ function renderView(){
  else if(v==="automation")node=automationView();
  else node=characterView();
  $("#view").replaceChildren(node);
+ if(v==="character")cloudPanel();
 }
 function render(){sidebar();header();renderView()}
 async function init(){
