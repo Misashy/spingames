@@ -241,9 +241,10 @@ function spellHit(a,m,spell,multiplier=1){
  const threshold=spell[5]==="execute"&&a.enemyHp/m[2]<=.4?1.65:1;
  const total=Math.max(1,Math.round((effectiveCombatDamage(a)*spell[6]*multiplier+bonus)*
   threshold*(crit?1.7:1)));
- const hit=Math.min(Math.max(0,a.enemyHp),total);
- a.enemyHp=Math.max(0,a.enemyHp-total);
- emitDamageNumber("enemy",total,crit,spell[2]+" "+spell[1]);
+ const amount=isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier"?Math.max(1,Math.round(total*.65)):total;
+ const hit=Math.min(Math.max(0,a.enemyHp),amount);
+ a.enemyHp=Math.max(0,a.enemyHp-amount);
+ emitDamageNumber("enemy",amount,crit,spell[2]+" "+spell[1]);
  return hit;
 }
 function castClassSpell(spellId,manual=false){
@@ -850,6 +851,8 @@ function fresh(){
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
   craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
   spellPreferences:{},spellCasts:0,spellCastsById:{},
+  dungeonClears:{},dungeonLastClear:"",questClaims:{},collectionClaims:{},unlockedTitles:[],selectedTitle:"",
+  automation:{lootMode:"manual",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0},
   lastAt:now(),totalSeconds:0,migrated:false};
 }
 function load(){
@@ -858,7 +861,10 @@ function load(){
  if(raw?.version===2&&raw.jobs&&raw.bank){
   return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
   craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[],
-  spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{}});
+  spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{},
+  dungeonClears:raw.dungeonClears||{},questClaims:raw.questClaims||{},collectionClaims:raw.collectionClaims||{},
+  unlockedTitles:Array.isArray(raw.unlockedTitles)?raw.unlockedTitles:[],selectedTitle:raw.selectedTitle||"",
+  automation:{...fresh().automation,...(raw.automation||{})}});
  }
  let s=fresh();
  try{
@@ -1204,6 +1210,11 @@ function tick(dt){
  if(a.type==="combat"&&Number(a.respawnRemaining)>0){
   a.respawnRemaining=Math.max(0,a.respawnRemaining-dt);
   if(a.respawnRemaining===0){
+   if(a.dungeonRun?.completed){state.action=null;return true}
+   if(a.dungeonRun){
+    const nextId=a.dungeonRun.rooms[a.dungeonRun.index];
+    if(nextId){a.id=Number(nextId);state.selectedMonster=String(nextId)}
+   }
    const next=world.monsters[String(a.id)];
    if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0;a.spellDot=null;
     delete a.spellBuffs.slow;delete a.spellBuffs.weaken;}
@@ -1248,12 +1259,14 @@ function tick(dt){
   const m=world.monsters[String(a.id)];if(!m){state.action=null;return true}
   const second=combatAttackInterval(a);
   a.enemyTick=(a.enemyTick||0)+dt;
+  if(dungeonBossSpecial(a,m,dt)&&!state.action)return true;
   let changed=false;
   let attacks=Math.min(10,Math.floor(a.progress/second));a.progress-=attacks*second;
   while(attacks-- && state.action){
    const crit=effectiveCombatCrit(a);
    const isCritical=Math.random()<crit;
-   const hit=Math.max(1,Math.round(effectiveCombatDamage(a)*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
+   let hit=Math.max(1,Math.round(effectiveCombatDamage(a)*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
+   if(isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier")hit=Math.max(1,Math.round(hit*.65));
    a.enemyHp-=hit;changed=true;
    emitDamageNumber("enemy",hit,isCritical);
    if(a.enemyHp<=0){victory(m,a);break}
@@ -1315,6 +1328,7 @@ function victory(m,a){
  state.jobs["78"]=(state.jobs["78"]||0)+Math.ceil(expGain(m[1])*.35);
  state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*
   (state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)));
+ dungeonVictory(a,m);
  a.enemyHp=0;a.enemyTick=0;a.progress=0;a.respawnRemaining=1.8;a.spellDot=null;
  delete a.spellBuffs.slow;delete a.spellBuffs.weaken;
  // Rafraîchit immédiatement la barre à zéro, sans attendre le prochain
@@ -2062,6 +2076,9 @@ function combatEnemyPanel(){
    mobSprite(state.selectedMonster,"fd-enemy-portrait"),
    E("div",{},E("h2",{},m[0]),
      E("p",{},"📍 "+zone[0]+" · Niveau "+m[1]),
+     state.action?.dungeonRun?E("p",{className:"fd-dungeon-boss-phase"},
+      "🏰 Salle "+(state.action.dungeonRun.index+1)+"/"+state.action.dungeonRun.rooms.length+
+      (isDungeonBoss(state.action)?" · 👑 "+state.action.dungeonRun.bossPhase:"")):null,
      E("p",{},"🏆 "+money(state.dex[String(state.selectedMonster)]||0)+" victoires"),
      pill("🪙 "+money(Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)))+" / victoire"))),
   E("div",{className:"fd-fight-level-info "+(allowed?"is-available":"is-locked")},
@@ -2106,6 +2123,8 @@ function combatZoneCard(id,z){
    E("small",{className:"fd-zone-min-level"},(playerLevel()>=minLevel?"✅":"🔒")+" Premiers combats dès le niveau "+minLevel)),
   difficultyChip(zoneLevel),E("span",{className:"fd-chevron"},open?"−":"+"));
  card.append(head);
+ if(open&&state.combatMode==="dungeons"&&Number(z[5])>=0)
+  card.append(dungeonRoomPanel(id,z));
  if(open){
   const matches=z[3].filter(mid=>world.monsters[String(mid)]&&world.monsters[String(mid)][0].toLowerCase().includes(monsterQuery.toLowerCase()))
    .sort((x,y)=>world.monsters[String(x)][1]-world.monsters[String(y)][1]);
@@ -2621,7 +2640,8 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getGearSlots:id=>availableGearSlots(id),getClassSpells:classId=>CLASS_SPELLS[classId]||[],castSpell:id=>castClassSpell(id,true),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getGearSlots:id=>availableGearSlots(id),getClassSpells:classId=>CLASS_SPELLS[classId]||[],castSpell:id=>castClassSpell(id,true),
+ getDungeonRooms:id=>dungeonRoomList(id),startDungeon:id=>startDungeon(id),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
