@@ -3076,6 +3076,19 @@ async function init(){
   gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
     .filter(id=>core.items[id]&&gearSlot(id)&&itemLevel(id)<=200);
   state=load();
+  // Après un rechargement, retrouver immédiatement la zone du combat en cours,
+  // sans demander au joueur de rouvrir le bon donjon manuellement.
+  if(state.action?.type==="combat"){
+   const activeZone=state.action.dungeonRun?.zoneId||state.selectedZone;
+   if(world.zones[String(activeZone)]){
+    state.selectedZone=String(activeZone);
+    state.selectedRegion=regionFor(world.zones[String(activeZone)]);
+    state.combatMode=state.action.dungeonRun?"dungeons":
+     Number(world.zones[String(activeZone)][5])>=0?"dungeons":"zones";
+    combatOpenZone=String(activeZone);
+    state.selectedMonster=String(state.action.id);
+   }
+  }
   // Migration non destructive de l'historique d'exploration v4 vers les
   // compteurs régionaux ; les valeurs déjà enregistrées sont conservées.
   if(!Object.keys(state.regionZoneCount||{}).length){
