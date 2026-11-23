@@ -1,4 +1,4 @@
-# DOFUS IDLE — Monde des Douze (version 7)
+# DOFUS IDLE — Monde des Douze (version 8)
 
 Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, recettes et monstres de DOFUS 3.7.14.18. Projet indépendant de dofus-clicker.
 
@@ -131,6 +131,32 @@ Fichiers V7 :
 - .github/workflows/dofus-idle-equipment-v7.yml : import vérifié et publication du seul fichier equipment-v7.json.
 - tests/equipment-v7.cjs : tests des bornes d'effets de la Panoplie du Bouftou, du palier à deux pièces, du comparateur et du retour en banque.
 - equipment-v7.css et game-full.js : interface du comparateur et intégration au moteur.
+
+## Version 8 — Sorts de classe, recharges et combat automatique
+
+La Version 8 intègre **57 capacités**, réparties sur les **19 classes disponibles** dans DOFUS IDLE : Iop, Crâ, Sacrieur, Eniripsa, Féca, Osamodas, Enutrof, Sram, Xélor, Ecaflip, Sadida, Pandawa, Roublard, Zobal, Steamer, Eliotrope, Huppermage, Ouginak et Forgelance.
+
+**Attention à la fidélité :** les noms sont empruntés aux techniques ou à l'univers des classes DOFUS, mais les coefficients, recharges, paliers et mécaniques sont **une adaptation conçue pour DOFUS IDLE**. Ce n'est pas une importation intégrale des sorts officiels, de leurs rangs ou de leur comportement tactique.
+
+- Chaque classe débloque trois sorts aux **niveaux 1, 15 et 45**.
+- Les techniques donnent de véritables effets sur le combat : frappes élémentaires, dégâts amplifiés contre une cible affaiblie, vol de vie, soins directs, boucliers absorbant les dégâts, protection, esquive, buffs de critique et vitesse d'attaque, ralentissement d'ennemi, dégâts périodiques, invocations, régénération et kamas bonus.
+- Les dégâts des sorts utilisent les caractéristiques distribuées par le joueur et les jets moyens du stuff DOFUS déjà intégrés en V7. Les buffs augmentent aussi les attaques ordinaires, sans remplacer le système de coup critique visuel.
+- Chaque sort a un temps de recharge propre, et une petite recharge globale de 1,2 seconde empêche d'en lancer plusieurs à la même fraction de seconde.
+- L'automatisation est active par défaut pour tous les sorts accessibles, et peut être désactivée **sort par sort**, indépendamment pour chaque classe ; le joueur peut toujours lancer un sort manuellement pendant un combat.
+- Dans **Personnage** et sous **Ton aventurier** dans les combats : grimoire avec les 3 capacités, leurs niveaux requis, leurs recharges, les boutons Auto ON/OFF et Lancer. En combat, les buffs actifs et les derniers sorts utilisés sont visibles.
+- Le compteur de sorts lancés et les préférences sont conservés dans l'ancienne clé de sauvegarde locale **dofus-idle-full-v2**. Les sauvegardes V7 sont mises à niveau automatiquement. Aucun objet, recette, ancien succès ni niveau n'est supprimé.
+- Lors d'un changement de classe en combat, les buffs et recharges temporaires de l'ancienne classe sont effacés pour éviter d'empiler des avantages ; les préférences d'automatisation propres à chaque classe restent sauvegardées.
+- Après un coup fatal par sort ou par invocation, la barre de vie adverse reste à **0 PV pendant 1,8 seconde**, comme en V6.
+
+### Limites de la V8
+
+Ce prototype reste **un combat idle en temps réel** et non un combat au tour par tour DOFUS. Les sorts n'utilisent pas encore des points d'action (PA), ni le placement sur une grille ou les déplacements en PM ; ils utilisent des recharges propres au mode idle. Les dégâts sur zone sont représentés par des attaques sur la cible courante. Les effets spécifiques aux mécaniques de chaque classe ont été simplifiés. Les animations de sorts utilisent des textes/emoji, sans prétendre afficher les graphismes authentiques des sorts DOFUS.
+
+Les attaques hors ligne restent désactivées : les récoltes et l'artisanat seuls profitent du calcul hors ligne actuel, afin d'éviter de simuler des combats irréalistes en l'absence du joueur.
+
+Tests automatisés :
+- **tests/spells-v8.cjs** vérifie 19 × 3 capacités, les déblocages, sorts automatiques, arrêt de l'automatisation, recharge, soins, boucliers, brûlures, invocations, changements de classe et conservation des anciennes sauvegardes.
+- Le workflow **.github/workflows/dofus-idle-smoke.yml** continue aussi de tester les métiers, les 22 382 succès, les catégories de banque, la fiche des caractéristiques et l'équipement/panoplies V7.
 
 ## Fidélité et limites
 
