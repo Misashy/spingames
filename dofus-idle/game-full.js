@@ -2812,6 +2812,108 @@ function collectionView(){
  return root;
 }
 
+
+/* Automatisation désactivée par défaut ; les ventes protègent toujours le stuff. */
+function autoSettings(){return state.automation||{}}
+function setAutomation(key,value){
+ if(!state.automation)state.automation={...fresh().automation};
+ if(!["lootMode","sellValue","healBelow","stopBelow","switchAfter"].includes(key))return;
+ state.automation[key]=value;render();save();
+}
+function autoLootAction(id){
+ const cfg=autoSettings(),mode=cfg.lootMode||"manual";
+ const equip=!!gearSlot(id)||!!itemSetInfo(id);
+ const category=bankItemCategory(id),price=itemValue(id);
+ if(mode==="bank-all")return "bank";
+ if(mode==="bank-resources")return category==="resource"?"bank":"manual";
+ if(mode==="sell-low")return !equip&&price<=Number(cfg.sellValue||20)?"sell":"manual";
+ if(mode==="smart")return equip||category==="resource"?"bank":
+  price<=Number(cfg.sellValue||20)?"sell":"manual";
+ return "manual";
+}
+function processAutomatedLoot(){
+ let banked=0,sold=0;
+ for(const [id,n] of pendingEntries()){
+  const action=autoLootAction(id);
+  if(action==="bank"){
+   if(!add(id,n))continue;
+   delete state.pendingLoot[id];state.itemsBanked=(state.itemsBanked||0)+n;banked+=n;
+  }else if(action==="sell"){
+   if(gearSlot(id)||itemSetInfo(id))continue;
+   delete state.pendingLoot[id];state.itemsSold=(state.itemsSold||0)+n;
+   const value=itemValue(id)*n;
+   state.kamas+=value;state.earned+=value;sold+=n;
+  }
+ }
+ if(banked)toast("⚙️ "+banked+" objets transférés en banque");
+ if(sold)toast("⚙️ "+sold+" objets vendus automatiquement");
+}
+function automaticHealing(a){
+ const pct=Number(autoSettings().healBelow)||0;
+ if(!pct||a?.type!=="combat"||state.hp/maxHp()*100>pct||a.autoHealTimer>0)return false;
+ const id=Object.keys(state.bank||{}).filter(id=>state.bank[id]>0&&
+  bankItemCategory(id)==="consumable"&&/pain|viande|poisson|potion de soin/i.test(itemName(id)))
+  .sort((x,y)=>itemLevel(x)-itemLevel(y))[0];
+ if(!id||!consume(id,1))return false;
+ const hp=Math.min(maxHp()-state.hp,Math.round(maxHp()*.10)+Math.max(12,itemLevel(id)*2));
+ state.hp=Math.min(maxHp(),state.hp+hp);a.autoHealTimer=9;
+ emitSpellFloat("player","+"+hp+" PV","🍞");
+ toast("🍞 Soin automatique : "+itemName(id));return true;
+}
+function rotateCombatTarget(a){
+ if(!a||a.dungeonRun)return;
+ const every=Number(autoSettings().switchAfter)||0;
+ if(!every)return;
+ a.autoKills=(a.autoKills||0)+1;
+ if(a.autoKills<every)return;
+ a.autoKills=0;
+ const z=world.zones[String(state.selectedZone)];if(!z)return;
+ const ids=z[3].map(String).filter(id=>world.monsters[id]&&canFight(world.monsters[id]))
+  .sort((x,y)=>world.monsters[x][1]-world.monsters[y][1]);
+ if(ids.length<2)return;
+ const current=ids.indexOf(String(a.id)),next=ids[(current+1+ids.length)%ids.length];
+ if(next&&next!==String(a.id)){a.nextId=next;toast("🔄 Prochain monstre : "+world.monsters[next][0])}
+}
+function automationView(){
+ const cfg=autoSettings();
+ const select=(key,options)=>E("select",{className:"fd-select",value:String(cfg[key]??0),
+  onchange:e=>setAutomation(key,key==="lootMode"?e.target.value:Number(e.target.value))},
+  ...options.map(([v,label])=>E("option",{value:String(v)},label)));
+ const row=(title,desc,control)=>E("div",{className:"fd-auto-row"},
+  E("div",{},E("strong",{},title),E("p",{},desc)),control);
+ const panel=E("section",{className:"fd-character-panel fd-auto-settings"},
+  E("h3",{},"🎁 Butin"),
+  row("Traitement des drops","Aucun objet n'est transféré ou vendu sans ton choix préalable.",
+   select("lootMode",[["manual","Manuel (par défaut)"],["bank-all","Tout en banque"],
+    ["bank-resources","Ressources en banque"],["sell-low","Vendre les objets peu chers (hors équipement)"],
+    ["smart","Équipement et ressources en banque, reste peu cher vendu"]])),
+  row("Seuil de revente","Prix unitaire maximal de vente si un mode de vente est actif.",
+   select("sellValue",[[20,"20 kamas"],[50,"50 kamas"],[100,"100 kamas"],[250,"250 kamas"]])),
+  E("h3",{},"❤️ Sécurité"),
+  row("Utiliser du pain automatiquement","Consomme une nourriture compatible de la banque quand les PV passent sous le seuil. Soin adapté à l'idle.",
+   select("healBelow",[[0,"Désactivé"],[25,"Sous 25 %"],[40,"Sous 40 %"],[60,"Sous 60 %"]])),
+  row("Arrêt de sécurité","Met fin au combat avant la mort quand les PV deviennent trop bas.",
+   select("stopBelow",[[0,"Désactivé"],[10,"Sous 10 %"],[20,"Sous 20 %"],[35,"Sous 35 %"]])),
+  E("h3",{},"🎯 Rotation"),
+  row("Changer de monstre","Après ce nombre de victoires, passe à un monstre accessible de la même zone (hors donjon).",
+   select("switchAfter",[[0,"Désactivé"],[5,"5 victoires"],[10,"10 victoires"],[25,"25 victoires"],[50,"50 victoires"]])));
+ return E("div",{className:"fd-adventure-page"},
+  panelHeading("⚙️ Automatisation du combat",
+   "Options facultatives, aucune vente ni consommation automatique à l'installation.",
+   pill("Paramètres sauvegardés")),
+  panel,
+  E("p",{className:"fd-auto-note"},
+   "Les équipements et objets de panoplie ne sont jamais vendus par les filtres automatiques. Les donjons conservent leurs propres salles."),
+  B("⚔️ Retour aux combats",()=>runNav("combat"),"fd-button"));
+}
+function automationMiniPanel(){
+ const cfg=autoSettings();
+ return E("section",{className:"fd-auto-mini"},
+  E("div",{},E("strong",{},"⚙️ Automatisation"),
+   E("small",{},"Butin : "+(cfg.lootMode||"manual")+" · Soin : "+(cfg.healBelow||0)+" % · Rotation : "+(cfg.switchAfter||0))),
+  B("Configurer",()=>runNav("automation"),"fd-secondary"));
+}
+
 function renderView(){
  if(!state)return;
  const v=state.view;
