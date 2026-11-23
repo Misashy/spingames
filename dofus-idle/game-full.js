@@ -1170,7 +1170,13 @@ function dungeonVictory(a,m){
   const xp=80+m[1]*12,kamas=60+m[1]*10;
   state.playerXp+=xp;state.kamas+=kamas;state.earned+=kamas;
   const drops=(m[4]||[]).filter(([id,rate])=>core.items[String(id)]&&rate>0).sort((a,b)=>a[1]-b[1]);
-  if(drops[0]&&queueLoot(drops[0][0],1))toast("🎁 Ressource du boss en bonus : "+itemName(drops[0][0]));
+  if(drops[0]&&queueLoot(drops[0][0],1)){
+   const bonusId=String(drops[0][0]);
+   const last=state.log[0];
+   if(last?.kind==="victory"&&last.monsterId===String(a.id))
+    last.items=[...(last.items||[]),[bonusId,1]];
+   toast("🎁 Ressource du boss en bonus : "+itemName(bonusId));
+  }
   toast("🏆 Donjon terminé : "+world.zones[d.zoneId][0]+" · +"+xp+" XP, +"+kamas+" kamas");
  }else{
   d.index++;toast("🏰 Salle "+(d.index+1)+"/"+d.rooms.length);
@@ -2422,7 +2428,9 @@ function characterView(){
   E("div",{className:"fd-character-avatar-wrap"},classArt(state.classId,"fd-character-avatar")),
   E("div",{className:"fd-character-hero-info"},
    pill("AVENTURIER · NIVEAU "+playerLevel(),"green"),
-   E("h2",{},current[1]),E("p",{},current[3]+" · "+current[4]),
+   E("h2",{},current[1]),
+   state.selectedTitle?E("p",{className:"fd-character-selected-title"},"🎖️ "+state.selectedTitle):null,
+   E("p",{},current[3]+" · "+current[4]),
    E("div",{className:"fd-character-hero-metrics"},
     pill("❤️ "+money(maxHp())+" PV"),pill("⚔️ "+money(damage())+" dégâts"),
     pill("🛡️ "+money(defense())+" défense")),
