@@ -1,0 +1,44 @@
+name: Importer les effets et panoplies DOFUS 3 V7
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dofus-idle/tools/build_equipment_v7.py'
+      - '.github/workflows/dofus-idle-equipment-v7.yml'
+permissions:
+  contents: write
+concurrency:
+  group: dofus-idle-equipment-v7
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Télécharger les données DOFUS 3 (version épinglée)
+        run: |
+          mkdir -p /tmp/dofus-v7
+          base=https://github.com/ledouxm/dofus-sqlite/releases/download/v6.0_3.7.14.18
+          for file in itemsdata.json itemsetsdata.json dofus.sqlite; do
+            curl -fL --retry 4 "$base/$file" -o "/tmp/dofus-v7/$file"
+          done
+      - name: Générer et valider les jets officiels
+        run: python dofus-idle/tools/build_equipment_v7.py
+      - name: Publier uniquement les données de la Version 7
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dofus-idle/data/equipment-v7.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data(dofus-idle): importer les vrais jets d'objets et bonus de panoplies DOFUS 3"
+            git pull --rebase origin main
+            git push
+          fi
