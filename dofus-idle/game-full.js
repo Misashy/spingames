@@ -1156,7 +1156,7 @@ function startDungeon(zoneId){
  state.action={type:"combat",id:Number(rooms[0]),progress:0,enemyHp:m[2],enemyTick:0,
   spellClass:state.classId,spellCooldowns:{},spellBuffs:{},spellShield:0,spellDot:null,
   spellClock:0,spellHistory:[],spellGlobalTimer:0,
-  dungeonRun:{zoneId:id,rooms,index:0,completed:false,specialClock:0,bossPhase:"normal"}};
+  dungeonRun:{zoneId:id,rooms,index:0,completed:false,specialClock:0,bossElapsed:0,bossPhase:"normal"}};
  if(state.hp<=0)state.hp=maxHp();
  toast("🏰 "+z[0]+" : salle 1 / "+rooms.length);render();save();
 }
@@ -1175,12 +1175,13 @@ function dungeonVictory(a,m){
  }else{
   d.index++;toast("🏰 Salle "+(d.index+1)+"/"+d.rooms.length);
  }
- d.specialClock=0;d.bossPhase="normal";
+ d.specialClock=0;d.bossElapsed=0;d.bossPhase="normal";
 }
 function dungeonBossSpecial(a,m,dt){
  if(!isDungeonBoss(a)||a.enemyHp<=0)return false;
  const d=a.dungeonRun;d.specialClock=(d.specialClock||0)+dt;
- d.bossPhase=d.specialClock<5?"bouclier":a.enemyHp/m[2]<=.35?"enrage":"normal";
+ d.bossElapsed=(d.bossElapsed||0)+dt;
+ d.bossPhase=d.bossElapsed<5?"bouclier":a.enemyHp/m[2]<=.35?"enrage":"normal";
  if(d.specialClock<8)return false;
  d.specialClock=0;
  const shield=Math.min(Number(a.spellShield)||0,Math.ceil(m[1]*.35)+10);
@@ -1510,7 +1511,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v8.0";
+ $("#buildVersion").textContent="v9.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -2200,7 +2201,7 @@ function combatZoneCard(id,z){
 function zoneView(){
  const all=regionCatalog();
  const mode=state.combatMode==="dungeons"?"dungeons":"zones";
- const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="dungeons"?Number(z[5])>=0:Number(z[5])<0)])
+ const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="dungeons"?Number(z[5])>=0&&dungeonRoomList(id).length>=2:Number(z[5])<0)])
   .filter(([name,zones])=>zones.length>0)
   .sort((a,b)=>regionOrder(a,b,state.combatSort==="desc"?-1:1));
  const chosen=regions.find(([name])=>name===state.selectedRegion);
@@ -3076,7 +3077,9 @@ async function init(){
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
   window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getGearSlots:id=>availableGearSlots(id),getClassSpells:classId=>CLASS_SPELLS[classId]||[],castSpell:id=>castClassSpell(id,true),
- getDungeonRooms:id=>dungeonRoomList(id),startDungeon:id=>startDungeon(id),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
+ getDungeonRooms:id=>dungeonRoomList(id),startDungeon:id=>startDungeon(id),
+ getQuestSummary:()=>({total:questCatalog.length,claimed:Object.keys(state.questClaims||{}).length}),
+ getCollectionSummary:()=>({sets:Object.keys(equipmentData?.sets||{}).length,claimed:Object.keys(state.collectionClaims||{}).length}),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
