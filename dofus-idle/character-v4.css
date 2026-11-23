@@ -1,0 +1,95 @@
+/* DOFUS IDLE v4 — personnage, classes, caractéristiques, succès, butin temporaire */
+.fd-character-page{max-width:1680px;margin:auto;display:flex;flex-direction:column;gap:15px}
+.fd-character-hero{display:flex;align-items:center;gap:26px;padding:25px 27px;border:1px solid #547769;border-top:4px solid #6bbd90;background:linear-gradient(112deg,#223b3e,#243041 58%,#1f2d3c);border-radius:10px;box-shadow:0 15px 30px #07131b44}
+.fd-character-avatar-wrap{flex:0 0 174px;width:174px;height:174px;display:grid;place-items:center;background:radial-gradient(circle,#40634f,#1b2f38);border:2px solid #678f73;border-radius:16px;overflow:hidden}
+.fd-character-avatar{width:100%;height:100%;display:grid;place-items:center;object-fit:contain;font-size:96px;filter:drop-shadow(0 9px 8px #0004)}
+.fd-character-hero-info{min-width:0;flex:1;display:grid;gap:9px}
+.fd-character-hero-info h2{font-family:Georgia,serif;font-size:32px;margin:0;color:#f8e4b7}
+.fd-character-hero-info p{color:#c4d8dc;font-size:13px;margin:0}
+.fd-character-hero-info>small{font-size:11px;color:#aabfce}
+.fd-character-hero-metrics{display:flex;gap:7px;flex-wrap:wrap}
+.fd-character-hero>.fd-secondary{align-self:flex-start}
+.fd-character-main-layout{display:grid;grid-template-columns:minmax(230px,1fr) minmax(320px,1.3fr) minmax(220px,.76fr);align-items:start;gap:14px}
+.fd-character-side{display:grid;gap:14px}
+.fd-character-panel{background:#22313f;border:1px solid #4c6272;border-top:3px solid #5f9c77;border-radius:9px;padding:17px;min-width:0;box-shadow:0 7px 18px #050d1633}
+.fd-character-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
+.fd-character-panel-heading h3{font-size:15px;margin:0;color:#f6f2e5}
+.fd-character-panel-heading .fd-pill{font-size:10px}
+.fd-character-panel p.fd-muted{margin:8px 0 17px}
+.fd-character-gear-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fd-char-gear-slot{padding:11px 7px;min-height:122px;background:#1a2938;border:1px solid #485f73;border-radius:8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px}
+.fd-char-gear-slot:hover{border-color:#8cba98}
+.fd-char-gear-image{height:49px;width:49px;display:grid;place-items:center;font-size:36px;color:#98adbf}
+.fd-char-gear-image img{width:100%;height:100%;object-fit:contain}
+.fd-char-gear-slot strong{font-size:12px}.fd-char-gear-slot small{font-size:10px;line-height:1.35;color:#b9cbd5;overflow-wrap:anywhere}
+.fd-char-gear-slot .fd-mini{margin-top:auto}
+.fd-character-gear>.fd-wide{margin-top:13px}
+.fd-char-stat-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#1a2b37;border:1px solid #405666;border-radius:7px;padding:10px;margin:8px 0;min-width:0}
+.fd-char-stat-symbol{font-size:27px;display:grid;place-items:center;width:38px;flex:none}
+.fd-char-stat-desc{flex:1;min-width:135px;display:grid;gap:3px}
+.fd-char-stat-desc strong{font-size:12px}.fd-char-stat-desc small{font-size:10px;line-height:1.35;color:#b8c9d2}
+.fd-char-stat-actions{display:flex;align-items:center;gap:5px}
+.fd-char-stat-actions .fd-mini{min-width:42px;border-color:#548b82;background:#226c62}
+.fd-char-stat-actions .fd-mini:hover:not(:disabled){background:#2d8d80}
+.fd-char-stat-actions .fd-mini:disabled{opacity:.35}
+.fd-char-stat-cost{color:#92b3bf;font-size:10px;width:100%;text-align:right}
+.fd-char-points-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px;border-top:1px solid #3c5264;padding-top:12px}
+.fd-character-success-preview .fd-meter{margin:12px 0}
+.fd-class-chooser{margin-top:2px;border-top-color:#8eaf68}
+.fd-select-classes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:11px}
+.fd-select-class{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;min-height:147px;padding:10px 7px;background:linear-gradient(155deg,#2e4050,#1f2d3b);color:#eaf3f6;border:1px solid #415c6e;border-radius:9px;text-align:center;transition:transform .13s,border-color .13s,box-shadow .13s}
+.fd-select-class:hover{transform:translateY(-3px);border-color:#b2d3a3}
+.fd-select-class.active{border:2px solid #75d5a0;background:linear-gradient(155deg,#30594a,#244737);box-shadow:0 0 0 2px #64c78f25}
+.fd-class-card-art{width:67px;height:67px;object-fit:contain;display:grid;place-items:center;font-size:41px}
+.fd-select-class strong{font-size:12px}.fd-select-class small{font-size:10px;color:#bdd0d5}.fd-select-class .fd-pill{font-size:9px;padding:3px 5px}
+.fd-character-actions{margin:7px 0 30px;gap:8px}
+.fd-combat-sort{display:flex;align-items:center;justify-content:flex-end;gap:9px;color:#bdd5d9;font-weight:700;font-size:11px;padding:4px 0 8px}
+.fd-combat-sort select{width:210px}
+.fd-loot-stash{margin-top:16px;padding:12px;background:linear-gradient(140deg,#263b3a,#1e333b);border:1px solid #5a8a6c;border-radius:7px;display:grid;gap:9px}
+.fd-loot-stash-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.fd-loot-stash-heading strong{font-size:13px}
+.fd-loot-stash-empty{font-size:11px;color:#c3d2cb;padding:16px;text-align:center;border:1px dashed #577a70;border-radius:5px}
+.fd-loot-stash-actions{display:flex;flex-wrap:wrap;gap:8px}
+.fd-loot-stash-actions button{flex:1;min-width:120px;padding:8px;font-size:11px}
+.fd-loot-stash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:340px;overflow:auto}
+.fd-stash-item{display:flex;gap:7px;align-items:center;flex-wrap:wrap;background:#1b3337;border:1px solid #47716c;border-radius:6px;padding:7px;min-width:0}
+.fd-stash-art{width:42px;height:42px;display:grid;place-items:center;font-size:25px;flex:none}
+.fd-stash-art img{width:100%;height:100%;object-fit:contain}
+.fd-stash-info{display:grid;gap:2px;flex:1;min-width:95px}
+.fd-stash-info strong{font-size:10.5px;overflow-wrap:anywhere}
+.fd-stash-info small{font-size:9.5px;color:#afc6c7}
+.fd-stash-item-actions{display:flex;flex-basis:100%;gap:4px}
+.fd-stash-item-actions .fd-mini{flex:1;min-width:0;padding:6px 2px;font-size:9.2px}
+.fd-stash-trash{color:#eeb6b6;background:#583a41}
+.fd-combat-log-row{display:grid;gap:6px;padding:7px 0;border-bottom:1px solid #395166}
+.fd-combat-log-main{display:flex;align-items:center;gap:9px}
+.fd-combat-log-main>span:nth-child(2){display:grid;gap:2px}
+.fd-combat-log-main strong{font-size:11px}
+.fd-combat-log-main small{font-size:10px;color:#b9c7d2}
+.fd-combat-log-portrait{display:grid;place-items:center;height:35px;width:35px;flex:none;font-size:23px}
+.fd-combat-log-portrait img{width:100%;height:100%;object-fit:contain}
+.fd-combat-log-items{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-left:42px}
+.fd-combat-log-drop{display:flex;align-items:center;gap:5px;background:#2c4451;border:1px solid #42626c;padding:3px 7px;border-radius:5px}
+.fd-combat-log-drop small{font-size:9.5px}
+.fd-log-art{width:25px;height:25px;flex:none;display:grid;place-items:center;font-size:19px}
+.fd-log-art img{height:100%;width:100%;object-fit:contain}
+.fd-achievements-page{max-width:1660px;margin:auto}
+.fd-achievement-summary{padding:19px 23px;background:#283c3d;border:1px solid #62866e;border-radius:9px;display:grid;gap:9px}
+.fd-achievement-summary strong{font-size:16px}.fd-achievement-summary small{font-size:11px;color:#c6d7cd}
+.fd-achievement-section{margin-top:25px}
+.fd-achievement-section h3{font-size:17px;color:#f3e6c6;margin:0 0 14px}
+.fd-achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fd-achievement-card{display:grid;align-content:start;gap:12px;background:#23303e;border:1px solid #455d71;border-radius:8px;padding:16px}
+.fd-achievement-card.ready{border-color:#c2a661;box-shadow:0 0 0 1px #ad904b44}
+.fd-achievement-card.claimed{border-color:#4c896b;background:#223c35}
+.fd-achievement-card-header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.fd-achievement-card-header strong{font-size:14px}
+.fd-achievement-card p{font-size:11px;color:#bdced7;margin:0;line-height:1.5}
+.fd-achievement-card .fd-meter{height:10px}
+.fd-achievement-progress{display:flex;justify-content:space-between;gap:7px;color:#c4d6da}
+.fd-achievement-progress small{font-size:10px}
+.fd-achievement-card button{margin-top:auto;width:100%}
+@media(max-width:1500px){.fd-character-main-layout{grid-template-columns:minmax(230px,1fr) minmax(310px,1.25fr)}.fd-character-side{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}.fd-select-classes{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:1200px){.fd-select-classes{grid-template-columns:repeat(4,minmax(0,1fr))}.fd-achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:880px){.fd-character-main-layout{grid-template-columns:1fr}.fd-character-side{grid-column:auto;grid-template-columns:1fr}.fd-character-hero{flex-wrap:wrap}.fd-character-avatar-wrap{flex-basis:130px;width:130px;height:130px}.fd-select-classes{grid-template-columns:repeat(3,minmax(0,1fr))}.fd-loot-stash-grid{grid-template-columns:1fr}}
+@media(max-width:570px){.fd-character-hero{padding:15px}.fd-character-avatar-wrap{flex-basis:100px;width:100px;height:100px}.fd-character-avatar{font-size:55px}.fd-character-hero-info h2{font-size:24px}.fd-class-card-art{width:50px;height:50px;font-size:33px}.fd-select-classes{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.fd-select-class{min-height:127px}.fd-achievement-grid{grid-template-columns:1fr}.fd-combat-sort{justify-content:space-between}.fd-combat-sort select{width:180px}.fd-combat-log-items{padding-left:0}.fd-char-stat-desc{min-width:105px}}
