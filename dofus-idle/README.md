@@ -49,6 +49,16 @@ Le nouvel écran de combat utilise une navigation progressive inspirée de la di
 - **Sauvegardes conservées** : la clé locale de la version 2 est inchangée, ainsi que les clés de banque et d'équipement ; aucune remise à zéro lors de ce changement d'interface.
 - **Nettoyage d'affichage** : suppression des marqueurs littéraux « null » ou « undefined » quand une traduction est absente.
 
+## Version 4 : fiche personnage, butins et succès
+
+- **19 classes jouables dans le menu Personnage** : les noms et portraits officiels sont reliés aux identifiants BreedData du client DOFUS 3 (portraits de classe extraits de images-class.zip, fichier assets/classes/catalog.json). Chaque classe possède une spécialisation de combat simplifiée et modifiable dans le prototype.
+- **Caractéristiques** : 5 points de capital par niveau (donc 995 points au niveau 200). Vitalité 1:1, Sagesse 3:1, Force/Intelligence/Chance/Agilité 1:1 jusqu'à 100, 2:1 jusqu'à 200, 3:1 jusqu'à 300, 4:1 jusqu'à 400 puis 5:1. Les points non distribués restent disponibles. Leur effet sur les dégâts/soins/XP et la réinitialisation gratuite sont des adaptations propres à DOFUS IDLE.
+- **Butin temporaire sous l'aventurier** : les ressources gagnées contre les monstres, y compris les équipements bonus, restent dans la poche de butin. Le joueur choisit individuellement ou en une seule action de tout récupérer dans la banque, tout vendre contre des kamas, ou tout jeter (confirmation demandée). La poche est sauvegardée dans localStorage et limite les types d'objets accumulables pour éviter une sauvegarde infinie. Les objets récoltés et fabriqués vont toujours directement en banque.
+- **Journal illustré** : chaque victoire conserve le portrait du monstre et ses objets avec icônes officielles, quantités et kamas. Les entrées de l'ancien journal texte continuent de s'afficher après migration.
+- **Succès DOFUS IDLE** : 27 objectifs de combat, exploration, métiers, personnage et butins. Les succès accomplis offrent des kamas et de l'XP après validation manuelle ; les récompenses déjà reçues ne peuvent pas être réclamées une deuxième fois. Les objectifs sont des créations spécifiques au prototype, pas la liste officielle des succès DOFUS.
+- **Régions et zones classées par niveau** par défaut du plus faible au plus élevé, avec option d'ordre décroissant ; les monstres à l'intérieur des zones sont triés par niveau croissant.
+- **Progression conservée** : la clé localStorage reste "dofus-idle-full-v2". Les nouvelles propriétés de caractéristiques, succès, butins et historique sont ajoutées aux anciennes sauvegardes sans remplacer les kamas, XP, inventaires, niveaux de métiers, équipements et objets existants.
+
 ## Fidélité et limites
 
 Noms, objets, recettes, quantités, niveaux de ressources, emplacements de monstres et taux de drop de base du premier grade sont extraits des données du client. Le temps de récolte, la vitesse de craft, les XP, les dégâts, les kamas, les bonus d'équipement et l'équilibrage sont adaptés à ce jeu idle : ils ne reproduisent pas les valeurs officielles.
