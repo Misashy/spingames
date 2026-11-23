@@ -28,3 +28,5 @@ sample_lookup(item,[1,31,236,885,1000,1067,24538])
 sample_lookup(sets,[1,2,3,4,16,55])
 sample_lookup(effects,[111,118,119,123,124,125,126,128,138,176,158])
 sample_lookup(char,[1,10,11,12,13,14,15,16,17,18])
+
+# Schéma version DOFUS 3.7.14.18 : audit des effets actifs.
