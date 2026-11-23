@@ -313,6 +313,89 @@ function equipmentChance(m){
  const zone=world.zones[String(state.selectedZone)];
  return zone&&zone[3].some(id=>String(id)===String(state.selectedMonster))&&Number(zone[5])>=0?5:3;
 }
+
+function queueLoot(id,n=1){
+ id=String(id);n=Math.max(1,Math.floor(Number(n)||1));
+ if(!core.items[id])return false;
+ const bag=state.pendingLoot||{};
+ if(!bag[id]&&Object.keys(bag).filter(x=>bag[x]>0).length>=250){
+  state.action=null;toast("La poche de butin est pleine : libère des objets avant de continuer.");return false;
+ }
+ bag[id]=(bag[id]||0)+n;state.pendingLoot=bag;
+ state.lootCount=(state.lootCount||0)+n;
+ return true;
+}
+function pendingEntries(){return Object.entries(state.pendingLoot||{}).filter(([id,n])=>n>0&&core.items[id])}
+function pendingTotal(){return pendingEntries().reduce((n,[id,qty])=>n+qty,0)}
+function processPending(mode,id=null){
+ const pairs=id!=null?pendingEntries().filter(([key])=>String(key)===String(id)):pendingEntries();
+ if(!pairs.length)return;
+ if(mode==="discard"&&!confirm("Jeter définitivement "+pairs.reduce((n,x)=>n+x[1],0)+" objet(s) du butin temporaire ?"))return;
+ let moved=0,kamas=0;
+ for(const [itemId,n] of pairs){
+  if(mode==="bank"){
+   if(!add(itemId,n))continue;
+  }else if(mode==="sell"){
+   kamas+=n*itemValue(itemId);
+  }else if(mode!=="discard")return;
+  moved+=n;delete state.pendingLoot[itemId];
+ }
+ if(mode==="sell"){state.kamas+=kamas;state.earned+=kamas}
+ toast(moved?mode==="bank"?"🎒 "+money(moved)+" objets rangés en banque":
+  mode==="sell"?"🪙 "+money(moved)+" objets vendus pour "+money(kamas)+" kamas":
+   "🗑️ "+money(moved)+" objets jetés":"Aucun transfert : vérifie les emplacements disponibles dans la banque.");
+ render();save();
+}
+function lootStashPanel(){
+ const entries=pendingEntries(),total=pendingTotal();
+ const block=E("section",{className:"fd-loot-stash"},
+  E("div",{className:"fd-loot-stash-heading"},E("strong",{},"🎁 Butin du combat"),
+   pill(money(total)+" objet(s) · "+money(entries.length)+" types","gold")),
+  E("small",{className:"fd-muted"},"Les objets restent ici jusqu'à récupération, vente ou suppression. Sauvegardé automatiquement."));
+ if(!entries.length)block.append(E("p",{className:"fd-loot-stash-empty"},"Aucun butin en attente. Combats un monstre pour gagner des ressources ou du stuff."));
+ else{
+  const actions=E("div",{className:"fd-loot-stash-actions"},
+   B("🎒 Tout récupérer",()=>processPending("bank"),"fd-button"),
+   B("🪙 Tout vendre",()=>processPending("sell"),"fd-secondary"),
+   B("🗑️ Tout jeter",()=>processPending("discard"),"fd-danger"));
+  block.append(actions);
+  const grid=E("div",{className:"fd-loot-stash-grid"});
+  for(const [id,n] of entries.slice(0,72)){
+   const card=E("div",{className:"fd-stash-item"},
+    itemSprite(id,"fd-stash-art"),
+    E("span",{className:"fd-stash-info"},E("strong",{},itemName(id)),
+      E("small",{},money(n)+" × "+typeName(id))),
+    pill("× "+money(n)));
+   card.append(E("div",{className:"fd-stash-item-actions"},
+    B("Banque",()=>processPending("bank",id),"fd-mini"),
+    B("Vendre",()=>processPending("sell",id),"fd-mini"),
+    B("Jeter",()=>processPending("discard",id),"fd-mini fd-stash-trash")));
+   grid.append(card);
+  }
+  if(entries.length>72)grid.append(E("p",{className:"fd-muted"},"Affichage des 72 premiers types d'objets. Les actions globales gèrent la totalité du butin."));
+  block.append(grid);
+ }
+ return block;
+}
+function combatLogRow(event){
+ if(typeof event==="string")return E("div",{className:"fd-combat-log-row"},E("span",{},event));
+ if(!event||typeof event!=="object")return E("div",{className:"fd-combat-log-row"},"Combat");
+ const row=E("div",{className:"fd-combat-log-row"});
+ const header=E("div",{className:"fd-combat-log-main"},
+  event.monsterId?mobSprite(event.monsterId,"fd-combat-log-portrait"):E("span",{className:"fd-combat-log-portrait"},"⚔️"),
+  E("span",{},E("strong",{},event.monsterName||"Monstre"),
+   E("small",{},event.kind==="defeat"?"Défaite":"Victoire · +"+money(event.kamas||0)+" kamas")));
+ row.append(header);
+ if(Array.isArray(event.items)&&event.items.length){
+  const items=E("div",{className:"fd-combat-log-items"});
+  for(const [id,n] of event.items.slice(0,20))items.append(E("span",{className:"fd-combat-log-drop",title:itemName(id)+" × "+n},
+   itemSprite(id,"fd-log-art"),E("small",{},itemName(id)+" ×"+money(n))));
+  if(event.items.length>20)items.append(E("small",{className:"fd-muted"},"+"+(event.items.length-20)+" autres objets"));
+  row.append(items);
+ }
+ return row;
+}
+
 function rollEquipment(m,dropped){
  const pool=possibleEquipment(m[1]),rate=equipmentChance(m);
  if(!pool.length||Math.random()*100>=rate)return null;
@@ -398,23 +481,33 @@ function tick(dt){
  return false;
 }
 function victory(m,a){
+ const previousLevel=playerLevel();
  state.kills++;state.dex[String(a.id)]=(state.dex[String(a.id)]||0)+1;
- // Les niveaux et PV des monstres sont ceux de la base; XP et kamas sont adaptés.
- state.playerXp+=Math.max(15,Math.round(17+m[1]*3.2));
- const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1));state.kamas+=kamas;state.earned+=kamas;
- let dropped=[];
+ // L'identité et les taux de drop viennent de DOFUS ; progression adaptée à l'idle.
+ const baseXp=Math.max(15,Math.round(17+m[1]*3.2));
+ state.playerXp+=Math.round(baseXp*(1+statValue("sagesse")*.002));
+ const kamas=Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)*(state.classId==="enutrof"?1.15:1));
+ state.kamas+=kamas;state.earned+=kamas;
+ const dropped=[];
  for(const [id,rate] of m[4]){
-  if(Math.random()*100<rate){if(add(id,1))dropped.push(id)}
+  if(Math.random()*100<rate&&queueLoot(id,1))dropped.push(String(id));
  }
  const bonus=rollEquipment(m,dropped);
- if(bonus){toast("🎁 Équipement obtenu : "+itemName(bonus)+" ! Va dans la Banque pour l'équiper.");}
- if(dropped.length)state.log.unshift(m[0]+" : "+dropped.map(i=>itemName(i)).slice(0,5).join(", ")+(dropped.length>5?"…":""));
- else state.log.unshift(m[0]+" vaincu : +"+kamas+" kamas");
- state.log=state.log.slice(0,15);
- state.jobs["41"]=(state.jobs["41"]||0)+expGain(m[1]); // Chasseur
- state.jobs["78"]=(state.jobs["78"]||0)+Math.ceil(expGain(m[1])*.35); // Bestiologue
- state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*(state.classId==="eniripsa"?1.6:1)));
+ if(bonus)toast("🎁 Équipement trouvé : "+itemName(bonus)+" ! Consulte le butin sous ton aventurier.");
+ const qty=new Map();
+ for(const id of dropped)qty.set(String(id),(qty.get(String(id))||0)+1);
+ state.log.unshift({kind:"victory",monsterId:String(a.id),monsterName:m[0],
+  kamas,items:[...qty.entries()],at:Date.now()});
+ state.log=state.log.slice(0,40);
+ if(playerLevel()>previousLevel)toast("✨ Niveau "+playerLevel()+" atteint : +"+((playerLevel()-previousLevel)*5)+" points de caractéristiques !");
+ state.jobs["41"]=(state.jobs["41"]||0)+expGain(m[1]);
+ state.jobs["78"]=(state.jobs["78"]||0)+Math.ceil(expGain(m[1])*.35);
+ state.hp=Math.min(maxHp(),state.hp+Math.ceil(maxHp()*.15*
+  (state.classId==="eniripsa"?1.6:state.classId==="osamodas"?1.25:1)));
  a.enemyHp=m[2];a.enemyTick=0;
+ if(pendingEntries().length>=250){
+  state.action=null;toast("Butin plein : utilise les options de récupération pour reprendre le combat.");
+ }
 }
 function offline(){
  const elapsed=clamp((now()-(state.lastAt||now()))/1000,0,8*3600);
@@ -771,7 +864,7 @@ function chooseZone(id){
  if(combatOpenZone===id){combatOpenZone="";monsterQuery="";renderView();return}
  const zone=world.zones[String(id)];
  if(!zone)return;
- combatOpenZone=String(id);state.selectedZone=String(id);
+ combatOpenZone=String(id);state.selectedZone=String(id);visitZone(id);
  monsterPage=0;monsterQuery="";
  const first=zone[3].find(mid=>world.monsters[String(mid)]);
  if(first!=null)state.selectedMonster=String(first);
@@ -785,7 +878,7 @@ function focusMonster(id,zoneId){
  if(!world.zones[String(zid)])zid=m[5]?.find(x=>world.zones[String(x)])||"";
  const zone=world.zones[String(zid)];
  if(zone){
-  state.selectedZone=String(zid);
+  state.selectedZone=String(zid);visitZone(zid);
   state.selectedRegion=regionFor(zone);
   state.combatMode=Number(zone[5])>=0?"dungeons":"zones";
   combatOpenZone=String(zid);
@@ -858,7 +951,8 @@ function combatPlayerPanel(){
     E("div",{className:"fd-stat"},E("span",{},"💥 Coup critique"),E("strong",{},state.classId==="cra"?"16 %":"5 %")),
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
-    B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))));
+    B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
+  lootStashPanel());
 }
 function combatEnemyPanel(){
  const m=world.monsters[String(state.selectedMonster)],zone=world.zones[String(state.selectedZone)];
@@ -889,7 +983,7 @@ function combatEnemyPanel(){
    B("🎒 Équiper du stuff",()=>runNav("bank"),"fd-secondary")),
   E("div",{id:"fdCombatLoot"},monsterDropsPanel(state.selectedMonster,m)),
   E("div",{className:"fd-log"},E("h3",{},"📜 Journal de combat"),
-    ...state.log.slice(0,8).map(line=>E("p",{},line))));
+    ...state.log.slice(0,14).map(combatLogRow)));
 }
 function combatMonsterRow(mid,m,zoneId){
  const active=String(state.selectedMonster)===String(mid);
