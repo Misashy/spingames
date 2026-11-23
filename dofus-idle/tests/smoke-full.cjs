@@ -181,14 +181,14 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert(amakna,'Amakna absente de la sélection');
   amakna.click();
   const highZones=[...w.document.querySelectorAll('.fd-zone')]
-   .filter(b=>Number(b.textContent.match(/Niveau conseillé (\\d+)/)?.[1])>=25);
+   .filter(b=>Number(b.textContent.match(/Niveau conseillé (\d+)/)?.[1])>=25);
   assert(highZones.length>0,'Aucune zone de niveau élevé disponible pour tester le blocage');
   highZones[highZones.length-1].click();
   const locked=[...w.document.querySelectorAll('.fd-monster-row')].find(row=>
    row.querySelector('.fd-monster-buttons .fd-danger')?.disabled);
   assert(locked,'Le blocage par niveau doit être visible sur les monstres élevés');
   const gate=locked.querySelector('.fd-monster-buttons .fd-danger');
-  assert(/Niv. \\d+ requis/.test(gate.textContent),'Le bouton doit préciser le niveau minimum');
+  assert(/Niv. \d+ requis/.test(gate.textContent),'Le bouton doit préciser le niveau minimum');
   locked.querySelector('.fd-monster-info').click();
   assert(w.document.querySelector('.fd-fight-level-info.is-locked'),'Explication de niveau requis absente du panneau adversaire');
   assert(w.document.querySelector('.fd-combat-actions .fd-button:disabled'),'Combattre doit rester indisponible sous le niveau minimum');
