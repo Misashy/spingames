@@ -745,6 +745,7 @@ function runNav(view){
  }
  state.view=view==="dungeons"?"combat":view;
  q="";page=0;recipeFilter="all";monsterPage=0;
+ if(view==="achievements")achievementPage=0;
  $("#sidebar").classList.remove("open");render();save();
 }
 function sidebar(){
@@ -1307,13 +1308,14 @@ function characterEquipmentPanel(){
   slots,B("🎒 Ouvrir la banque pour s'équiper",()=>runNav("bank"),"fd-secondary fd-wide"));
 }
 function achievementPreview(){
- const total=ACHIEVEMENTS.filter(a=>state.achievements[a.id]).length;
- const ready=ACHIEVEMENTS.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length;
+ const total=achievementCatalog.length;
+ const completed=achievementsClaimed();
+ const ready=achievementCatalog.filter(a=>!state.achievements?.[a.id]&&achievementReached(a)).length;
  return E("section",{className:"fd-character-panel fd-character-success-preview"},
-  E("div",{className:"fd-character-panel-heading"},E("h3",{},"🏆 Mes succès"),
-   pill(total+" / "+ACHIEVEMENTS.length)),
-  meter(total*100/ACHIEVEMENTS.length),
-  E("p",{className:"fd-muted"},ready?ready+" récompense(s) à récupérer !":"Remplis des objectifs de combat, de récolte et d'exploration."),
+  E("div",{className:"fd-character-panel-heading"},E("h3",{},"🏆 Mes succès"),pill(money(completed)+" / "+money(total))),
+  meter(total?completed*100/total:0),
+  E("p",{className:"fd-muted"},"⭐ "+money(achievementsScore())+" points de succès obtenus"),
+  E("p",{className:"fd-muted"},ready?money(ready)+" récompense(s) à récupérer !":"Explore le bestiaire, apprends les métiers et maîtrise les zones."),
   B("Voir tous les succès",()=>runNav("achievements"),"fd-button fd-wide"));
 }
 function characterView(){
@@ -1375,35 +1377,111 @@ function characterView(){
    }})));
 }
 function achievementsView(){
- const claimed=ACHIEVEMENTS.filter(a=>state.achievements[a.id]).length;
- const ready=ACHIEVEMENTS.filter(a=>achievementReached(a)&&!state.achievements[a.id]).length;
+ const catalog=achievementCatalog;
+ const total=catalog.length;
+ const claimed=achievementsClaimed();
+ const ready=catalog.filter(a=>!state.achievements?.[a.id]&&achievementReached(a)).length;
+ const search=achievementKey(achievementQuery.trim());
+ const visible=catalog.filter(a=>
+  (achievementCategory==="all"||a.cat===achievementCategory)&&
+  (!search||a.search.includes(search)));
+ let matches=visible.map(a=>{
+  const value=achievementValue(a.metric);
+  const done=value>=a.target;
+  const redeemed=!!state.achievements[a.id];
+  return {a,value,done,redeemed,pct:Math.min(1,a.target?value/a.target:0)};
+ }).filter(x=>
+  achievementStatus==="all"||
+  achievementStatus==="ready"&&x.done&&!x.redeemed||
+  achievementStatus==="claimed"&&x.redeemed||
+  achievementStatus==="progress"&&!x.done&&!x.redeemed);
+ if(achievementSort==="progress")matches.sort((a,b)=>{
+  const sa=a.redeemed?2:a.done?0:1,sb=b.redeemed?2:b.done?0:1;
+  return sa-sb||b.pct-a.pct||b.a.target-a.a.target||a.a.title.localeCompare(b.a.title,"fr");
+ });
+ else if(achievementSort==="level")matches.sort((a,b)=>a.a.target-b.a.target||a.a.title.localeCompare(b.a.title,"fr"));
+ else if(achievementSort==="reward")matches.sort((a,b)=>b.a.points-a.a.points||b.a.kamas-a.a.kamas);
+ else if(achievementSort==="name")matches.sort((a,b)=>a.a.title.localeCompare(b.a.title,"fr"));
+ const pages=Math.max(1,Math.ceil(matches.length/ACH_PAGE_SIZE));
+ achievementPage=Math.max(0,Math.min(pages-1,achievementPage));
+ const select=(value,options,change)=>{
+  const el=E("select",{className:"fd-select",value,onchange:e=>{change(e.target.value);achievementPage=0;renderView()}});
+  for(const [key,label] of options)el.append(E("option",{value:key},label));
+  return el;
+ };
+ const categoryOptions=[["all","Toutes les catégories ("+money(total)+")"],...Object.entries(ACH_GROUPS).map(([key,label])=>
+  [key,label+" ("+money(catalog.filter(a=>a.cat===key).length)+")"])];
+ const filters=E("div",{className:"fd-achievement-filters"},
+  E("input",{className:"fd-search fd-achievement-search",type:"search",value:achievementQuery,
+   placeholder:"Chercher un monstre, une coiffe, une recette, une zone…",
+   oninput:e=>{
+    const cursor=e.target.selectionStart;achievementQuery=e.target.value;achievementPage=0;
+    renderView();const field=$(".fd-achievement-search");
+    if(field){field.focus();try{field.setSelectionRange(cursor,cursor)}catch(err){}}
+   }}),
+  select(achievementCategory,categoryOptions,v=>achievementCategory=v),
+  select(achievementStatus,[["all","Tous les états"],["ready","🎁 À récupérer"],["progress","En progression"],["claimed","Déjà obtenus"]],v=>achievementStatus=v),
+  select(achievementSort,[["progress","Disponibles / progression"],["name","Ordre alphabétique"],["level","Petits objectifs d'abord"],["reward","Points de succès"]],v=>achievementSort=v));
+ const stats=E("div",{className:"fd-achievement-stats"},
+  E("div",{},E("strong",{},money(claimed)),E("small",{},"Succès obtenus")),
+  E("div",{},E("strong",{},money(ready)),E("small",{},"Récompenses disponibles")),
+  E("div",{},E("strong",{},money(achievementsScore())),E("small",{},"Points de succès")),
+  E("div",{},E("strong",{},money(total)),E("small",{},"Objectifs au total")));
+ const list=E("div",{className:"fd-achievement-grid fd-achievement-library"});
+ for(const {a,value,done,redeemed,pct} of matches.slice(achievementPage*ACH_PAGE_SIZE,(achievementPage+1)*ACH_PAGE_SIZE)){
+  const source=a.metric.startsWith("monster:")?"🐉":
+   a.metric.startsWith("recipe:")?"🔨":a.metric.startsWith("harvest:")?"🌿":
+   a.metric.startsWith("zone")||a.metric.startsWith("visitZone:")?"🗺️":
+   a.metric.startsWith("job:")?"🪓":"🏆";
+  const card=E("article",{className:"fd-achievement-card "+(redeemed?"claimed":done?"ready":"")},
+   E("div",{className:"fd-achievement-card-header"},
+    E("strong",{},source+" "+a.title),pill(redeemed?"✓ Obtenu":done?"À récupérer":"En cours",
+     redeemed?"green":done?"gold":"")),
+   E("p",{},a.desc),meter(pct*100),
+   E("div",{className:"fd-achievement-progress"},
+    E("small",{},money(Math.min(value,a.target))+" / "+money(a.target)),
+    E("small",{},"⭐ "+a.points+" pt"+(a.points>1?"s":""))),
+   E("div",{className:"fd-achievement-rewards"},
+    pill("🪙 "+money(a.kamas)),pill("✨ "+money(a.xp)+" XP")),
+   B(redeemed?"✓ Récompense reçue":done?"🎁 Récupérer":"Objectif en cours",
+    ()=>claimAchievement(a.id),"fd-button",redeemed||!done));
+  list.append(card);
+ }
  const root=E("div",{className:"fd-achievements-page"},
   panelHeading("🏆 Succès du Monde des Douze",
-   "Objectifs propres à DOFUS IDLE. Récupère les récompenses en XP et en kamas après avoir accompli chaque défi.",
-   pill(claimed+" / "+ACHIEVEMENTS.length+" succès")),
+   "Des objectifs pour chaque monstre, recette, zone, ressource et métier. Les récompenses sont propres à DOFUS IDLE.",
+   pill(money(total)+" succès")),
+  stats,
   E("section",{className:"fd-achievement-summary"},
-   E("strong",{},"Progression des succès"),meter(claimed*100/ACHIEVEMENTS.length),
-   E("small",{},claimed+" débloqués · "+ready+" récompenses disponibles")));
- for(const [category,label] of Object.entries(ACH_GROUPS)){
-  const section=E("section",{className:"fd-achievement-section"},E("h3",{},label));
-  const grid=E("div",{className:"fd-achievement-grid"});
-  for(const a of ACHIEVEMENTS.filter(x=>x.cat===category)){
-   const value=achievementValue(a.metric),completed=achievementReached(a),claimedThis=!!state.achievements[a.id];
-   grid.append(E("article",{className:"fd-achievement-card "+(claimedThis?"claimed":completed?"ready":"")},
-    E("div",{className:"fd-achievement-card-header"},E("strong",{},a.title),
-      pill(claimedThis?"✓ Obtenu":completed?"À récupérer":"En cours",claimedThis?"green":completed?"gold":"")),
-    E("p",{},a.desc),
-    meter(value/a.target*100),
-    E("div",{className:"fd-achievement-progress"},E("small",{},money(Math.min(value,a.target))+" / "+money(a.target)),
-     E("small",{},"🪙 "+money(a.kamas)+" · ✨ "+money(a.xp)+" XP")),
-    B(claimedThis?"✓ Récompense reçue":completed?"🎁 Récupérer la récompense":"🔒 Verrouillé",
-      ()=>claimAchievement(a.id),"fd-button",claimedThis||!completed)));
-  }
-  section.append(grid);root.append(section);
- }
+   E("div",{className:"fd-achievement-summary-head"},
+    E("strong",{},"Progression générale"),pill(money(claimed)+" / "+money(total),"green")),
+   meter(total?claimed*100/total:0),
+   E("small",{},"Récompenses en XP, kamas et points de succès, à récupérer une seule fois.")),
+  filters,
+  E("div",{className:"fd-achievement-list-header"},
+   E("strong",{},money(matches.length)+" succès affichables"),
+   ready?B("🎁 Réclamer jusqu'à 40 récompenses",()=>claimReadyAchievements(40),"fd-secondary"):null),
+  list);
+ if(!matches.length)root.append(E("div",{className:"fd-achievement-empty"},
+  "Aucun succès ne correspond aux filtres. Modifie la recherche ou sélectionne une autre catégorie."));
+ root.append(E("div",{className:"fd-achievement-pages"},
+  B("← Précédent",()=>{achievementPage=Math.max(0,achievementPage-1);renderView()},"fd-secondary",achievementPage===0),
+  pill("Page "+(achievementPage+1)+" / "+pages),
+  B("Suivant →",()=>{achievementPage=Math.min(pages-1,achievementPage+1);renderView()},"fd-secondary",achievementPage>=pages-1)));
  return root;
 }
-
+function claimReadyAchievements(limit=40){
+ let n=0,kamas=0,xp=0;
+ for(const a of achievementCatalog){
+  if(n>=limit)break;
+  if(state.achievements[a.id]||!achievementReached(a))continue;
+  state.achievements[a.id]=Date.now();kamas+=a.kamas;xp+=a.xp;n++;
+ }
+ if(!n){toast("Aucun succès à récupérer.");return}
+ state.kamas+=kamas;state.earned+=kamas;state.playerXp+=xp;
+ toast("🏆 "+n+" succès récupérés : +"+money(kamas)+" kamas, +"+money(xp)+" XP.");
+ render();save();
+}
 function exportSave(){
  save();const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
  const url=URL.createObjectURL(blob);const a=E("a",{href:url,download:"dofus-idle-save-v2.json"});
