@@ -133,7 +133,8 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert(w.document.querySelector('.fd-combat-damage-enemy.is-critical')?.textContent.includes('COUP CRITIQUE'),
    'Un critique doit être plus visible et explicitement indiqué');
   w.Math.random=()=>0;
-  w.DOFUS_IDLE_FULL.simulateSeconds(20);
+  if(!w.DOFUS_IDLE_FULL.getState().action?.respawnRemaining)
+   w.DOFUS_IDLE_FULL.simulateSeconds(20);
   // Un one-shot ne doit PAS remettre aussitôt le monstre à 100 % PV.
   const ko=w.DOFUS_IDLE_FULL.getState();
   assert(ko.kills>=1,'la victoire automatique ne fonctionne pas');
