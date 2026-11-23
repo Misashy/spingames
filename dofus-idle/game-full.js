@@ -602,9 +602,60 @@ function rollEquipment(m,dropped){
  state.gearDrops[chosen]=(state.gearDrops[chosen]||0)+1;
  return chosen;
 }
+
+/* En DOFUS IDLE, on autorise un monstre jusqu'à 8 niveaux au-dessus
+   de l'aventurier. Le minimum affiché est le vrai seuil appliqué au bouton. */
+function minimumCombatLevel(monster){
+ const level=typeof monster==="number"?monster:Number(monster?.[1])||1;
+ return Math.max(1,Math.ceil(level)-8);
+}
+function canFight(monster){return !!monster&&playerLevel()>=minimumCombatLevel(monster)}
+function zoneCombatMin(zone){
+ const levels=(zone?.[3]||[]).map(mid=>world.monsters[String(mid)])
+  .filter(Boolean).map(minimumCombatLevel);
+ return levels.length?Math.min(...levels):Math.max(1,Number(zone?.[2])||1);
+}
+function regionCombatMin(zones){
+ const values=zones.map(([,z])=>zoneCombatMin(z));
+ return values.length?Math.min(...values):1;
+}
+function regionOrder(a,b,sign=1){
+ if(a[0]==="Incarnam")return b[0]==="Incarnam"?0:-1;
+ if(b[0]==="Incarnam")return 1;
+ const minA=regionCombatMin(a[1]),minB=regionCombatMin(b[1]);
+ return sign*(minA-minB)||a[0].localeCompare(b[0],"fr");
+}
+/* Les chiffres flottants sont dans document.body : ils restent visibles
+   pendant la re-création automatique des panneaux de combat (toutes les 900 ms).
+   Aucun effet de dégâts n'est écrit dans la sauvegarde. */
+let floatingDamageSeq=0;
+function emitDamageNumber(target,amount,critical=false){
+ if(state?.view!=="combat"||typeof document==="undefined")return;
+ const anchor=target==="player"?$(".fd-player-panel .fd-hp-label"):
+  $(".fd-enemy-panel .fd-enemy-portrait")||$(".fd-enemy-panel .fd-enemy-hero");
+ if(!anchor)return;
+ const rect=anchor.getBoundingClientRect();
+ const pop=document.createElement("span");
+ const side=target==="player"?"player":"enemy";
+ pop.className="fd-combat-damage fd-combat-damage-"+side+(critical?" is-critical":" is-normal");
+ pop.setAttribute("aria-hidden","true");
+ pop.textContent=critical?"💥 COUP CRITIQUE ! −"+Math.round(amount):"−"+Math.round(amount);
+ const shift=(floatingDamageSeq++%3-1)*24;
+ const width=window.innerWidth||1100,height=window.innerHeight||700;
+ const x=rect.width>0?rect.left+rect.width/2+shift:(side==="enemy"?width*.73:width*.23);
+ const y=rect.height>0?rect.top+rect.height*.48:(side==="enemy"?height*.35:height*.29);
+ pop.style.left=Math.max(38,Math.min(width-38,x))+"px";
+ pop.style.top=Math.max(42,Math.min(height-42,y))+"px";
+ document.body.appendChild(pop);
+ const active=document.querySelectorAll(".fd-combat-damage");
+ if(active.length>20)active[0].remove();
+ pop.addEventListener("animationend",()=>pop.remove(),{once:true});
+ setTimeout(()=>pop.remove(),1500);
+}
+
 function startCombat(id){
  const m=world.monsters[String(id)];if(!m)return;
- if(playerLevel()+8<m[1]){toast("Niveau de combat conseillé : "+m[1]+".");return}
+ if(!canFight(m)){toast("🔒 "+m[0]+" (niveau "+m[1]+") : niveau "+minimumCombatLevel(m)+" minimum pour combattre. Ton aventurier est niveau "+playerLevel()+". Commence par Incarnam.");return}
  if(state.action?.type==="combat"&&state.action.id===Number(id)){state.action=null;render();save();return}
  if(Object.keys(state.pendingLoot||{}).filter(k=>state.pendingLoot[k]>0).length>=250){toast("Butin temporaire plein. Récupère, vends ou jette les objets.");return}
  state.selectedMonster=String(id);state.action={type:"combat",id:Number(id),progress:0,enemyHp:m[2],enemyTick:0};
@@ -667,14 +718,17 @@ function tick(dt){
   let attacks=Math.min(10,Math.floor(a.progress/second));a.progress-=attacks*second;
   while(attacks-- && state.action){
    const crit=.05+(state.classId==="cra"?.11:state.classId==="sram"?.09:0)+statValue("agilite")*.00015;
-   const hit=damage()*(Math.random()<crit?(state.classId==="ecaflip"?2:1.7):1);
+   const isCritical=Math.random()<crit;
+   const hit=Math.max(1,Math.round(damage()*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
    a.enemyHp-=hit;changed=true;
+   emitDamageNumber("enemy",hit,isCritical);
    if(a.enemyHp<=0)victory(m,a);
   }
   while(a.enemyTick>=2.8&&state.action){
    a.enemyTick-=2.8;
    const enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-defense());
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
+   emitDamageNumber("player",enemyDmg);
    if(state.hp<=0){state.action=null;state.hp=maxHp();state.log.unshift({kind:"defeat",monsterId:String(a.id),monsterName:m[0]});toast("Défaite : tente un monstre moins puissant.")}
   }
   return changed;
@@ -1036,12 +1090,7 @@ function regionCatalog(){
  }
  const sign=state.combatSort==="desc"?-1:1;
  for(const zones of map.values())zones.sort((a,b)=>sign*(a[1][2]-b[1][2])||String(a[1][0]).localeCompare(String(b[1][0]),"fr"));
- return [...map.entries()].sort((a,b)=>{
-  const sign=state.combatSort==="desc"?-1:1;
-  const minA=Math.min(...a[1].map(([,z])=>Number(z[2])||1));
-  const minB=Math.min(...b[1].map(([,z])=>Number(z[2])||1));
-  return sign*(minA-minB)||a[0].localeCompare(b[0],"fr");
- });
+ return [...map.entries()].sort((a,b)=>regionOrder(a,b,state.combatSort==="desc"?-1:1));
 }
 function zoneSymbol(name){
  const n=String(name||"").toLowerCase();
@@ -1173,6 +1222,7 @@ function combatEnemyPanel(){
  const active=state.action?.type==="combat"&&String(state.action.id)===String(state.selectedMonster);
  const enemyHp=active?clamp(state.action.enemyHp,0,m[2]):m[2];
  const enemyPct=m[2]?100*enemyHp/m[2]:0;
+ const minimum=minimumCombatLevel(m),allowed=canFight(m);
  return E("section",{className:"fd-fight-panel fd-enemy-panel"},
   E("div",{className:"fd-fight-panel-title"},E("strong",{},"⚔️ Adversaire : "+m[0]),pill("Niv. "+m[1],"fd-difficulty-hard")),
   E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(enemyHp)+" / "+money(m[2])+" PV"),
@@ -1184,9 +1234,14 @@ function combatEnemyPanel(){
      E("p",{},"📍 "+zone[0]+" · Niveau "+m[1]),
      E("p",{},"🏆 "+money(state.dex[String(state.selectedMonster)]||0)+" victoires"),
      pill("🪙 "+money(Math.round((5+m[1]*1.75)*(1+(state.upgrades.fortune||0)*.1)))+" / victoire"))),
+  E("div",{className:"fd-fight-level-info "+(allowed?"is-available":"is-locked")},
+   E("strong",{},allowed?"✅ Combat disponible":"🔒 Combat bloqué · Niveau "+minimum+" requis"),
+   E("small",{},allowed?"Ton niveau "+playerLevel()+" est suffisant pour ce monstre niveau "+m[1]+".":
+    "Ton aventurier est niveau "+playerLevel()+". Ce monstre est niveau "+m[1]+
+    " : il te manque "+(minimum-playerLevel())+" niveau(x). Commence par les monstres d'Incarnam.")),
   E("div",{className:"fd-combat-actions"},
-   B(active?"■ Arrêter le combat":"⚔️ Combattre",()=>startCombat(state.selectedMonster),
-    active?"fd-danger":"fd-button",!active&&playerLevel()+8<m[1]),
+   B(active?"■ Arrêter le combat":allowed?"⚔️ Combattre":"🔒 Niveau "+minimum+" requis",()=>startCombat(state.selectedMonster),
+    active?"fd-danger":"fd-button",!active&&!allowed),
    B("🎁 Voir les butins",()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})},"fd-secondary"),
    B("🎒 Équiper du stuff",()=>runNav("bank"),"fd-secondary")),
   E("div",{id:"fdCombatLoot"},monsterDropsPanel(state.selectedMonster,m)),
@@ -1197,21 +1252,28 @@ function combatMonsterRow(mid,m,zoneId){
  const active=String(state.selectedMonster)===String(mid);
  const row=E("div",{className:"fd-monster-row "+(active?"active":"")});
  const pick=B("",()=>focusMonster(mid,zoneId),"fd-monster-info");
+ const minimum=minimumCombatLevel(m);
  pick.append(mobSprite(mid,"fd-combat-list-art"),
-  E("span",{},E("strong",{},m[0]),E("small",{},"Niveau de combat "+m[1]+" · ❤️ "+money(m[2])+" PV")));
+  E("span",{},E("strong",{},m[0]),
+   E("small",{},"Monstre niveau "+m[1]+" · ❤️ "+money(m[2])+" PV"),
+   E("small",{className:"fd-combat-min-level "+(canFight(m)?"is-available":"is-locked")},
+    (canFight(m)?"✅ Accessible":"🔒 Verrouillé")+" · Ton niveau minimum : "+minimum)));
  row.append(pick,E("div",{className:"fd-monster-buttons"},
-  B("Combattre",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",playerLevel()+8<m[1]),
+  B(canFight(m)?"Combattre":"Niv. "+minimum+" requis",()=>{focusMonster(mid,zoneId);startCombat(mid)},"fd-danger",!canFight(m)),
   B("Butins",()=>{focusMonster(mid,zoneId);(()=>{const el=$("#fdCombatLoot");if(el&&typeof el.scrollIntoView==="function")el.scrollIntoView({behavior:"smooth",block:"nearest"})})()},"fd-secondary")));
  return row;
 }
 function combatZoneCard(id,z){
  const open=combatOpenZone===String(id);
  const zoneLevel=z[2]||1;
+ const minLevel=zoneCombatMin(z);
  const card=E("article",{className:"fd-zone-card "+(open?"expanded":"")});
  const head=E("button",{type:"button",className:"fd-zone "+(open?"active":""),onclick:()=>chooseZone(id)});
  head.append(zoneArt(z),
   E("span",{className:"fd-zone-summary"},
-   E("strong",{},z[0]||"Zone inconnue"),E("small",{},"Niveau conseillé "+zoneLevel+" · "+z[3].length+" monstres")),
+   E("strong",{},z[0]||"Zone inconnue"),
+   E("small",{},"Niveau conseillé "+zoneLevel+" · "+z[3].length+" monstres"),
+   E("small",{className:"fd-zone-min-level"},(playerLevel()>=minLevel?"✅":"🔒")+" Premiers combats dès le niveau "+minLevel)),
   difficultyChip(zoneLevel),E("span",{className:"fd-chevron"},open?"−":"+"));
  card.append(head);
  if(open){
@@ -1237,12 +1299,7 @@ function zoneView(){
  const mode=state.combatMode==="dungeons"?"dungeons":"zones";
  const regions=all.map(([name,zones])=>[name,zones.filter(([id,z])=>mode==="dungeons"?Number(z[5])>=0:Number(z[5])<0)])
   .filter(([name,zones])=>zones.length>0)
-  .sort((a,b)=>{
-   const sign=state.combatSort==="desc"?-1:1;
-   const levelA=Math.min(...a[1].map(([,z])=>Number(z[2])||1));
-   const levelB=Math.min(...b[1].map(([,z])=>Number(z[2])||1));
-   return sign*(levelA-levelB)||a[0].localeCompare(b[0],"fr");
-  });
+  .sort((a,b)=>regionOrder(a,b,state.combatSort==="desc"?-1:1));
  const chosen=regions.find(([name])=>name===state.selectedRegion);
  const outer=E("div",{className:"fd-combat-page"},
   E("div",{className:"fd-combat-tabs"},
@@ -1258,15 +1315,16 @@ function zoneView(){
  if(!chosen){
   const grid=E("div",{className:"fd-region-cards"});
   for(const [name,zones] of regions){
-   const lvMin=Math.min(...zones.map(([id,z])=>Number(z[2])||1));
+   const lvMin=regionCombatMin(zones);
    const card=E("button",{className:"fd-region-card",type:"button",onclick:()=>selectRegion(name)});
    card.append(regionArt(name,zones),
-    E("span",{className:"fd-region-body"},E("strong",{},name),E("small",{},zones.length+" zones disponibles · dès le niveau "+lvMin)),
+    E("span",{className:"fd-region-body"},E("strong",{},name),E("small",{},zones.length+" zones · Premiers combats dès le niveau "+lvMin),
+     name==="Incarnam"?E("small",{className:"fd-incarnam-hint"},"⭐ Commencer ici"):null),
     E("span",{className:"fd-region-chevron"},"›"));
    grid.append(card);
   }
   outer.append(panelHeading("🌍 Choisis une région",
-    "Incarnam, Amakna, Île des Wabbits, Moon, Frigost et toutes les régions présentes dans DOFUS 3.",
+    "Commence par Incarnam. Le niveau minimum indiqué correspond aux monstres les plus accessibles de chaque région. Le niveau conseillé peut être plus élevé.",
     pill(money(regions.length)+" régions")),sortSelect,grid);
   return outer;
  }
@@ -1280,6 +1338,11 @@ function zoneView(){
     E("strong",{className:"fd-region-heading"},regionArt(region,zones,"fd-region-breadcrumb-art"),E("span",{},region)),
     pill(money(zones.length)+" zones")),
   E("div",{className:"fd-battle-sections"},combatPlayerPanel(),combatEnemyPanel()),
+  E("div",{className:"fd-combat-rule"},
+   E("strong",{},"📘 Comprendre les niveaux de combat"),
+   E("span",{},"Ton aventurier est niveau "+playerLevel()+
+    ". Tu peux combattre les monstres jusqu'au niveau "+(playerLevel()+8)+
+    ". Chaque monstre indique son niveau minimum requis. Le niveau conseillé d'une zone est une recommandation, pas le seuil de déblocage.")),
   sortSelect,
   panelHeading(mode==="dungeons"?"🏰 Donjons de "+region:"⚔️ Zones de "+region,
    "Clique sur une zone pour afficher ses véritables monstres, puis choisis Combattre ou Butins.",
