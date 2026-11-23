@@ -80,6 +80,26 @@ Le compteur totalSeconds mesure les périodes avec une activité en cours, y com
 
 Tests de non-régression : le workflow dofus-idle-smoke.yml exécute smoke-full.cjs et achievements-full.cjs pour valider la taille du catalogue, les sauvegardes, les vrais crafts, la recherche, le suivi et la récupération unique des récompenses.
 
+## Version 6 : Banque triable, toutes les caractéristiques, KO visible
+
+### Banque classée comme dans DOFUS
+
+La banque utilise exclusivement les métadonnées du client DOFUS 3 déjà intégrées : ItemData.typeId et ItemTypeData.categoryId/nameId. Elle propose un onglet Tous affichant la totalité des objets possédés, puis des onglets Équipements, Consommables, Ressources, Objets de quête, Cosmétiques et Autres (affichés lorsqu'ils contiennent des objets). Le second filtre liste les véritables types d'objet disponibles dans la catégorie : Coiffe, Cape, Bois, Minerai, etc. Les labels de type proviennent directement des traductions françaises du client.
+
+La recherche accepte les noms d'objets et les types, avec une comparaison tolérante aux accents. Les tris possibles sont nom, type, niveau croissant/décroissant, quantité et valeur. Le bouton Afficher tout réinitialise l'ensemble des filtres. L'onglet Tous est le comportement par défaut. Les filtrages restent locaux à l'interface et ne modifient pas l'inventaire ni le format de sauvegarde.
+
+### Combats avec KO visible
+
+Lorsqu'une attaque inflige le coup fatal (y compris un one-shot), la cible reste affichée avec 0 PV et une barre complètement vide, ainsi qu'un message Monstre vaincu. Les attaques sont suspendues pendant 1,8 seconde avant la réapparition du prochain monstre avec sa barre remplie. Les dégâts flottants et coups critiques fonctionnent pendant cette transition.
+
+### Fiche avancée des caractéristiques DOFUS
+
+L'onglet Personnage présente une fiche complète organisée en groupes : caractéristiques de base, points de vie et de bouclier, PA/PM/PO, initiative, prospection, invocations, pods, puissance et soins, dommages fixes et élémentaires, dommages critiques/poussée/pièges/sorts/armes/mêlée/distance, résistances fixes et pourcentages, tacle, fuite, esquives et retraits PA/PM, ainsi que les caractéristiques spécifiques au combat idle.
+
+Précision importante : la base actuelle des objets ne contient pas les jets d'effets des équipements. Seules les caractéristiques effectivement appliquées par le moteur idle sont marquées Idle et calculées ; les autres sont affichées comme Indicatif et ne sont pas encore utilisées pour calculer les combats. Les bonus officiels détaillés des équipements, les PA/PM et les sorts DOFUS ne sont pas simulés.
+
+Le test de non-régression bank-character-combat.cjs valide les cinq catégories présentes dans les données de test, les types officiels, l'onglet Tous, les tris, les groupes de statistiques, le KO immédiat à 0 PV, la pause et le rétablissement des PV.
+
 ## Fidélité et limites
 
 Noms, objets, recettes, quantités, niveaux de ressources, emplacements de monstres et taux de drop de base du premier grade sont extraits des données du client. Le temps de récolte, la vitesse de craft, les XP, les dégâts, les kamas, les bonus d'équipement et l'équilibrage sont adaptés à ce jeu idle : ils ne reproduisent pas les valeurs officielles.
