@@ -1276,6 +1276,14 @@ async function init(){
     for(const kind of ["items","monsters","jobs"])Object.assign(images[kind],c[kind]||{});
    }
   }catch(e){}
+  // Portraits DOFUS 3 des 19 classes, générés depuis images-class.zip.
+  try{
+   const r=await fetch("./assets/classes/catalog.json");
+   if(r.ok){
+    const catalog=await r.json();
+    if(catalog&&Object.keys(catalog).length===19)window.DOFUS_IDLE_CLASS_ASSETS=catalog;
+   }
+  }catch(e){/* anciens déploiements : garde les pictogrammes de secours */}
   for(const [mid,m] of Object.entries(world.monsters)){
    for(const [iid,rate] of m[4]){
     if(!dropIndex[iid])dropIndex[iid]=[];dropIndex[iid].push([mid,rate]);
