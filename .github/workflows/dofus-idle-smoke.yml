@@ -6,6 +6,7 @@ on:
     paths:
       - 'dofus-idle/game-full.js'
       - 'dofus-idle/tests/smoke-full.cjs'
+      - 'dofus-idle/tests/achievements-full.cjs'
       - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-smoke.yml'
 permissions:
@@ -24,3 +25,4 @@ jobs:
         run: |
           node --check dofus-idle/game-full.js
           node dofus-idle/tests/smoke-full.cjs
+          node dofus-idle/tests/achievements-full.cjs
