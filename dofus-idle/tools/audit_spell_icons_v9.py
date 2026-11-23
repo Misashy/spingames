@@ -13,3 +13,5 @@ print('REFCOUNT',len(ref),'FIRST',json.dumps(ref[:3],ensure_ascii=False)[:5200])
 for entry in ref[:10]:
  if isinstance(entry.get('data'),dict) and 'nameId' in entry['data']:
   print('SPELL_SAMPLE',json.dumps(entry,ensure_ascii=False)[:5500]);break
+
+# Vérification des formats sprites du client 3.7
