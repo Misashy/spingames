@@ -892,7 +892,7 @@ function fresh(){
   upgrades:{bank:0,tool:0,weapon:0,armor:0,fortune:0},
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
-  craftedRecipes:{},jobCraftCount:{},zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
+  craftedRecipes:{},jobCraftCount:{},craftQueue:[],zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
   spellPreferences:{},spellCasts:0,spellCastsById:{},
   dungeonClears:{},dungeonLastClear:"",questClaims:{},collectionClaims:{},unlockedTitles:[],selectedTitle:"",
   automation:{lootMode:"manual",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0},
@@ -903,7 +903,7 @@ function load(){
  try{raw=JSON.parse(localStorage.getItem(KEY))}catch(e){}
  if(raw?.version===2&&raw.jobs&&raw.bank){
   return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
-  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[],
+  craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},craftQueue:Array.isArray(raw.craftQueue)?raw.craftQueue.filter(e=>e&&e.id&&e.job&&Number(e.remaining)>0).slice(0,20):[],zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[],
   spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{},
   dungeonClears:raw.dungeonClears||{},questClaims:raw.questClaims||{},collectionClaims:raw.collectionClaims||{},
   unlockedTitles:Array.isArray(raw.unlockedTitles)?raw.unlockedTitles:[],selectedTitle:raw.selectedTitle||"",
@@ -951,6 +951,59 @@ function recipeFor(job,id){
  return (core.recipes[String(job)]||[]).find(r=>r[0]===id);
 }
 function canCraft(recipe){return recipe[2].every(([id,n])=>has(id,n))}
+
+/* V10 — maîtrise des recettes et commandes d'artisanat, sans changer les IDs d'objets. */
+function recipeMastery(job,id){
+ const count=Number(state.craftedRecipes?.[job+":"+id])||0;
+ return {count,level:count>=250?5:count>=100?4:count>=40?3:count>=10?2:count>=3?1:0};
+}
+function masteryCraftBonus(job,id){return Math.min(.2,recipeMastery(job,id).level*.04)}
+function enqueueCraft(job,id,quantity){
+ const r=recipeFor(job,id),n=Math.max(1,Math.min(1000,Math.floor(Number(quantity)||0)));
+ if(!r||jobLevel(job)<r[1]){toast("Recette ou niveau de métier indisponible.");return}
+ const queue=state.craftQueue||(state.craftQueue=[]);
+ if(queue.length>=20){toast("File pleine (20 commandes maximum).");return}
+ queue.push({job:String(job),id:String(id),remaining:n,initial:n});
+ toast("Commande ajoutée : "+n+" × "+itemName(id));startNextQueuedCraft();render();save();
+}
+function startNextQueuedCraft(){
+ if(state.action)return;
+ const queue=state.craftQueue||[];
+ if(!queue.length)return;
+ const next=queue[0],r=recipeFor(next.job,next.id);
+ if(!r||jobLevel(next.job)<r[1]||!canCraft(r)){return}
+ state.action={type:"craft",job:String(next.job),id:String(next.id),progress:0,queued:true};
+}
+function removeQueuedCraft(index){
+ const queue=state.craftQueue||[];
+ if(!Number.isInteger(index)||index<0||index>=queue.length)return;
+ if(index===0&&state.action?.type==="craft"&&state.action.queued)state.action=null;
+ queue.splice(index,1);startNextQueuedCraft();render();save();
+}
+function craftQueuePanel(){
+ const queue=state.craftQueue||[];
+ return E("section",{className:"fd-character-panel fd-v10-queue"},
+  E("h3",{},"🔨 Commandes de fabrication · V10"),
+  E("p",{className:"fd-muted"},"Ajoute une quantité depuis une recette. Les ingrédients sont consommés à chaque objet fabriqué. Une commande s'arrête si les ressources manquent, sans perdre les éléments déjà fabriqués."),
+  queue.length?E("div",{className:"fd-v10-queue-list"},
+    ...queue.map((entry,i)=>E("div",{className:"fd-v10-queue-entry"},
+      itemSprite(entry.id,"fd-tiny"),
+      E("span",{},itemName(entry.id)+" · "+jobName(entry.job)+" · "+entry.remaining+"/"+entry.initial+" restant(s)"),
+      pill(i===0&&state.action?.queued?"En cours":i===0?"En attente de ressources":"En file"),
+      B("✕",()=>removeQueuedCraft(i),"fd-secondary"))))
+   :E("p",{className:"fd-muted"},"Aucune commande en attente."),
+  queue.length?B("▶ Reprendre la file",()=>{if(state.action&&!state.action.queued){toast("Arrête d'abord l'activité en cours.");return}startNextQueuedCraft();render();save()},"fd-secondary"):null);
+}
+function recipeDependencies(r){
+ const deps=r[2].map(([id,amount])=>{
+  const sources=Object.entries(core.gather).flatMap(([j,rows])=>rows.filter(row=>String(row[0])===String(id)).map(row=>jobName(j)+" niv. "+row[1]));
+  const craft=Object.entries(core.recipes).flatMap(([j,rows])=>rows.filter(row=>String(row[0])===String(id)).map(row=>jobName(j)+" niv. "+row[1]));
+  const drops=(dropIndex[String(id)]||[]).length;
+  return itemName(id)+" ×"+amount+" : "+(sources.length?sources.join(", "):craft.length?craft.slice(0,2).join(", "):drops?"Butin de "+drops+" monstre(s)":"Source à découvrir");
+ });
+ return deps.join(" • ");
+}
+
 function startCraft(job,id){
  const r=recipeFor(job,id);if(!r)return;
  if(jobLevel(job)<r[1]){toast("Métier niveau "+r[1]+" requis.");return}
@@ -1295,7 +1348,7 @@ function tick(dt){
   state.mastery[a.id]=(state.mastery[a.id]||0)+n;return true;
  }
  if(a.type==="craft"){
-  const seconds=actionCost(a);const n=Math.min(3000,Math.floor(a.progress/seconds));
+  const seconds=actionCost(a)/(1+masteryCraftBonus(a.job,a.id));const n=Math.min(3000,Math.floor(a.progress/seconds));
   if(!n)return false;
   a.progress-=n*seconds;
   const r=recipeFor(a.job,a.id);if(!r){state.action=null;return true}
@@ -1308,9 +1361,19 @@ function tick(dt){
    const recipeKey=a.job+":"+a.id;
    state.craftedRecipes[recipeKey]=(state.craftedRecipes[recipeKey]||0)+1;
    state.jobCraftCount[a.job]=(state.jobCraftCount[a.job]||0)+1;
+   if(a.queued){
+    const entry=(state.craftQueue||[])[0];
+    if(entry&&String(entry.id)===String(a.id)&&String(entry.job)===String(a.job)){
+     entry.remaining=Math.max(0,entry.remaining-1);
+     if(entry.remaining===0){state.craftQueue.shift();state.action=null;break}
+    }else{state.action=null;break}
+   }
   }
   if(crafted){state.jobs[a.job]=(state.jobs[a.job]||0)+crafted*expGain(r[1])*2}
-  if(!state.action)toast("Fabrication terminée (ressources épuisées).");
+  if(!state.action){
+   if(a.queued){startNextQueuedCraft();if(!state.action&&(state.craftQueue||[]).length)toast("Commande suspendue : ingrédients ou place manquants.");}
+   else toast("Fabrication terminée (ressources épuisées).");
+  }
   return true;
  }
  if(a.type==="train"){
@@ -1529,7 +1592,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v9.0";
+ $("#buildVersion").textContent="v10.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -1573,7 +1636,13 @@ function craftingCard(job,r){
   E("div",{className:"fd-recipe-actions"},
    pill(allowed?"Métier "+jobLevel(job):"Niveau "+req+" requis",allowed?"green":""),
    B(active?"■ Arrêter":!allowed?"Verrouillé":can?"Fabriquer en continu":"Ressources manquantes",
-    ()=>startCraft(job,id),"fd-button",!allowed||(!can&&!active))));
+    ()=>startCraft(job,id),"fd-button",!allowed||(!can&&!active)),
+   E("div",{className:"fd-v10-craft-extra"},
+    pill("Maîtrise "+recipeMastery(job,id).level+"/5 · "+recipeMastery(job,id).count+" créations"),
+    B("📦 Ajouter ×1",()=>enqueueCraft(job,id,1),"fd-secondary",!allowed),
+    B("📦 Ajouter ×10",()=>enqueueCraft(job,id,10),"fd-secondary",!allowed),
+    B("📦 Ajouter ×100",()=>enqueueCraft(job,id,100),"fd-secondary",!allowed)),
+   E("small",{className:"fd-muted fd-v10-deps"},recipeDependencies(r))));
  return card;
 }
 function craftingView(job,all=false){
@@ -1592,7 +1661,7 @@ function craftingView(job,all=false){
   if(all)card.prepend(pill(jobName(jid),"fd-job-label"));
   grid.append(card);
  }
- return E("div",{},currentActionBox(),
+ return E("div",{},currentActionBox(),craftQueuePanel(),
   panelHeading(all?"Recettes de tous les métiers":jobName(job)+" · Recettes officielles",
    "Composants et quantités DOFUS 3. Le temps de fabrication et l'XP sont adaptés au jeu.",
    pill(money(available.length)+" recettes")),
