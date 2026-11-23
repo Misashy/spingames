@@ -8,6 +8,7 @@ on:
       - 'dofus-idle/tests/smoke-full.cjs'
       - 'dofus-idle/tests/achievements-full.cjs'
       - 'dofus-idle/tests/bank-character-combat.cjs'
+      - 'dofus-idle/tests/equipment-v7.cjs'
       - 'dofus-idle/index.html'
       - '.github/workflows/dofus-idle-smoke.yml'
 permissions:
@@ -28,3 +29,4 @@ jobs:
           node dofus-idle/tests/smoke-full.cjs
           node dofus-idle/tests/achievements-full.cjs
           node dofus-idle/tests/bank-character-combat.cjs
+          node dofus-idle/tests/equipment-v7.cjs
