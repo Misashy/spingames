@@ -30,3 +30,14 @@ sample_lookup(effects,[111,118,119,123,124,125,126,128,138,176,158])
 sample_lookup(char,[1,10,11,12,13,14,15,16,17,18])
 
 # Schéma version DOFUS 3.7.14.18 : audit des effets actifs.
+
+for filename, data in [("ITEM",item),("SET",sets),("EFFECT",effects),("CHAR",char)]:
+ v=data.get("objectsById")
+ print("OBJECTS_BY_ID",filename,type(v).__name__,"len",len(v),"first-keys",list(v)[:6],flush=True)
+ vals=list(v.values()) if isinstance(v,dict) else v
+ for o in vals[:3]:
+  print("OBJ SAMPLE",filename,json.dumps(o,ensure_ascii=False)[:6500],flush=True)
+ ids={"ITEM":[1,31,236,885,1000,1067,24538,17862,2603],"SET":[1,2,3,4,16,55],"EFFECT":[111,118,119,123,124,125,126,128,138,176,158],"CHAR":[1,10,11,12,13,14,15,16,17,18]}[filename]
+ for n in ids:
+  x=v.get(str(n)) if isinstance(v,dict) else next((o for o in v if isinstance(o,dict) and int(o.get("id") or 0)==n),None)
+  print("OBJ LOOKUP",filename,n,json.dumps(x,ensure_ascii=False)[:6000],flush=True)
