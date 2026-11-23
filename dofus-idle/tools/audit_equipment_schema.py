@@ -52,3 +52,19 @@ for table in [x for x in tables if x in ("ItemData","ItemSetData","EffectData","
  print("SQL TABLE",table,"COLUMNS",cols,flush=True)
  for rec in db.execute(f"SELECT * FROM {table} LIMIT 2"):
   print("SQL SAMPLE",table,json.dumps(dict(rec),ensure_ascii=False,default=str)[:5000],flush=True)
+
+for filename,data in [("ITEM",item),("SET",sets),("EFFECT",effects)]:
+ refs=data.get("references")
+ print("REFERENCES",filename,"type",type(refs).__name__,"LEN",len(refs) if refs else 0,flush=True)
+ print("REF KEYS",filename,list(refs)[:14] if isinstance(refs,dict) else "",flush=True)
+ if isinstance(refs,dict):
+  for key,v in list(refs.items())[:3]:
+   print("REF FIRST",filename,key,str(v)[:3200],flush=True)
+ elif isinstance(refs,list):
+  for v in refs[:3]:print("REF FIRST",filename,json.dumps(v,ensure_ascii=False)[:4000],flush=True)
+ values=data["objectsById"]["m_values"]["Array"]
+ keys=data["objectsById"]["m_keys"]["Array"]
+ for iid in [keys[0],keys[1],keys[2],2411,2414,2416,18666,276,770,6000]:
+  if iid not in keys:continue
+  ix=keys.index(iid);entry=values[ix]
+  print("ENTRY",filename,iid,repr(entry),flush=True)
