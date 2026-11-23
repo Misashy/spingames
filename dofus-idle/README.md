@@ -1,4 +1,4 @@
-# DOFUS IDLE — Monde des Douze (version 2)
+# DOFUS IDLE — Monde des Douze (version 5)
 
 Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, recettes et monstres de DOFUS 3.7.14.18. Projet indépendant de dofus-clicker.
 
@@ -58,6 +58,27 @@ Le nouvel écran de combat utilise une navigation progressive inspirée de la di
 - **Succès DOFUS IDLE** : 27 objectifs de combat, exploration, métiers, personnage et butins. Les succès accomplis offrent des kamas et de l'XP après validation manuelle ; les récompenses déjà reçues ne peuvent pas être réclamées une deuxième fois. Les objectifs sont des créations spécifiques au prototype, pas la liste officielle des succès DOFUS.
 - **Régions et zones classées par niveau** par défaut du plus faible au plus élevé, avec option d'ordre décroissant ; les monstres à l'intérieur des zones sont triés par niveau croissant.
 - **Progression conservée** : la clé localStorage reste "dofus-idle-full-v2". Les nouvelles propriétés de caractéristiques, succès, butins et historique sont ajoutées aux anciennes sauvegardes sans remplacer les kamas, XP, inventaires, niveaux de métiers, équipements et objets existants.
+
+## Version 5 : 22 382 succès et objectifs de longue durée
+
+Les objectifs sont générés au chargement depuis les données DOFUS 3.7.14.18 et les 27 objectifs historiques. Ils ne constituent pas le catalogue officiel de succès d'Ankama : ce sont des succès propres à DOFUS IDLE, avec des identités de monstres, ressources, recettes, métiers et zones tirées de la base du jeu.
+
+- 22 382 succès testés sur la version de données épinglée.
+- 15 414 succès de bestiaire : pour chacun des 5 135 monstres, première victoire et paliers de 10 et 50 victoires, ainsi que des objectifs globaux.
+- 4 830 succès d'artisanat : chaque recette fabriquée au moins une fois, quantité par métier et progression globale des crafts.
+- 1 466 succès d'exploration : visite de zones, découvertes de régions et paliers de combats propres aux 569 sous-zones.
+- 353 succès de récolte, 248 succès de métiers avec paliers jusqu'au niveau 200, 71 succès transversaux (personnage, économie, équipement, combat et butins).
+- Récompenses individuelles en kamas, XP et points de succès. Chaque récompense se récupère une seule fois ; la récupération groupée est plafonnée à 40 succès par action.
+- Recherche textuelle par nom de monstre, recette, zone ou ressource ; filtres de catégories et de statut, tri et pagination de 32 cartes pour garder une interface fluide.
+- Suivi de trois succès favoris sous le panneau Aventurier, avec progression et récompenses.
+
+### Compatibilité des sauvegardes
+
+La clé de stockage dofus-idle-full-v2 et les 27 identifiants historiques success-0 à success-26 restent inchangés. Les combats déjà gagnés sont reconnus dans dex, les maîtrises de récolte dans mastery, les zones dans visitedZones et les niveaux dans jobs. Les anciennes sauvegardes ne stockaient pas les crafts distincts par recette ni les victoires par zone : ces compteurs spécifiques commencent donc à cette mise à jour, sans inventer un historique inexistant.
+
+Le compteur totalSeconds mesure les périodes avec une activité en cours, y compris le calcul des actions hors ligne ; il ne récompense pas une page simplement laissée ouverte.
+
+Tests de non-régression : le workflow dofus-idle-smoke.yml exécute smoke-full.cjs et achievements-full.cjs pour valider la taille du catalogue, les sauvegardes, les vrais crafts, la recherche, le suivi et la récupération unique des récompenses.
 
 ## Fidélité et limites
 
