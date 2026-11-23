@@ -1413,7 +1413,10 @@ function victory(m,a){
 }
 function offline(){
  const elapsed=clamp((now()-(state.lastAt||now()))/1000,0,8*3600);
- if(state.action?.type==="combat"){state.action=null;return}
+ // Ne pas simuler les combats hors ligne, mais conserver la salle du
+ // donjon et ses PV afin de reprendre au même endroit après rechargement.
+ // La durée écoulée hors ligne ne déclenche aucune attaque ni victoire.
+ if(state.action?.type==="combat")return;
  if(elapsed>5&&state.action){
   const before=state.gathered+state.crafted;
   let seconds=elapsed;
