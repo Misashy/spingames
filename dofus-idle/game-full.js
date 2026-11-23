@@ -1312,7 +1312,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v2.0";
+ $("#buildVersion").textContent="v8.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -1801,6 +1801,78 @@ function monsterDropsPanel(id,m){
   E("small",{},"Récompenses possibles : "+money(pool.length)+" équipements. Les objets arrivent dans le butin temporaire sous Ton aventurier.")));
  return drops;
 }
+
+/* Panneau de sorts partagé entre Personnage et Combat : la jauge de recharge
+   est calculée à partir du même état, sans stockage séparé des anciennes parties. */
+function spellBookPanel(context="character"){
+ const inCombat=context==="combat",cls=CLASS_BY_ID[state.classId]||CLASS_BY_ID.iop;
+ const a=state.action?.type==="combat"?state.action:null;
+ if(a)ensureSpellAction(a);
+ const root=E("section",{className:"fd-spell-book fd-spell-book-"+context,
+  "data-spell-class":state.classId},
+  E("div",{className:"fd-spell-header"},
+   E("div",{className:"fd-spell-head-title"},
+    E("h3",{},"✨ Grimoire de "+cls[1]),
+    E("small",{},"Sorts adaptés à DOFUS IDLE · 3 capacités de classe")),
+   pill(money(state.spellCasts||0)+" sorts lancés","green")),
+  E("p",{className:"fd-spell-intro"},
+   "Active ou désactive le lancement automatique pour chaque sort. En combat, tu peux aussi lancer un sort manuellement s'il est disponible. Les temps de recharge sont indépendants du PA/PM."));
+ const grid=E("div",{className:"fd-spell-grid"});
+ for(const sp of classSpells()){
+  const [id,name,emoji,required,cooldown,kind,power,description]=sp;
+  const unlocked=playerLevel()>=required;
+  const ready=unlocked&&spellReady(sp,a);
+  const remaining=a?Math.max(0,Number(a.spellCooldowns?.[id])||0):0;
+  const automated=spellAutoEnabled(id);
+  const card=E("article",{className:"fd-spell-card "+(unlocked?"unlocked":"locked")+(a&&ready?" is-ready":""),
+   "data-spell-id":id,"data-spell-level":String(required)},
+   E("div",{className:"fd-spell-card-top"},
+    E("span",{className:"fd-spell-icon","aria-hidden":"true"},emoji),
+    E("div",{className:"fd-spell-name"},E("strong",{},name),
+     E("small",{},unlocked?"Niveau "+required+" · recharge "+cooldown+" s":"🔒 Débloqué au niveau "+required))),
+   E("p",{className:"fd-spell-description"},description));
+  if(a&&unlocked){
+   card.append(E("div",{className:"fd-spell-recharge"},
+    E("div",{className:"fd-spell-recharge-line"},
+     E("span",{},remaining>0?"Recharge en cours":"Sort prêt"),
+     E("strong",{},remaining>0?remaining.toFixed(1)+" s":"✓ Prêt")),
+    meter(remaining>0?100*(1-remaining/cooldown):100,"fd-spell-meter")));
+  }
+  card.append(E("div",{className:"fd-spell-controls"},
+   B(automated?"⚙️ Auto : ON":"⚙️ Auto : OFF",()=>toggleSpellAuto(id),
+    "fd-spell-auto "+(automated?"active":"off"),!unlocked),
+   B(!unlocked?"Niv. "+required+" requis":!a?"Hors combat":remaining>0?
+     remaining.toFixed(1)+" s":ready?"Lancer":"Patiente",
+     ()=>castClassSpell(id,true),"fd-spell-cast",!ready)));
+  grid.append(card);
+ }
+ root.append(grid);
+ if(inCombat&&a){
+  const values=[
+   ["🛡️ Bouclier",Math.round(Number(a.spellShield)||0)],
+   ...Object.entries(a.spellBuffs||{}).filter(([,v])=>v?.remaining>0)
+    .map(([id,v])=>[(v.icon||"✨")+" "+({
+     fury:"Dégâts+",crit:"Critiques+",haste:"Vitesse+",armor:"Protection",
+     regen:"Régénération",evade:"Esquive",slow:"Ralenti",weaken:"Affaibli",
+     luck:"Butin+",summon:"Invocation"}[id]||id),v.remaining.toFixed(1)+" s"])];
+  if(a.spellDot?.remaining>0)values.push(["🔥 Dégâts périodiques",a.spellDot.remaining.toFixed(1)+" s"]);
+  if(values.length&&values.some(([,v])=>v)){
+   root.append(E("div",{className:"fd-spell-buffs"},
+    E("strong",{},"Effets actifs"),
+    ...values.filter(([,v])=>v&&v!=="0").map(([label,v])=>pill(label+" · "+v,"green"))));
+  }
+  if(a.spellHistory?.length){
+   const history=E("div",{className:"fd-spell-history"},
+    E("strong",{},"Derniers sorts utilisés"));
+   for(const h of a.spellHistory.slice(0,4))
+    history.append(E("div",{className:"fd-spell-history-line"},
+     E("span",{},h.icon+" "+h.name),E("small",{},h.text)));
+   root.append(history);
+  }
+ }
+ return root;
+}
+
 function combatPlayerPanel(){
  const pv=clamp(state.hp,0,maxHp()),pct=maxHp()?100*pv/maxHp():0;
  const isRunning=state.action?.type==="combat";
@@ -1831,7 +1903,7 @@ function combatPlayerPanel(){
     E("div",{className:"fd-stat"},E("span",{},"❤️ PV maximum"),E("strong",{},money(maxHp()))),
     E("div",{className:"fd-stat"},E("span",{},"🏆 Monstres vaincus"),E("strong",{},money(state.kills))),
     B("🧙 Mon personnage",()=>runNav("character"),"fd-secondary fd-wide"))),
-  lootStashPanel(),trackedAchievementsPanel());
+  lootStashPanel(),spellBookPanel("combat"),trackedAchievementsPanel());
 }
 function combatEnemyPanel(){
  const m=world.monsters[String(state.selectedMonster)],zone=world.zones[String(state.selectedZone)];
@@ -2165,6 +2237,7 @@ function characterView(){
    "Personnalise ton aventurier, choisis ta classe et distribue tes points comme dans DOFUS.",
    pill("Niv. "+playerLevel()+" / 200")),
   hero,
+  spellBookPanel("character"),
   E("div",{className:"fd-character-main-layout"},
    characterEquipmentPanel(),
    statAllocationPanel(),
@@ -2410,7 +2483,7 @@ async function init(){
    }
    if(!document.hidden&&t-lastSave>4000){lastSave=t;save()}
   },200);
-  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getGearSlots:id=>availableGearSlots(id),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
+  window.DOFUS_IDLE_FULL={getState:()=>JSON.parse(JSON.stringify(state)),core,world,levelOf,getGearPoolSize:()=>gearPool.length,simulateSeconds:seconds=>{tick(seconds);render()},getGearSummary:()=>gearStatsFor(state.equipment),getEquipmentData:()=>equipmentData,getGearSlots:id=>availableGearSlots(id),getClassSpells:classId=>CLASS_SPELLS[classId]||[],castSpell:id=>castClassSpell(id,true),getAchievementSummary:()=>({total:achievementCatalog.length,claimed:achievementsClaimed(),ready:achievementCatalog.filter(a=>!state.achievements[a.id]&&achievementReached(a)).length,categories:Object.fromEntries(Object.keys(ACH_GROUPS).map(k=>[k,achievementCatalog.filter(a=>a.cat===k).length]))}),getAchievementInfo:id=>{const a=achievementCatalog.find(x=>x.id===id);return a?{...a,value:achievementValue(a.metric),reached:achievementReached(a),claimed:!!state.achievements[a.id]}:null}};
  }catch(err){
   console.error("DOFUS IDLE chargement",err);
   $("#view").replaceChildren(E("div",{className:"fd-error"},E("h2",{},"La base de données DOFUS 3 n'a pas pu être chargée."),
