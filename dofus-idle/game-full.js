@@ -813,14 +813,14 @@ function damageFor(gear=state.equipment){
  return Math.max(1,Math.ceil((9+playerLevel()*2.2+elemental*.16+(stats.power||0)*.08+flat+
   (state.upgrades.weapon||0)*6)*(state.classId==="iop"?1.2:state.classId==="ouginak"?1.15:1)));
 }
-function damage(){return damageFor(state.equipment)}
+function damage(){return damageFor(state.equipment)+(window.DOFUS_IDLE_EXPANSION?.damageBonus(state)||0)}
 function defenseFor(gear=state.equipment){
  const stats=gearStatsFor(gear).stats;
  return Math.max(0,Math.floor(playerLevel()*.4+(statValue("agilite")+(stats.agilite||0))*.07+
   (stats.resistance||0)+(stats.resistancePct||0)*.25+
   (state.upgrades.armor||0)*3+(state.classId==="feca"?5:0)));
 }
-function defense(){return defenseFor(state.equipment)}
+function defense(){return defenseFor(state.equipment)+(window.DOFUS_IDLE_EXPANSION?.defenseBonus(state)||0)}
 function criticalChance(gear=state.equipment){
  const stats=gearStatsFor(gear).stats;
  return clamp(.05+(state.classId==="cra"?.11:state.classId==="sram"?.09:0)+
@@ -1243,6 +1243,7 @@ function dungeonVictory(a,m){
   state.dungeonClears=state.dungeonClears||{};
   state.dungeonClears[d.zoneId]=(Number(state.dungeonClears[d.zoneId])||0)+1;
   state.dungeonLastClear=d.zoneId;
+  window.DOFUS_IDLE_EXPANSION?.onDungeon(state,d.zoneId);
   const xp=80+m[1]*12,kamas=60+m[1]*10;
   state.playerXp+=xp;state.kamas+=kamas;state.earned+=kamas;
   const drops=(m[4]||[]).filter(([id,rate])=>core.items[String(id)]&&rate>0).sort((a,b)=>a[1]-b[1]);
@@ -1375,6 +1376,7 @@ function tick(dt){
    const recipeKey=a.job+":"+a.id;
    state.craftedRecipes[recipeKey]=(state.craftedRecipes[recipeKey]||0)+1;
    state.jobCraftCount[a.job]=(state.jobCraftCount[a.job]||0)+1;
+   window.DOFUS_IDLE_EXPANSION?.onCraft(state,a.job,a.id,1);
    if(a.queued){
     const entry=(state.craftQueue||[])[0];
     if(entry&&String(entry.id)===String(a.id)&&String(entry.job)===String(a.job)){
@@ -1449,6 +1451,7 @@ function tick(dt){
 function victory(m,a){
  const previousLevel=playerLevel();
  state.kills++;state.dex[String(a.id)]=(state.dex[String(a.id)]||0)+1;
+ window.DOFUS_IDLE_EXPANSION?.onVictory(state,m,a);
  const zoneId=String(state.selectedZone||"");
  if(world.zones[zoneId]?.[3]?.some(mid=>String(mid)===String(a.id)))
   state.zoneKills[zoneId]=(state.zoneKills[zoneId]||0)+1;
@@ -1567,6 +1570,7 @@ function sidebar(){
  const groups=[
   ["COMBAT",[["combat","⚔️","Zones et monstres"],["dungeons","🏰","Donjons"],["bestiary","📘","Bestiaire"],["automation","⚙️","Automatisation"]]],
   ["PERSONNAGE",[["bank","🎒","Banque"],["shop","🪙","Magasin"],["character","🧙","Personnage"],["achievements","🏆","Succès"],["quests","📜","Quêtes"],["collection","📚","Collections"]]],
+  ["CHRONIQUES DES DOUZE",[["expansion","⚜️","Extensions V13–V24"]]],
   ["MÉTIERS DE RÉCOLTE",Object.keys(core.gather).sort((a,b)=>Number(a)-Number(b)).flatMap(id=>
    [["job:"+id,jobIcon(id),jobName(id)],
     ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
@@ -1597,7 +1601,7 @@ function sidebar(){
 function header(){
  const view=state.view,job=view.startsWith("job:")||view.startsWith("craft:")?view.split(":")[1]:null;
  const lev=job?levelOf(state.jobs[job]||0):levelOf(state.playerXp);
- const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",achievements:"Succès",recipes:"Toutes les recettes",bestiary:"Bestiaire"}[view]||"DOFUS IDLE");
+ const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",achievements:"Succès",recipes:"Toutes les recettes",bestiary:"Bestiaire",expansion:"Chroniques des Douze"}[view]||"DOFUS IDLE");
  const h=E("div",{className:"fd-headline"},job?jobSprite(job,"fd-head-icon"):E("span",{className:"fd-head-icon"},"✦"),
   E("div",{},E("h1",{},tit),E("small",{},"DOFUS IDLE · Monde des Douze")));
  const stats=E("div",{className:"fd-headstats"},
@@ -1606,7 +1610,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v12.0";
+ $("#buildVersion").textContent="v24.0";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -3264,6 +3268,18 @@ function renderView(){
  else if(v==="quests")node=questsView();
  else if(v==="collection")node=collectionView();
  else if(v==="automation")node=automationView();
+ else if(v==="expansion"){
+  const x=window.DOFUS_IDLE_EXPANSION;
+  if(!x)node=E("div",{className:"fd-error"},"Extensions indisponibles : recharge la page.");
+  else node=x.view(state,{
+   save,render,toast,nav:runNav,core,world,itemName,itemPrice:itemValue,
+   itemLevel,exists:id=>!!core.items[String(id)],gearSlot,
+   take:consume,give:add,level:playerLevel,attack:damage,guard:defense,
+   classSpells:id=>CLASS_SPELLS[id]||[],
+   regions:regionCatalog,regionMin:regionCombatMin,
+   openRegion:name=>{state.selectedRegion=name;state.combatMode="zones";combatOpenZone="";runNav("combat");}
+  });
+ }
  else node=characterView();
  $("#view").replaceChildren(node);
  if(v==="character")cloudPanel();
@@ -3323,6 +3339,7 @@ async function init(){
   gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
     .filter(id=>core.items[id]&&gearSlot(id)&&itemLevel(id)<=200);
   state=load();
+  window.DOFUS_IDLE_EXPANSION?.ensure(state);
   // Après un rechargement, retrouver immédiatement la zone du combat en cours,
   // sans demander au joueur de rouvrir le bon donjon manuellement.
   if(state.action?.type==="combat"){
