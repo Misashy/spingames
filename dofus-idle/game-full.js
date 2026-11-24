@@ -25,7 +25,7 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const KEY="dofus-idle-full-v2",OLD_KEY="dofus-idle-independent-v1";
 let core=null,world=null,state=null,dropIndex={},lastTick=Date.now(),lastSave=0,lastRender=0;
 let equipmentData=null;
-let gearPool=[],gearEligibleCache=new Map(),combatOpenZone="";
+let gearPool=[],combatOpenZone="";
 const EQUIP_LABELS={weapon:"Arme",head:"Coiffe",cape:"Cape",ring:"Anneau 1",ring2:"Anneau 2",boots:"Bottes",belt:"Ceinture",neck:"Amulette",shield:"Bouclier",pet:"Familier",mount:"Monture",dofus1:"Dofus / Trophée 1",dofus2:"Dofus / Trophée 2",dofus3:"Dofus / Trophée 3",dofus4:"Dofus / Trophée 4",dofus5:"Dofus / Trophée 5",dofus6:"Dofus / Trophée 6"};
 let q="",page=0,zoneQuery="",selectedArea="",monsterQuery="",monsterPage=0,recipeFilter="all",busy=false,images={items:{},monsters:{},jobs:{}};
 let bankCategory="all",bankType="all",bankSort="name";
@@ -1042,20 +1042,15 @@ function startTraining(job){
  state.action={type:"train",job:String(job),id:0,progress:0};
  toast("Formation "+jobName(job)+" : entraînement idle simplifié.");render();save();
 }
-// Les équipements « surprise » sont un bonus du prototype idle, distinct
-// des butins officiels du monstre et de leurs pourcentages extraits de DOFUS.
-function possibleEquipment(level){
- const lvl=Math.max(1,Math.floor(Number(level)||1));
- if(gearEligibleCache.has(lvl))return gearEligibleCache.get(lvl);
- const ceiling=Math.min(200,lvl+8),floor=Math.max(1,Math.floor(lvl*.55));
- let pool=gearPool.filter(id=>itemLevel(id)>=floor&&itemLevel(id)<=ceiling);
- if(!pool.length)pool=gearPool.filter(id=>itemLevel(id)<=ceiling);
- gearEligibleCache.set(lvl,pool);
- return pool;
+// Les équipements ne sont plus générés en combat : chaque équipement doit
+// être fabriqué à partir des ingrédients recueillis en récolte ou en combat.
+// On conserve les anciens stocks, équipements portés et historiques de butin.
+function isCraftOnlyEquipment(id){
+ return !!core.items[String(id)]&&(bankItemCategory(id)==="equipment"||
+  !!gearSlot(id)||!!itemSetInfo(id));
 }
-function equipmentChance(m){
- const zone=world.zones[String(state.selectedZone)];
- return zone&&zone[3].some(id=>String(id)===String(state.selectedMonster))&&Number(zone[5])>=0?5:3;
+function droppableResource(id){
+ return !!core.items[String(id)]&&!isCraftOnlyEquipment(id)&&bankItemCategory(id)==="resource";
 }
 
 function queueLoot(id,n=1){
@@ -1140,16 +1135,6 @@ function combatLogRow(event){
   row.append(items);
  }
  return row;
-}
-
-function rollEquipment(m,dropped){
- const pool=possibleEquipment(m[1]),rate=equipmentChance(m);
- if(!pool.length||Math.random()*100>=rate)return null;
- const chosen=pool[Math.floor(Math.random()*pool.length)];
- if(!queueLoot(chosen,1))return null;
- dropped.push(chosen);
- state.gearDrops[chosen]=(state.gearDrops[chosen]||0)+1;
- return chosen;
 }
 
 /* En DOFUS IDLE, on autorise un monstre jusqu'à 8 niveaux au-dessus
@@ -1258,7 +1243,7 @@ function dungeonVictory(a,m){
   window.DOFUS_IDLE_EXPANSION?.onDungeon(state,d.zoneId);
   const xp=80+m[1]*12,kamas=60+m[1]*10;
   state.playerXp+=xp;state.kamas+=kamas;state.earned+=kamas;
-  const drops=(m[4]||[]).filter(([id,rate])=>core.items[String(id)]&&rate>0).sort((a,b)=>a[1]-b[1]);
+  const drops=(m[4]||[]).filter(([id,rate])=>droppableResource(id)&&rate>0).sort((a,b)=>a[1]-b[1]);
   if(drops[0]&&queueLoot(drops[0][0],1)){
    const bonusId=String(drops[0][0]);
    const last=state.log[0];
@@ -1482,10 +1467,10 @@ function victory(m,a){
  state.kamas+=kamas;state.earned+=kamas;
  const dropped=[];
  for(const [id,rate] of m[4]){
-  if(Math.random()*100<rate&&queueLoot(id,1))dropped.push(String(id));
+  if(!isCraftOnlyEquipment(id)&&Math.random()*100<rate&&queueLoot(id,1))
+   dropped.push(String(id));
  }
- const bonus=rollEquipment(m,dropped);
- if(bonus)toast("🎁 Équipement trouvé : "+itemName(bonus)+" ! Consulte le butin sous ton aventurier.");
+ // Aucun tirage d'équipement : les ressources servent à la fabrication.
  const qty=new Map();
  for(const id of dropped)qty.set(String(id),(qty.get(String(id))||0)+1);
  state.log.unshift({kind:"victory",monsterId:String(a.id),monsterName:m[0],
@@ -1541,9 +1526,11 @@ function itemTag(id,qty=1,source=false){
  return item;
 }
 function showSources(id){
- const list=(dropIndex[id]||[]).slice().sort((a,b)=>b[1]-a[1]);
+ const list=isCraftOnlyEquipment(id)?[]:(dropIndex[id]||[]).slice().sort((a,b)=>b[1]-a[1]);
  const box=E("div",{className:"fd-modal"});
  box.append(E("h2",{},"Comment obtenir : "+itemName(id)));
+ if(isCraftOnlyEquipment(id))box.append(E("p",{},
+  "🔨 Cet équipement s'obtient uniquement par fabrication : récupère les ingrédients grâce aux monstres et métiers."));
  const gatherers=Object.entries(core.gather).flatMap(([job,skills])=>skills.filter(row=>String(row[0])===String(id)).map(row=>[job,row[1]]));
  for(const [job,req] of gatherers)box.append(B("🌿 Récolte : "+jobName(job)+" niveau "+req,()=>{closeModal();runNav("job:"+job)},"fd-source"));
  const makers=Object.entries(core.recipes).flatMap(([job,recipes])=>recipes.filter(r=>String(r[0])===String(id)).map(r=>[job,r[1]]));
@@ -2093,7 +2080,7 @@ function focusMonster(id,zoneId){
 function monsterDropsPanel(id,m){
  const drops=E("div",{className:"fd-combat-drops"});
  const real=E("div",{className:"fd-loot-grid"});
- const rates=m[4]||[];
+ const rates=(m[4]||[]).filter(([iid])=>!isCraftOnlyEquipment(iid));
  for(const [iid,rate] of rates.slice(0,64)){
   const row=E("div",{className:"fd-loot-item"},
    itemSprite(iid,"fd-loot-art"),
@@ -2105,7 +2092,7 @@ function monsterDropsPanel(id,m){
    E("small",{className:"fd-muted"},"Pourcentages de base du grade 1, avant prospection et modificateurs."));
  if(real.childNodes.length)drops.append(real);
  else drops.append(E("p",{className:"fd-muted"},"Aucun butin libre répertorié pour ce monstre."));
- const conditional=m[6]||[];
+ const conditional=(m[6]||[]).filter(([iid])=>!isCraftOnlyEquipment(iid));
  if(conditional.length){
   const details=E("details",{className:"fd-loot-conditional"},
    E("summary",{},"🔒 Voir "+money(conditional.length)+" butins à conditions (quêtes, événements…)"));
@@ -2117,13 +2104,10 @@ function monsterDropsPanel(id,m){
   details.append(E("small",{className:"fd-muted"},"Conditions non simulées : ces objets ne tombent pas dans le prototype."),grid);
   drops.append(details);
  }
- const pool=possibleEquipment(m[1]),chance=equipmentChance(m);
- drops.append(E("div",{className:"fd-loot-bonus"},
-  E("strong",{},"🎁 Stuff bonus DOFUS IDLE · "+chance+" % par victoire"),
-  E("p",{},"Équipement réel de DOFUS adapté au niveau du monstre, mais tirage supplémentaire propre au jeu idle. Ce n'est pas un drop officiel de ce monstre."),
-  E("div",{className:"fd-loot-examples"},
-   ...pool.slice(0,6).map(iid=>E("span",{className:"fd-loot-preview",title:itemName(iid)},itemSprite(iid,"fd-loot-art")))),
-  E("small",{},"Récompenses possibles : "+money(pool.length)+" équipements. Les objets arrivent dans le butin temporaire sous Ton aventurier.")));
+ drops.append(E("div",{className:"fd-craft-only-info"},
+  E("strong",{},"🔨 Équipements : fabrication uniquement"),
+  E("p",{},"Les monstres donnent des ressources, mais plus aucun équipement directement. Réunis les ingrédients puis fabrique ton équipement dans les métiers."),
+  B("🔧 Voir les recettes",()=>runNav("recipes"),"fd-secondary")));
  return drops;
 }
 
@@ -3353,6 +3337,7 @@ async function init(){
   }catch(e){/* anciens déploiements : garde les pictogrammes de secours */}
   for(const [mid,m] of Object.entries(world.monsters)){
    for(const [iid,rate] of m[4]){
+    if(isCraftOnlyEquipment(iid))continue;
     if(!dropIndex[iid])dropIndex[iid]=[];dropIndex[iid].push([mid,rate]);
    }
   }
@@ -3365,8 +3350,8 @@ async function init(){
     if(data?.meta?.itemCount>4000&&data?.meta?.setCount>400)equipmentData=data;
    }
   }catch(e){console.warn("Référentiel de stuff inaccessible",e)}
-  // Catalogue des vrais équipements fabriquables : le taux d'obtention bonus
-  // est propre à DOFUS IDLE, les identités et niveaux proviennent du client.
+  // Catalogue des vrais équipements fabriquables : ce catalogue sert à
+  // l'artisanat et à l'inspection, jamais à un tirage d'équipement en combat.
   gearPool=[...new Set(Object.values(core.recipes).flatMap(list=>list.map(recipe=>String(recipe[0]))))]
     .filter(id=>core.items[id]&&gearSlot(id)&&itemLevel(id)<=200);
   state=load();
