@@ -2219,7 +2219,10 @@ function combatPlayerPanel(){
   equipment.append(button);
  }
  return E("section",{className:"fd-fight-panel fd-player-panel"},
-  E("div",{className:"fd-fight-panel-title"},E("strong",{},"🛡️ Ton aventurier"),pill("Niv. "+playerLevel(),"green")),
+  E("div",{className:"fd-fight-panel-title"},E("strong",{},"🛡️ Ton aventurier"),pill("Niv. "+playerLevel(),"green"),
+   isRunning&&window.DOFUS_IDLE_TACTICS?pill("🔷 "+Math.floor(Number(state.action.tactical?.ap)||0)+" PA"):
+    null,
+   isRunning&&window.DOFUS_IDLE_TACTICS?pill("🟢 "+Math.floor(Number(state.action.tactical?.mp)||0)+" PM"):null),
   E("div",{className:"fd-hp-label"},E("strong",{},"❤️ "+money(pv)+" / "+money(maxHp())+" PV"),
    E("small",{},isRunning?"Prochaine attaque : "+timer.toFixed(1)+" s":"Intervalle d'attaque : "+combatAttackInterval().toFixed(2)+" s")),
   meter(pct,"fd-player-hp"),
