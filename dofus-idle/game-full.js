@@ -2166,11 +2166,12 @@ function spellBookPanel(context="character"){
    B(automated?"⚙️ Auto : ON":"⚙️ Auto : OFF",()=>toggleSpellAuto(id),
     "fd-spell-auto "+(automated?"active":"off"),!unlocked),
    B(!unlocked?"Niv. "+required+" requis":!a?"Hors combat":remaining>0?
-     remaining.toFixed(1)+" s":ready?"Lancer":"Patiente",
+     remaining.toFixed(1)+" s":ready?"Lancer":"PA insuffisants / patiente",
      ()=>castClassSpell(id,true),"fd-spell-cast",!ready)));
   grid.append(card);
  }
  root.append(grid);
+ if(a)a.monsterLevel=world.monsters[String(a.id)]?.[1]||1;
  const tactical=window.DOFUS_IDLE_TACTICS?.panel(a,state,key=>gearStat(key),
   classSpells(),()=>{
    if(window.DOFUS_IDLE_TACTICS?.switchPosition(a,state,key=>gearStat(key))){
