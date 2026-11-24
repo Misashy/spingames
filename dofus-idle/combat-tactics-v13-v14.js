@@ -71,10 +71,14 @@ function resetOpponent(a,s,stat){
 function bossProfile(zoneId){
  const variant=Math.abs(Math.trunc(number(zoneId)))%3;
  return [
-  {id:"lien",label:"Lien protecteur",icon:"🛡️",desc:"Le boss renforce périodiquement son bouclier pendant la première phase."},
+  {id:"lien",label:"Lien protecteur",icon:"🛡️",desc:"Le boss subit moins de dégâts durant sa phase de bouclier."},
   {id:"tourment",label:"Tourment élémentaire",icon:"🔥",desc:"Le boss frappe dans un élément défini et peut provoquer une brûlure limitée."},
   {id:"entrave",label:"Entrave",icon:"⏳",desc:"Le boss retire des PA périodiquement ; la mobilité aide à préparer une esquive."}
  ][variant];
+}
+function bossBarrierFactor(a){
+ if(!a?.dungeonRun||a.dungeonRun.bossPhase!=="bouclier")return 1;
+ return bossProfile(a.dungeonRun.zoneId).id==="lien"?.5:.65;
 }
 function bossSpecial(a,s,zoneId,damage){
  const t=a?.tactical,profile=bossProfile(zoneId);
@@ -144,5 +148,5 @@ function panel(a,s,stat,spells,onMove,onPolicy){
 }
 window.DOFUS_IDLE_TACTICS={ELEMENTS,elementForMonster,resistanceForMonster,elementalHit,
  maximumAP,maximumMP,ensure,advance,cost,canCast,consume,switchPosition,defendHit,
- resetOpponent,bossProfile,bossSpecial,chooseAutoSpell,panel};
+ resetOpponent,bossProfile,bossBarrierFactor,bossSpecial,chooseAutoSpell,panel};
 })();
