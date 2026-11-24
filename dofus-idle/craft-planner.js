@@ -12,7 +12,7 @@ function indexRecipes(core){
  for(const [job,rows] of Object.entries(core.recipes||{})){
   for(const row of rows||[]){
    if(!Array.isArray(row)||!core.items?.[str(row[0])]||!Array.isArray(row[2]))continue;
-   const id=str(row[0]),parts=row[2].filter(p=>core.items?.[str(p[0])]&&qty(p[1])>0)
+   const id=str(row[0]),parts=row[2].filter(p=>Array.isArray(p)&&qty(p[1])>0)
     .map(p=>({id:str(p[0]),qty:qty(p[1])}));
    if(!parts.length)continue;
    if(!result.has(id))result.set(id,[]);
