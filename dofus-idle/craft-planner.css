@@ -1,0 +1,41 @@
+/* Guide de fabrication — sélection et nomenclatures de panoplies. */
+.fd-planner{display:grid;gap:18px;max-width:1550px;margin:0 auto 44px;color:#e8efef}
+.fd-planner-heading{border:1px solid #927d56;background:linear-gradient(125deg,#293e48,#44462f);border-radius:12px;padding:21px}
+.fd-planner-heading h2{font-size:23px;color:#ffe0a4;margin:0 0 10px}
+.fd-planner-heading p{font-size:13px;color:#d6e1e1;line-height:1.6;max-width:950px;margin:0}
+.fd-planner-picker,.fd-planner-overview,.fd-planner-section{background:#243740;border:1px solid #527481;border-radius:10px;padding:18px;display:grid;gap:13px}
+.fd-planner-picker h3,.fd-planner-overview h3,.fd-planner-section h3{font-size:16px;color:#f3d69b;margin:0}
+.fd-planner-picker>input{background:#142934;border:1px solid #688d96;border-radius:8px;color:#fff;padding:12px;font-size:13px;width:100%;box-sizing:border-box}
+.fd-planner-picker>input:focus{outline:2px solid #e2c782}
+.fd-planner-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.fd-planner-choice{border:1px solid #4b6470;padding:10px;background:#172f39;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fd-planner-choice.selected{border-color:#ddbb69;background:#3c4436}
+.fd-planner-choice-title{display:grid;gap:4px;min-width:0}
+.fd-planner-choice-title strong{font-size:12px;color:#f1e8ce}
+.fd-planner-choice-title small{font-size:11px;color:#b7d2d8}
+.fd-planner-button{background:#425f6a;border:1px solid #7497a3;color:#fff;border-radius:7px;padding:9px 12px;font-weight:600;cursor:pointer;font-size:12px;line-height:1.4}
+.fd-planner-button:hover:not(:disabled){background:#527f83}
+.fd-planner-button:disabled{opacity:.6;cursor:default}
+.fd-planner-button.secondary{background:#31444f;border-color:#546e79}
+.fd-planner-pagination{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.fd-planner-badge{background:#425461;border:1px solid #69808b;color:#e3f1f1;padding:6px 9px;border-radius:6px;font-size:12px;display:inline-block;justify-self:start}
+.fd-planner-badge.good{background:#2c5547;border-color:#6caa87;color:#d5fbe4}
+.fd-planner-badge.need{background:#60442c;border-color:#bb9562;color:#ffe9bb}
+.fd-planner-meter{height:11px;background:#152b35;border-radius:20px;overflow:hidden;border:1px solid #435c65}
+.fd-planner-meter span{height:100%;display:block;background:linear-gradient(90deg,#6ead80,#e3c578)}
+.fd-planner-overview>p,.fd-planner-section>p{font-size:12px;line-height:1.5;color:#b9cdd0;margin:0}
+.fd-planner-overview>.fd-planner-button{justify-self:start}
+.fd-planner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px}
+.fd-planner-card{display:grid;align-content:start;gap:10px;padding:13px;border:1px solid #506874;background:#172f39;border-radius:8px}
+.fd-planner-item{display:flex;align-items:center;gap:9px;min-width:0}
+.fd-planner-item strong{font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.fd-planner-item .fd-planner-sprite{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:38px;height:38px}
+.fd-planner-item .fd-planner-sprite img{width:100%;height:100%;object-fit:contain}
+.fd-planner-line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px;background:#162b35;border-radius:8px;border:1px solid #415c66}
+.fd-planner-line .fd-planner-item{flex:1;min-width:180px}
+.fd-planner-warning{font-size:12px;color:#ffcf86;line-height:1.55;margin:0}
+.fd-planner-material{display:grid;gap:10px;padding:13px;background:#1a3039;border:1px solid #53666d;border-radius:9px}
+.fd-planner-material.missing{border-left:4px solid #d4ad65}
+.fd-planner-sources{display:flex;flex-wrap:wrap;gap:8px}
+.fd-planner-alert{border-color:#bb8e59;background:#3a332c}
+@media(max-width:720px){.fd-planner-heading,.fd-planner-picker,.fd-planner-overview,.fd-planner-section{padding:13px}.fd-planner-results{grid-template-columns:1fr}.fd-planner-grid{grid-template-columns:1fr}.fd-planner-line .fd-planner-item{flex-basis:100%}.fd-planner-pagination{gap:6px}}
