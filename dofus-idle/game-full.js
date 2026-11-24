@@ -1427,8 +1427,8 @@ function tick(dt){
    if(Math.random()<spellBuff(a,"evade")){
     emitSpellFloat("player","ESQUIVE !","🌫️");changed=true;continue;
    }
-   let enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1))-
-    defense());
+   let enemyDmg=Math.max(1,Math.round((m[1]*.65+4)*(state.classId==="feca"?.88:1)*
+    (window.DOFUS_IDLE_EXPANSION?.enemyMultiplier(state)||1))-defense());
    enemyDmg=Math.max(1,Math.round(enemyDmg*(1-spellBuff(a,"armor"))*(1-spellBuff(a,"weaken"))));
    const absorbed=Math.min(enemyDmg,Number(a.spellShield)||0);
    if(absorbed>0){
