@@ -1,0 +1,29 @@
+/* DOFUS IDLE V13–V24: interface des Chroniques des Douze. */
+.fd-expansion{display:grid;gap:18px;max-width:1700px;margin:0 auto 38px;color:#ebeee9}
+.fd-exp-hero{padding:24px;background:linear-gradient(110deg,#273c46,#34403d 65%,#55482f);border:1px solid #9c8860;border-radius:12px}
+.fd-exp-hero h2{font-size:24px;color:#ffdf96;margin:0 0 12px}
+.fd-exp-hero p{font-size:13px;line-height:1.6;max-width:850px;color:#d4e2df}
+.fd-exp-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fd-exp-button{appearance:none;cursor:pointer;background:#314956;border:1px solid #5c8191;color:#f3f4e8;border-radius:8px;padding:11px 13px;font-weight:700;font-size:12px;line-height:1.4;transition:background .15s,border-color .15s;text-align:center}
+.fd-exp-button:hover:not(:disabled){background:#3b6873;border-color:#add0c2}
+.fd-exp-button:focus-visible{outline:3px solid #dfb765;outline-offset:2px}
+.fd-exp-button:disabled{opacity:.48;cursor:not-allowed}
+.fd-exp-button.selected{background:#687348;border-color:#dfd094;color:#fff8d4}
+.fd-exp-card{background:linear-gradient(140deg,#263844,#23343a);border:1px solid #56717e;border-radius:12px;padding:20px;display:grid;gap:12px;align-content:start}
+.fd-exp-card h3{font-size:19px;color:#f3dda7;margin:0}
+.fd-exp-card h4{font-size:13px;color:#f0dfb1;margin:8px 0 0}
+.fd-exp-card p{font-size:12px;line-height:1.6;margin:0}
+.fd-exp-card .fd-muted{color:#b7ced4}
+.fd-exp-chip{display:inline-block;justify-self:start;background:#435e50;border:1px solid #78947e;border-radius:6px;padding:6px 9px;color:#f1f9ed;font-size:12px}
+.fd-exp-line{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px;border:1px solid #435e6a;background:#1b2e38;border-radius:7px}
+.fd-exp-line strong{font-size:12px;line-height:1.45;flex:1;min-width:220px}
+.fd-exp-line .fd-exp-button{flex-shrink:0}
+.fd-exp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.fd-exp-cards .fd-exp-card{padding:12px}
+.fd-exp-region-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;max-height:800px;overflow-y:auto;padding-right:4px}
+.fd-exp-region{display:grid;gap:9px;padding:12px;background:#1a2c37;border:1px solid #466571;border-radius:9px}
+.fd-exp-region strong{font-size:13px;color:#f7dfad}
+.fd-exp-region small{font-size:11px;color:#b6ccd1;line-height:1.5}
+@media(max-width:1050px){.fd-exp-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.fd-exp-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.fd-exp-hero{padding:16px}.fd-exp-line strong{min-width:0}.fd-exp-line{display:grid}.fd-exp-line .fd-exp-button{width:100%}.fd-exp-card{padding:14px}}
+@media(max-width:390px){.fd-exp-tabs{grid-template-columns:1fr}}
