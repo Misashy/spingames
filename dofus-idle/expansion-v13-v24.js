@@ -199,7 +199,7 @@ function sectionMarket(s,a,root){
  const eligible=Object.entries(s.bank||{}).filter(([id,n])=>n>0&&a.exists(id)&&!a.gearSlot(id))
   .sort((x,y)=>Number(y[1])-Number(x[1])).slice(0,20);
  const buyer=Object.entries(a.core.gather||{}).flatMap(([,rows])=>rows.slice(0,2).map(x=>String(x[0])))
-  .filter(id=>a.exists(id)).slice(0,15);
+  .filter(id=>a.exists(id)&&Number(a.core.types[String(a.core.items[id]?.[3])]?.[1])===2).slice(0,15);
  const marketPrice=id=>Math.max(2,a.itemPrice(id));
  text(c,"Vendre depuis la banque","h4");
  if(!eligible.length)text(c,"Aucune ressource disponible.");
