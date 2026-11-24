@@ -196,6 +196,8 @@ function view(api){
  const overview=box(root,"fd-planner-overview");
  overview.append(element("h3","","🧩 "+def[0]));
  badge(overview,plan.owned+" / "+plan.total+" pièces possédées",plan.complete?"good":"");
+ badge(overview,plan.materials.reduce((n,p)=>n+p.missing,0)+" composants manquants");
+ badge(overview,plan.crafts.reduce((n,p)=>n+p.qty,0)+" objets à fabriquer");
  const meter=box(overview,"fd-planner-meter");const fill=element("span");
  fill.style.width=(plan.total?100*plan.owned/plan.total:0)+"%";meter.append(fill);
  paragraph(overview,plan.complete?
@@ -230,7 +232,7 @@ function view(api){
 
  const materials=box(root,"fd-planner-section");
  materials.append(element("h3","","🌿 Ressources et composants"));
- paragraph(materials,"Quantités pour les pièces manquantes, en déduisant les stocks disponibles et les ingrédients déjà réservés.");
+ paragraph(materials,"Quantités pour les pièces manquantes, en déduisant les stocks disponibles et les ingrédients déjà réservés. Les estimations de combats utilisent les taux de butin de base et restent approximatives.");
  if(!plan.materials.length)paragraph(materials,"Aucun matériau supplémentaire à récupérer.");
  for(const part of plan.materials){
   const row=box(materials,"fd-planner-material"+(part.missing?" missing":""));
@@ -244,7 +246,8 @@ function view(api){
     false,"secondary"));
   }
   for(const m of sources.fights.slice(0,3)){
-   actions.append(button("⚔️ "+m.name+" · "+m.place+" · "+m.rate+" %",()=>api.goMonster(m.id,m.zone),
+   const expected=m.rate>0?Math.ceil(part.missing*100/m.rate):0;
+   actions.append(button("⚔️ "+m.name+" · "+m.place+" · "+m.rate+" % · ≈ "+expected+" combats",()=>api.goMonster(m.id,m.zone),
     false,"secondary"));
   }
   if(!sources.gathers.length&&!sources.fights.length){
