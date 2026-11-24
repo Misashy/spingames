@@ -474,7 +474,7 @@ function buildAchievementCatalog(){
   ["gather","recolte","Ressources récoltées",[25,100,500,1000,5000,25000,100000]],
   ["craft","artisanat","Objets fabriqués",[5,25,50,250,500,2500,10000]],
   ["loot","butin","Objets obtenus en combat",[10,50,250,500,1000,5000,25000]],
-  ["gear","equipements","Équipements bonus obtenus",[2,5,10,50,100,250]],
+  ["gear","equipements","Équipements fabriqués (ancien historique conservé)",[2,5,10,50,100,250]],
   ["sold","economie","Objets vendus",[10,100,500,2500,10000]],
   ["banked","economie","Butins rangés en banque",[10,100,500,2500,10000]],
   ["time","personnage","Heures d'activité",[1,5,10,25,50,100,250,500]],
@@ -639,7 +639,15 @@ function achievementValue(metric){
  if(metric==="level")return playerLevel();
  if(metric==="stats")return statsSpent();
  if(metric==="loot")return achievementNum(state.lootCount);
- if(metric==="gear")return Object.values(state.gearDrops||{}).reduce((s,n)=>s+achievementNum(n),0);
+ if(metric==="gear"){
+  // Ancien historique conservé pour ne pas retirer de succès déjà gagnés.
+  const oldDrops=Object.values(state.gearDrops||{}).reduce((n,v)=>n+achievementNum(v),0);
+  const crafts=Object.entries(state.craftedRecipes||{}).reduce((n,[key,qty])=>{
+   const iid=key.slice(key.indexOf(":")+1);
+   return n+(isCraftOnlyEquipment(iid)?achievementNum(qty):0);
+  },0);
+  return oldDrops+crafts;
+ }
  if(metric==="species")return Object.values(state.dex||{}).filter(n=>achievementNum(n)>0).length;
  if(metric==="sold")return achievementNum(state.itemsSold);
  if(metric==="banked")return achievementNum(state.itemsBanked);
@@ -1055,7 +1063,9 @@ function droppableResource(id){
 
 function queueLoot(id,n=1){
  id=String(id);n=Math.max(1,Math.floor(Number(n)||1));
- if(!core.items[id])return false;
+ // Cette poche reçoit exclusivement des butins de combat, jamais d'équipement.
+ // Les équipements préexistants dans les anciennes sauvegardes sont préservés.
+ if(!core.items[id]||isCraftOnlyEquipment(id))return false;
  const bag=state.pendingLoot||{};
  if(!bag[id]&&Object.keys(bag).filter(x=>bag[x]>0).length>=250){
   state.action=null;toast("La poche de butin est pleine : libère des objets avant de continuer.");return false;
