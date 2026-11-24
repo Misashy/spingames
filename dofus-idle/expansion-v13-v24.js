@@ -64,21 +64,24 @@ function ensure(s){
 function dungeonCount(s){return Object.values(s.dungeonClears||{}).reduce((n,v)=>n+Math.max(0,Number(v)||0),0)}
 function petBonus(e){const p=PETS.find(p=>p.id===e.petActive);return p&&e.pets[p.id]?p.bonus+Math.min(8,Math.floor((e.pets[p.id].xp||0)/30)):0}
 function damageBonus(s){
- const e=ensure(s),rune=Object.values(e.runes).reduce((n,v)=>n+Math.min(5,Math.max(0,Number(v)||0)),0);
+ const e=ensure(s),rune=[...new Set(Object.values(s.equipment||{}).filter(Boolean).map(String))].reduce((n,id)=>n+Math.min(5,Math.max(0,Number(e.runes[id])||0)),0);
  const eggs=DOFUS.filter(d=>e.dofus[d.id]).reduce((n,d)=>n+d.bonus,0);
- return Math.min(160,rune+eggs+petBonus(e)+Math.min(20,Number(e.guild.forge)||0)*2+Math.min(50,Number(e.dreams.wins)||0)*.15);
+ return Math.min(160,rune+eggs+petBonus(e)+Math.min(10,Number(e.guild.forge)||0)*2+Math.min(20,Number(e.guild.bossTraining)||0)*2+Math.min(50,Number(e.dreams.wins)||0)*.15);
 }
 function defenseBonus(s){const e=ensure(s);return Math.min(80,(Number(e.guild.rempart)||0)*3+Math.floor(petBonus(e)/2))}
 function onVictory(s,m,a){
  const e=ensure(s);
  e.specialKills+=1;
- e.shards+=Math.random()<.12?1:0;
+ e.shards+=Math.random()<(e.hardMode?.30:.12)?1:0;
  if(e.petActive&&e.pets[e.petActive])e.pets[e.petActive].xp=(Number(e.pets[e.petActive].xp)||0)+1;
  // Les contrats restent passifs et les mêmes victoires ne sont pas dupliquées.
  if(e.expedition&&e.expedition.kind==="hunt"&&String(a.id)===String(e.expedition.monsterId))
   e.expedition.progress=Math.min(e.expedition.target,e.expedition.progress+1);
 }
-function onCraft(s,job,id,quantity){const e=ensure(s);e.guildTokens+=Math.floor(Math.max(0,quantity)/10)}
+function onCraft(s,job,id,quantity){
+ const e=ensure(s),count=Math.max(0,Number(s.craftedRecipes?.[job+":"+id])||0);
+ if(count>0&&count%10===0)e.guildTokens++;
+}
 function onDungeon(s,zoneId){
  const e=ensure(s);e.bossWins++;e.sigils++;e.guildTokens+=2;
  if(!e.bossClaims["first-"+zoneId]){e.bossClaims["first-"+zoneId]=true;e.shards+=2}
@@ -103,7 +106,10 @@ function sectionCombat(s,a,root){
  "Le combat conserve son rythme idle. Les résistances et les phases spéciales des boss déjà existantes restent actives.");
  badge(c,bonusLabel(s));
  text(c,"Éclats de rune : "+e.shards+" • Sceaux de boss : "+e.sigils);
- text(c,"Les monstres battus ont "+e.specialKills+" défaites à leur actif depuis l'extension. Chaque victoire peut générer un éclat de rune (12 %).");
+ text(c,"Victoires depuis l'extension : "+e.specialKills+". Mode normal : 12 % d'éclat, mode défi : 30 % mais les ennemis frappent plus fort.");
+ c.append(button(e.hardMode?"⚠️ Mode défi actif — désactiver":"Activer le mode défi (+35 % dégâts reçus)",()=>{
+  e.hardMode=!e.hardMode;commit(a);
+ }));
  navigateCard(c,"Ouvrir les combats",()=>a.nav("combat"));
 }
 function sectionBuilds(s,a,root){
@@ -138,7 +144,8 @@ function sectionForgemagie(s,a,root){
   const line=h("div","fd-exp-line");
   text(line,a.itemName(id)+" · Rune "+lvl+"/5","strong");
   line.append(button("Améliorer : "+cost+" 🪙 / "+shards+" ✨",()=>{
-   if(!spend(s,cost)||e.shards<shards){a.toast("Kamas ou éclats insuffisants.");return}
+   if(s.kamas<cost||e.shards<shards){a.toast("Kamas ou éclats insuffisants.");return}
+   s.kamas-=cost;
    e.shards-=shards;e.runes[id]=lvl+1;commit(a);
   },lvl>=5||s.kamas<cost||e.shards<shards));
   c.append(line);
@@ -327,5 +334,5 @@ function view(s,api){
  SECTIONS[e.tab](s,api,root);
  return root;
 }
-window.DOFUS_IDLE_EXPANSION={ensure,view,onVictory,onCraft,onDungeon,damageBonus,defenseBonus,TABS};
+window.DOFUS_IDLE_EXPANSION={ensure,view,onVictory,onCraft,onDungeon,damageBonus,defenseBonus,enemyMultiplier:s=>ensure(s).hardMode?1.35:1,TABS};
 })();
