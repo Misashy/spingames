@@ -14,6 +14,7 @@ on:
       - 'dofus-idle/tests/v10-v12.cjs'
       - 'dofus-idle/tests/v13-v24.cjs'
       - 'dofus-idle/tests/combat-tactics-v13-v14.cjs'
+      - 'dofus-idle/tests/craft-only-equipment.cjs'
       - 'dofus-idle/combat-tactics-v13-v14.js'
       - 'dofus-idle/combat-tactics-v13-v14.css'
       - 'dofus-idle/expansion-v13-v24.js'
@@ -49,3 +50,4 @@ jobs:
           node dofus-idle/tests/v10-v12.cjs
           node dofus-idle/tests/v13-v24.cjs
           node dofus-idle/tests/combat-tactics-v13-v14.cjs
+          node dofus-idle/tests/craft-only-equipment.cjs
