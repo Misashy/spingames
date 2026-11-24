@@ -12,6 +12,9 @@ on:
       - 'dofus-idle/tests/spells-v8.cjs'
       - 'dofus-idle/tests/adventure-v9.cjs'
       - 'dofus-idle/tests/v10-v12.cjs'
+      - 'dofus-idle/tests/v13-v24.cjs'
+      - 'dofus-idle/expansion-v13-v24.js'
+      - 'dofus-idle/expansion-v13-v24.css'
       - 'dofus-idle/cloud-config.js'
       - 'dofus-idle/v10-v12.css'
       - 'dofus-idle/assets/spells/catalog.json'
@@ -32,6 +35,7 @@ jobs:
       - name: Vérifier le moteur et les UI
         run: |
           node --check dofus-idle/game-full.js
+          node --check dofus-idle/expansion-v13-v24.js
           node dofus-idle/tests/smoke-full.cjs
           node dofus-idle/tests/achievements-full.cjs
           node dofus-idle/tests/bank-character-combat.cjs
@@ -39,3 +43,4 @@ jobs:
           node dofus-idle/tests/spells-v8.cjs
           node dofus-idle/tests/adventure-v9.cjs
           node dofus-idle/tests/v10-v12.cjs
+          node dofus-idle/tests/v13-v24.cjs
