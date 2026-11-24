@@ -15,6 +15,9 @@ on:
       - 'dofus-idle/tests/v13-v24.cjs'
       - 'dofus-idle/tests/combat-tactics-v13-v14.cjs'
       - 'dofus-idle/tests/craft-only-equipment.cjs'
+      - 'dofus-idle/tests/craft-planner.cjs'
+      - 'dofus-idle/craft-planner.js'
+      - 'dofus-idle/craft-planner.css'
       - 'dofus-idle/combat-tactics-v13-v14.js'
       - 'dofus-idle/combat-tactics-v13-v14.css'
       - 'dofus-idle/expansion-v13-v24.js'
@@ -41,6 +44,7 @@ jobs:
           node --check dofus-idle/game-full.js
           node --check dofus-idle/expansion-v13-v24.js
           node --check dofus-idle/combat-tactics-v13-v14.js
+          node --check dofus-idle/craft-planner.js
           node dofus-idle/tests/smoke-full.cjs
           node dofus-idle/tests/achievements-full.cjs
           node dofus-idle/tests/bank-character-combat.cjs
@@ -51,3 +55,4 @@ jobs:
           node dofus-idle/tests/v13-v24.cjs
           node dofus-idle/tests/combat-tactics-v13-v14.cjs
           node dofus-idle/tests/craft-only-equipment.cjs
+          node dofus-idle/tests/craft-planner.cjs
