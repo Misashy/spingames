@@ -152,7 +152,8 @@ function classSpells(){return CLASS_SPELLS[state.classId]||CLASS_SPELLS.iop}
 function spellReady(spell,a=state.action){
  return !!a&&a.type==="combat"&&(!a.respawnRemaining)&&
   playerLevel()>=spell[3]&&(Number(a.spellCooldowns?.[spell[0]])||0)<=0&&
-  (Number(a.spellGlobalTimer)||0)<=0;
+  (Number(a.spellGlobalTimer)||0)<=0&&
+  (window.DOFUS_IDLE_TACTICS?.canCast(a,state,key=>gearStat(key),spell)!==false);
 }
 function spellAutoEnabled(id){return state.spellPreferences?.[state.classId+":"+id]!==false}
 function toggleSpellAuto(id){
@@ -170,6 +171,7 @@ function ensureSpellAction(a){
  a.spellCooldowns=a.spellCooldowns||{};
  a.spellBuffs=a.spellBuffs||{};
  a.spellHistory=a.spellHistory||[];
+ window.DOFUS_IDLE_TACTICS?.ensure(a,state,key=>gearStat(key));
 }
 function spellBuff(a,key){return a?.spellBuffs?.[key]?.remaining>0?a.spellBuffs[key].value:0}
 function combatAttackInterval(a=state.action){
@@ -239,8 +241,9 @@ function spellHit(a,m,spell,multiplier=1){
  const bonus=(statValue(elem)+gearStat(elem)+gearStat("power"))*.035;
  const crit=Math.random()<effectiveCombatCrit(a);
  const threshold=spell[5]==="execute"&&a.enemyHp/m[2]<=.4?1.65:1;
- const total=Math.max(1,Math.round((effectiveCombatDamage(a)*spell[6]*multiplier+bonus)*
+ const raw=Math.max(1,Math.round((effectiveCombatDamage(a)*spell[6]*multiplier+bonus)*
   threshold*(crit?1.7:1)));
+ const total=window.DOFUS_IDLE_TACTICS?.elementalHit(raw,a.id,m[1],spell[8]||"neutre").damage||raw;
  const amount=isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier"?Math.max(1,Math.round(total*.65)):total;
  const hit=Math.min(Math.max(0,a.enemyHp),amount);
  a.enemyHp=Math.max(0,a.enemyHp-amount);
@@ -252,7 +255,8 @@ function castClassSpell(spellId,manual=false){
  if(!spell||!a||a.type!=="combat"||!world.monsters[String(a.id)]){if(manual)toast("Lance un combat pour utiliser tes sorts.");return false}
  ensureSpellAction(a);
  if(playerLevel()<spell[3]){if(manual)toast("Sort débloqué au niveau "+spell[3]+".");return false}
- if(!spellReady(spell,a)){if(manual)toast("Ce sort est en recharge ou le monstre est vaincu.");return false}
+ if(!spellReady(spell,a)){if(manual)toast("Sort en recharge ou PA insuffisants.");return false}
+ if(window.DOFUS_IDLE_TACTICS?.consume(a,state,key=>gearStat(key),spell)===false)return false;
  const m=world.monsters[String(a.id)],type=spell[5],amount=spell[6];
  let text="";
  if(["strike","blast","execute","leech"].includes(type)){
@@ -300,6 +304,7 @@ function castClassSpell(spellId,manual=false){
 }
 function advanceSpellTimers(a,dt){
  ensureSpellAction(a);
+ window.DOFUS_IDLE_TACTICS?.advance(a,state,key=>gearStat(key),dt);
  a.spellClock=(a.spellClock||0)+dt;
  a.spellGlobalTimer=Math.max(0,(a.spellGlobalTimer||0)-dt);
  for(const key of Object.keys(a.spellCooldowns))
@@ -348,7 +353,13 @@ function castAutoSpell(a){
  if(a.spellClock<2||a.spellGlobalTimer>0||a.respawnRemaining||a.enemyHp<=0)return false;
  const available=classSpells().filter(sp=>spellAutoEnabled(sp[0])&&spellReady(sp,a));
  // Le soigneur n'emploie pas ses soins si les PV sont quasiment pleins.
- const chosen=available.find(sp=>
+ const mode=state.tacticalPolicy||"balanced";
+ const ordered=available.slice().sort((x,y)=>{
+  const rank=sp=>mode==="survival"?["heal","shield","regen","armor","evade"].includes(sp[5])?0:2:
+   mode==="offense"?["execute","blast","strike","dot","leech"].includes(sp[5])?0:2:1;
+  return rank(x)-rank(y);
+ });
+ const chosen=ordered.find(sp=>
   (sp[5]!=="heal"&&sp[5]!=="regen")||state.hp/maxHp()<.78);
  if(!chosen)return false;
  return castClassSpell(chosen[0],false);
@@ -893,7 +904,7 @@ function fresh(){
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
   craftedRecipes:{},jobCraftCount:{},craftQueue:[],zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
-  spellPreferences:{},spellCasts:0,spellCastsById:{},
+  spellPreferences:{},spellCasts:0,spellCastsById:{},tacticalPolicy:"balanced",
   dungeonClears:{},dungeonLastClear:"",questClaims:{},collectionClaims:{},unlockedTitles:[],selectedTitle:"",
   automation:{lootMode:"manual",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0},
   lastAt:now(),totalSeconds:0,migrated:false};
@@ -904,7 +915,7 @@ function load(){
  if(raw?.version===2&&raw.jobs&&raw.bank){
   return Object.assign(fresh(),raw,{jobs:raw.jobs||{},bank:raw.bank||{},equipment:{...fresh().equipment,...raw.equipment},upgrades:{...fresh().upgrades,...raw.upgrades},gearDrops:raw.gearDrops||{},pendingLoot:raw.pendingLoot||{},characteristics:raw.characteristics||{},achievements:raw.achievements||{},visitedZones:raw.visitedZones||{},visitedRegions:raw.visitedRegions||{},
   craftedRecipes:raw.craftedRecipes||{},jobCraftCount:raw.jobCraftCount||{},craftQueue:Array.isArray(raw.craftQueue)?raw.craftQueue.filter(e=>e&&e.id&&e.job&&Number(e.remaining)>0).slice(0,20):[],zoneKills:raw.zoneKills||{},regionZoneCount:raw.regionZoneCount||{},trackedAchievements:Array.isArray(raw.trackedAchievements)?raw.trackedAchievements.slice(0,3):[],
-  spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{},
+  spellPreferences:raw.spellPreferences&&typeof raw.spellPreferences==="object"?raw.spellPreferences:{},spellCasts:Number(raw.spellCasts)||0,spellCastsById:raw.spellCastsById||{},tacticalPolicy:["balanced","offense","survival"].includes(raw.tacticalPolicy)?raw.tacticalPolicy:"balanced",
   dungeonClears:raw.dungeonClears||{},questClaims:raw.questClaims||{},collectionClaims:raw.collectionClaims||{},
   unlockedTitles:Array.isArray(raw.unlockedTitles)?raw.unlockedTitles:[],selectedTitle:raw.selectedTitle||"",
   automation:{...fresh().automation,...(raw.automation||{})}});
@@ -1269,10 +1280,12 @@ function dungeonBossSpecial(a,m,dt){
  d.specialClock=0;
  const shield=Math.min(Number(a.spellShield)||0,Math.ceil(m[1]*.35)+10);
  const attack=Math.max(1,Math.round(m[1]*.36+11));
- const damage=Math.max(0,Math.round(attack*(d.bossPhase==="enrage"?1.5:1))-shield);
+ let damage=Math.max(0,Math.round(attack*(d.bossPhase==="enrage"?1.5:1))-shield);
+ const special=window.DOFUS_IDLE_TACTICS?.bossSpecial(a,state,d.zoneId,damage);
+ if(special)damage=special.damage;
  a.spellShield=Math.max(0,(a.spellShield||0)-shield);
  state.hp=Math.max(0,state.hp-damage);
- emitSpellFloat("player","ATTAQUE DU BOSS −"+damage,"💢");
+ emitSpellFloat("player","ATTAQUE DU BOSS −"+damage+(special?.description?" · "+special.description:""),"💢");
  if(state.hp<=0){
   state.action=null;state.hp=maxHp();
   toast("💀 Défaite dans "+world.zones[d.zoneId][0]+".");
@@ -1349,6 +1362,7 @@ function tick(dt){
    if(!a.dungeonRun&&a.nextId){a.id=Number(a.nextId);state.selectedMonster=String(a.nextId);a.nextId=null}
    const next=world.monsters[String(a.id)];
    if(next){a.enemyHp=next[2];a.enemyTick=0;a.progress=0;a.spellDot=null;
+    window.DOFUS_IDLE_TACTICS?.resetOpponent(a,state,key=>gearStat(key));
     delete a.spellBuffs.slow;delete a.spellBuffs.weaken;}
   }
   return true;
@@ -1409,6 +1423,8 @@ function tick(dt){
    const crit=effectiveCombatCrit(a);
    const isCritical=Math.random()<crit;
    let hit=Math.max(1,Math.round(effectiveCombatDamage(a)*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
+   const element=({force:"terre",intelligence:"feu",chance:"eau",agilite:"air"})[CLASS_BY_ID[state.classId]?.[5]]||"neutre";
+   hit=window.DOFUS_IDLE_TACTICS?.elementalHit(hit,a.id,m[1],element).damage||hit;
    if(isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier")hit=Math.max(1,Math.round(hit*.65));
    a.enemyHp-=hit;changed=true;
    emitDamageNumber("enemy",hit,isCritical);
@@ -1436,6 +1452,8 @@ function tick(dt){
     emitSpellFloat("player","Bouclier −"+absorbed,"🛡️");
    }
    enemyDmg=Math.max(0,enemyDmg-absorbed);
+   const tacticalDefense=window.DOFUS_IDLE_TACTICS?.defendHit(a,enemyDmg);
+   if(tacticalDefense){enemyDmg=tacticalDefense.damage;if(tacticalDefense.evaded)emitSpellFloat("player","REPOSITIONNEMENT !","🟢")}
    state.hp=Math.max(0,state.hp-enemyDmg);changed=true;
    automaticHealing(a);
    if(state.action&&Number(autoSettings().stopBelow)>0&&state.hp>0&&state.hp/maxHp()*100<Number(autoSettings().stopBelow)){
@@ -1610,7 +1628,7 @@ function header(){
   B("💾 Sauver",()=>{save();toast("Sauvegarde enregistrée.")},"fd-secondary"));
  $("#topbar").replaceChildren(E("div",{className:"fd-topline"},h,stats),meter(lev.ratio,"fd-head-meter"));
  $("#mobileMoney").textContent=money(state.kamas)+" 🪙";
- $("#buildVersion").textContent="v24.0";
+ $("#buildVersion").textContent="v24.1";
 }
 function searchField(placeholder,value,onvalue){
  return E("input",{type:"search",placeholder,value,className:"fd-search",oninput:e=>{
@@ -2153,6 +2171,13 @@ function spellBookPanel(context="character"){
   grid.append(card);
  }
  root.append(grid);
+ const tactical=window.DOFUS_IDLE_TACTICS?.panel(a,state,key=>gearStat(key),
+  classSpells(),()=>{
+   if(window.DOFUS_IDLE_TACTICS?.switchPosition(a,state,key=>gearStat(key))){
+    toast("🟢 Repositionnement : esquive préparée.");render();save();
+   }
+  },mode=>{state.tacticalPolicy=mode;render();save()});
+ if(tactical)root.append(tactical);
  if(inCombat&&a){
   const values=[
    ["🛡️ Bouclier",Math.round(Number(a.spellShield)||0)],
