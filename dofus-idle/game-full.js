@@ -244,7 +244,8 @@ function spellHit(a,m,spell,multiplier=1){
  const raw=Math.max(1,Math.round((effectiveCombatDamage(a)*spell[6]*multiplier+bonus)*
   threshold*(crit?1.7:1)));
  const total=window.DOFUS_IDLE_TACTICS?.elementalHit(raw,a.id,m[1],spell[8]||"neutre").damage||raw;
- const amount=isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier"?Math.max(1,Math.round(total*.65)):total;
+ const barrier=isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier";
+ const amount=barrier?Math.max(1,Math.round(total*(window.DOFUS_IDLE_TACTICS?.bossBarrierFactor(a)||.65))):total;
  const hit=Math.min(Math.max(0,a.enemyHp),amount);
  a.enemyHp=Math.max(0,a.enemyHp-amount);
  emitDamageNumber("enemy",amount,crit,spell[2]+" "+spell[1]);
@@ -1425,7 +1426,8 @@ function tick(dt){
    let hit=Math.max(1,Math.round(effectiveCombatDamage(a)*(isCritical?(state.classId==="ecaflip"?2:1.7):1)));
    const element=({force:"terre",intelligence:"feu",chance:"eau",agilite:"air"})[CLASS_BY_ID[state.classId]?.[5]]||"neutre";
    hit=window.DOFUS_IDLE_TACTICS?.elementalHit(hit,a.id,m[1],element).damage||hit;
-   if(isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier")hit=Math.max(1,Math.round(hit*.65));
+   if(isDungeonBoss(a)&&a.dungeonRun.bossPhase==="bouclier")
+    hit=Math.max(1,Math.round(hit*(window.DOFUS_IDLE_TACTICS?.bossBarrierFactor(a)||.65)));
    a.enemyHp-=hit;changed=true;
    emitDamageNumber("enemy",hit,isCritical);
    if(a.enemyHp<=0){victory(m,a);break}
