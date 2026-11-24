@@ -4,6 +4,14 @@ Jeu idle sur navigateur inspiré par Melvor Idle, utilisant les noms, métiers, 
 
 **Jouer :** https://misashy.github.io/spingames/dofus-idle/
 
+## Mise à jour du 24 novembre 2026 — équipements uniquement via le craft
+
+**Règle actuelle :** les monstres et boss ne donnent plus directement d'équipements, y compris via l'ancien tirage bonus de 3 % / 5 %. Le combat procure des ressources et autres butins non équipables ; les équipements se fabriquent ensuite à partir de ces ingrédients dans les métiers. Le bonus de fin de donjon, lorsqu'un butin de ressource existe, est exclusivement une ressource.
+
+Les équipements déjà possédés (banque, équipement porté ou anciens butins en attente) **ne sont pas supprimés**. Les recettes, matériaux et anciens progrès sont conservés. Les objets pour lesquels aucune recette n'existe dans la base actuelle ne deviennent pas automatiquement fabricables.
+
+Les descriptions historiques des versions antérieures figurant plus bas peuvent encore évoquer les « drops de stuff bonus » : ce système est désormais désactivé et supprimé du moteur.
+
 ## Données intégrées
 
 Source : https://github.com/ledouxm/dofus-sqlite/releases/tag/v6.0_3.7.14.18
