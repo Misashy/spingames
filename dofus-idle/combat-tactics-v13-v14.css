@@ -1,0 +1,11 @@
+/* Ajustement tactique V13–V14 : PA/PM, résistances et préférences des sorts */
+.fd-tactical-panel{display:grid;gap:12px;margin-top:16px;padding:16px;background:linear-gradient(125deg,#233d48,#25363d);border:1px solid #79a3a0;border-radius:9px}
+.fd-tactical-panel h3{font-size:15px;color:#f6e0a1;margin:0}
+.fd-tactical-panel p{margin:0;font-size:12px;line-height:1.5;color:#c3d6de}
+.fd-tactical-stats{display:flex;gap:10px;flex-wrap:wrap}
+.fd-tactical-stats strong{border-radius:7px;padding:9px 14px;background:#192d40;color:#c8edff;border:1px solid #67879c;font-size:14px}
+.fd-tactical-options{display:flex;gap:12px;flex-wrap:wrap}
+.fd-tactical-options label{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:700;color:#e9ead6}
+.fd-tactical-options .fd-select{min-width:210px}
+.fd-tactical-panel .fd-exp-button{justify-self:start}
+@media(max-width:680px){.fd-tactical-panel{padding:12px}.fd-tactical-panel .fd-exp-button{width:100%}.fd-tactical-options label,.fd-tactical-options select{width:100%}}
