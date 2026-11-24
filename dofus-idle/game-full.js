@@ -913,7 +913,7 @@ function fresh(){
   action:null,selectedMonster:"979",selectedZone:"444",selectedRegion:"",combatMode:"zones",combatSort:"asc",gearDrops:{},unlocked:{},dex:{},log:[],
   pendingLoot:{},lootCount:0,characteristics:{},achievements:{},visitedZones:{},visitedRegions:{},classSelected:false,
   craftedRecipes:{},jobCraftCount:{},craftQueue:[],zoneKills:{},itemsSold:0,itemsBanked:0,regionZoneCount:{},trackedAchievements:[],
-  spellPreferences:{},spellCasts:0,spellCastsById:{},tacticalPolicy:"balanced",
+  spellPreferences:{},spellCasts:0,spellCastsById:{},tacticalPolicy:"balanced",plannerSetId:"",
   dungeonClears:{},dungeonLastClear:"",questClaims:{},collectionClaims:{},unlockedTitles:[],selectedTitle:"",
   automation:{lootMode:"manual",sellValue:20,healBelow:0,stopBelow:0,switchAfter:0},
   lastAt:now(),totalSeconds:0,migrated:false};
@@ -1593,7 +1593,7 @@ function sidebar(){
     ...(core.recipes[id]?.length?[["craft:"+id,"↳","Recettes "+jobName(id)]]:[])] )],
   ["MÉTIERS DE FABRICATION",Object.keys(core.jobs).filter(id=>!core.gather[id]&&(core.recipes[id]||[]).length>0).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
   ["SPÉCIALISATIONS",Object.keys(core.jobs).filter(id=>!core.gather[id]&&!(core.recipes[id]||[]).length).map(id=>["job:"+id,jobIcon(id),jobName(id)])],
-  ["CATALOGUE",[["recipes","🔧","Toutes les recettes"]]]
+  ["CATALOGUE",[["planner","🧰","Guide de fabrication"],["recipes","🔧","Toutes les recettes"]]]
  ];
  const nav=E("div",{className:"fd-nav"});
  for(const [title,entries] of groups){
@@ -1618,7 +1618,7 @@ function sidebar(){
 function header(){
  const view=state.view,job=view.startsWith("job:")||view.startsWith("craft:")?view.split(":")[1]:null;
  const lev=job?levelOf(state.jobs[job]||0):levelOf(state.playerXp);
- const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",achievements:"Succès",recipes:"Toutes les recettes",bestiary:"Bestiaire",expansion:"Chroniques des Douze"}[view]||"DOFUS IDLE");
+ const tit=job?jobName(job)+(view.startsWith("craft:")?" · Recettes":""):({bank:"Banque",shop:"Magasin",combat:"Combats",character:"Personnage",achievements:"Succès",recipes:"Toutes les recettes",bestiary:"Bestiaire",expansion:"Chroniques des Douze",planner:"Guide de fabrication"}[view]||"DOFUS IDLE");
  const h=E("div",{className:"fd-headline"},job?jobSprite(job,"fd-head-icon"):E("span",{className:"fd-head-icon"},"✦"),
   E("div",{},E("h1",{},tit),E("small",{},"DOFUS IDLE · Monde des Douze")));
  const stats=E("div",{className:"fd-headstats"},
@@ -3139,6 +3139,9 @@ function collectionView(){
     pieces.append(item);
    }
    card.append(pieces,
+    B("🔨 Préparer la fabrication",()=>{
+     state.plannerSetId=id;runNav("planner");
+    },"fd-secondary"),
     B(claimed?"✓ Récompense reçue":p.completed?"🎁 Valider la collection":
       "Panoplie incomplète",()=>claimSetCollection(id),"fd-button",claimed||!p.completed));
    grid.append(card);
@@ -3289,6 +3292,19 @@ function renderView(){
  else if(v==="combat")node=zoneView();
  else if(v==="bestiary")node=bestiaryView();
  else if(v==="recipes")node=craftingView(null,true);
+ else if(v==="planner"){
+  const planner=window.DOFUS_IDLE_CRAFT_PLANNER;
+  node=planner?planner.view({
+   core,world,sets:equipmentData?.sets||{},state,dropIndex,
+   itemName,itemLevel,jobName,jobLevel,isEquipment:isCraftOnlyEquipment,
+   level:playerLevel,image:id=>itemSprite(id,"fd-planner-sprite"),
+   nav:runNav,
+   selectSet:id=>{state.plannerSetId=id;render();save()},
+   goGather:(job,id)=>{runNav("job:"+job);q=itemName(id);page=0;renderView()},
+   goCraft:(job,id)=>{runNav("craft:"+job);q=itemName(id);page=0;renderView()},
+   goMonster:(id,zone)=>focusMonster(id,zone)
+  }):E("div",{className:"fd-error"},"Guide de fabrication indisponible. Recharge la page.");
+ }
  else if(v==="achievements")node=achievementsView();
  else if(v==="quests")node=questsView();
  else if(v==="collection")node=collectionView();
